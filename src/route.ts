@@ -12,14 +12,16 @@ import { useSyncExternalStore } from 'react';
 export type Route =
   | { kind: 'canvas' }
   | { kind: 'docs' }
+  | { kind: 'brief' }
   | { kind: 'node'; id: string }
   | { kind: 'wiki'; id: string | null; nodeId?: string }
   | { kind: 'slides'; id: string | null; nodeId?: string; slide?: number; presenter?: boolean };
 
 export function parseRoute(hash: string): Route {
-  const [, kind, id] = hash.match(/^#\/(wiki|node|slides|docs)(?:\/([^/?]+))?/) ?? [];
+  const [, kind, id] = hash.match(/^#\/(wiki|node|slides|docs|brief)(?:\/([^/?]+))?/) ?? [];
   const decoded = id ? decodeURIComponent(id) : null;
   if (kind === 'docs') return { kind: 'docs' };
+  if (kind === 'brief') return { kind: 'brief' };
   if (kind === 'wiki' || kind === 'slides') {
     const query = new URLSearchParams(hash.split('?')[1]);
     const nodeId = query.get('node');

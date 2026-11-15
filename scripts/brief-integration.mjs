@@ -1,0 +1,114 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { resolve, join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { chromium, expect } from '@playwright/test';
+
+const dir = await mkdtemp(join(tmpdir(), 'marmerlade-brief-browser-'));
+const file = join(dir, 'workspace.marmerlade.json');
+const executable = resolve(process.argv[2] ?? 'dist/cli.js');
+const artifacts = resolve(process.env.ARTIFACT_DIR ?? '../devh-29-evidence');
+await mkdir(artifacts, { recursive: true });
+await writeFile(join(dir, 'README.md'), '# Test request service\nReceives a request, checks it, stores a result and returns a response.\n');
+execFileSync('git', ['init', '-q', dir]);
+let client;
+let browser;
+async function connect() {
+  const transport = new StdioClientTransport({ command: process.execPath, args: [executable, '--file', file, '--repo', dir], stderr: 'pipe' });
+  const next = new Client({ name: 'brief-integration', version: '1.0.0' });
+  await next.connect(transport); return next;
+}
+async function call(name, args = {}) {
+  const result = await client.callTool({ name, arguments: args });
+  assert.ok(!result.isError, JSON.stringify(result));
+  return JSON.parse(result.content.find(part => part.type === 'text').text);
+}
+const source = 'flowchart LR\n start[Read request] --> api\n subgraph service[Service]\n api[Check request] --> db[(Store result)]\n end\n db --> done[Return response]';
+const draft = { title: 'Request to response', audience: 'New contributors', goal: 'Trace one request through the service', workflow: 'Read, check, store, reply', source, evidence: [{ path: 'README.md', line: 2, note: 'Describes the request service workflow in this test fixture.' }], assumptions: ['This is constructed test data; no service is executed.'], outputs: ['mermaid', 'svg', 'png'] };
+try {
+  client = await connect();
+  const repository = await call('inspect_repository');
+  assert.ok(repository.files.includes('README.md'));
+  assert.ok((await call('read_repository_file', { path: 'README.md' })).text.includes('Test request service'));
+  const proposed = await call('create_brief', { revision: 0, ...draft });
+  assert.equal((await call('get_workspace')).diagram.nodes.length, 0);
+  const opened = await call('open_workspace', { view: 'brief', browser: false });
+  assert.equal(opened.url, proposed.url); assert.equal(opened.opened, false);
+  browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto(proposed.url);
+  await expect(page.getByRole('heading', { name: draft.title })).toBeVisible();
+  await expect(page.locator('[aria-label="Proposed diagram"] svg')).toBeVisible();
+  const clippedLabels = await page.locator('[aria-label="Proposed diagram"] .nodeLabel').evaluateAll(labels => labels.flatMap(label => {
+    const box = label.closest('foreignObject');
+    if (!box) return [];
+    const range = document.createRange(); range.selectNodeContents(label);
+    return range.getBoundingClientRect().width > box.getBoundingClientRect().width + 1 ? [label.textContent] : [];
+  }));
+  assert.deepEqual(clippedLabels, [], 'Proposed diagram labels must fit their rendered containers');
+  await page.screenshot({ path: join(artifacts, 'brief-review.png'), fullPage: true });
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.evaluate(() => document.documentElement.dataset.theme = 'dark');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+  await page.screenshot({ path: join(artifacts, 'brief-mobile-dark.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Request changes', exact: true }).click();
+  await page.getByLabel('What should change?').fill('Explain validation before storage.');
+  await page.getByRole('button', { name: 'Send feedback' }).click();
+  await expect(page.getByRole('heading', { name: 'Your feedback' })).toBeVisible();
+  assert.equal((await call('get_brief')).brief.feedback, 'Explain validation before storage.');
+  await call('create_brief', { revision: 0, ...draft, workflow: 'Validate before storing the result' });
+  await expect(page.getByRole('button', { name: 'Approve and generate', exact: true })).toBeEnabled();
+  await call('apply_changes', { revision: 0, changes: [{ kind: 'put_node', node: { id: 'scratch', label: 'Manual canvas edit', shape: 'rect', collapsed: false, parentId: null, position: { x: 0, y: 0 } } }] });
+  await expect(page.getByRole('button', { name: 'Approve and generate', exact: true })).toBeDisabled();
+  await expect(page.getByRole('status')).toContainText('canvas changed');
+  const fresh = await call('create_brief', { revision: 1, ...draft, workflow: 'Validate before storing the result' });
+  await expect(page.getByRole('button', { name: 'Approve and generate', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Approve and generate', exact: true }).click();
+  await expect(page.getByText('Approved and generated', { exact: true })).toBeVisible();
+  const generated = await call('get_workspace'); assert.equal(generated.revision, 2);
+  assert.equal(generated.diagram.nodes.length, 5);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole('link', { name: 'Open editable canvas', exact: true }).click();
+  await expect(page.locator('.react-flow__node[data-id="api"]')).toContainText('Check request');
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Pause flow', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Stop flow', exact: true }).first().click();
+  await page.keyboard.press('[');
+  await expect(page.locator('.react-flow__node[data-id="api"]')).toHaveCount(0);
+  const folded = await call('export_mermaid');
+  assert.ok(folded.source.includes('Check request') && folded.source.includes('Store result'));
+  await page.keyboard.press(']');
+  await expect(page.locator('.react-flow__node[data-id="api"]')).toBeVisible();
+  await page.getByRole('tab', { name: 'Mermaid', exact: true }).click();
+  await page.getByLabel('Mermaid source', { exact: true }).fill(source.replace('Check request', 'Validate request'));
+  await expect.poll(async () => (await call('get_workspace')).diagram.nodes.find(node => node.id === 'api')?.label).toBe('Validate request');
+  await page.getByRole('tab', { name: 'Mermaid', exact: true }).click();
+  for (const format of ['SVG', 'PNG']) {
+    await page.getByRole('button', { name: 'More actions', exact: true }).click();
+    const downloadEvent = page.waitForEvent('download');
+    await page.getByRole('menuitem', { name: `Export ${format}`, exact: true }).click();
+    const download = await downloadEvent; assert.equal(download.suggestedFilename(), `diagram.${format.toLowerCase()}`);
+    const target = join(artifacts, download.suggestedFilename()); await download.saveAs(target);
+    const bytes = await readFile(target);
+    if (format === 'PNG') assert.equal(bytes.subarray(1, 4).toString(), 'PNG');
+    else assert.ok(bytes.toString().includes('<svg') && bytes.toString().includes('Validate request'));
+    assert.ok(bytes.length > 1000);
+  }
+  await page.screenshot({ path: join(artifacts, 'generated-canvas.png') });
+  const finalSource = (await call('export_mermaid')).source;
+  await writeFile(join(artifacts, 'diagram.mmd'), finalSource);
+  const unauthorized = await fetch(`${generated.url}/api/brief/review`, { method: 'POST', body: JSON.stringify({ id: fresh.brief.id, action: 'approve' }) });
+  assert.equal(unauthorized.status, 403);
+  const saved = JSON.parse(await readFile(file, 'utf8')); assert.equal(saved.brief.kind, 'generated');
+  await writeFile(join(artifacts, 'workspace.marmerlade.json'), JSON.stringify(saved, null, 2));
+  assert.deepEqual(errors, []);
+  await browser.close(); browser = undefined;
+  await client.close(); client = await connect();
+  assert.equal((await call('get_brief')).brief.kind, 'generated');
+  assert.equal((await call('get_workspace')).diagram.nodes.find(node => node.id === 'api').label, 'Validate request');
+  console.log('PASS: repository intake, browser feedback, stale approval, generation, folding, playback, manual edits, SVG/PNG/Mermaid export, restart and protected review endpoint');
+} finally { await browser?.close(); await client?.close(); await rm(dir, { recursive: true, force: true }); }

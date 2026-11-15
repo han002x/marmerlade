@@ -42,7 +42,7 @@ across the canvas, wiki, and slides.
 Requires **Node.js 22.12 or newer**.
 
 ```bash
-git clone https://github.com/han002x/merfolk.git marmerlade
+git clone https://github.com/han002x/marmerlade.git marmerlade
 cd marmerlade
 npm install
 npm run dev
@@ -96,7 +96,26 @@ Build the app from your checkout:
 npm run build
 ```
 
-Then register `dist/cli.js` with your MCP client using absolute paths.
+Set up your coding agent in the project you want to explain:
+
+```bash
+node dist/cli.js setup --client codex --repo /absolute/path/to/your-project
+```
+
+Choose `codex`, `claude-code`, or `kiro`. Setup adds project-scoped MCP configuration
+and a workflow skill, preserves existing servers, and checks the built MCP server
+and browser app. Use `--dry-run` to inspect the changes or `--remove` to remove
+Marmerlade's entries. Trust the project and restart your client's connection.
+
+Ask: **Use Marmerlade to explain this repository's main workflow.** Your agent
+reads the repository and proposes a brief. Review its evidence, assumptions,
+diagram, playback order and exports in the browser. Request changes or choose
+**Approve and generate**. Approval creates the editable canvas; a changed canvas
+requires a refreshed brief. Use **More actions → Export SVG / Export PNG**, the
+Mermaid panel, or **Export file** to keep the result.
+
+See [the complete workflow](docs/brief-workflow.md) for packaged installation,
+local preview, and recovery. Manual MCP registration is also supported.
 For clients that use `mcpServers` JSON:
 
 ```json
@@ -135,7 +154,7 @@ See [MCP setup](docs/mcp.md) for the tool reference and saving and recovery beha
 | `.marmerlade.json` | The complete workspace, including diagrams, styling, positions, fold state, wiki pages, and slide decks. |
 | Mermaid | Diagram structure and page/deck references. Document content stays in the JSON workspace. |
 | Slide Markdown | A standalone deck with diagram embeds converted to Mermaid fences. Slidev renders those fences; Marp needs a Mermaid plugin. |
-| PDF / GIF | Print a presentation to PDF, or export a flow playback loop as a GIF. |
+| SVG / PNG / PDF / GIF | Export a canvas image, print slides to PDF, or export a flow playback loop as a GIF. |
 
 Mermaid support covers a [flowchart subset](docs/usage.md#mermaid-support),
 including subgraphs, classic shapes, labeled edges, and icon metadata.

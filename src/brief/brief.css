@@ -1,0 +1,27 @@
+.mf-brief { max-width: 960px; margin: 0 auto; padding: 28px clamp(18px, 5vw, 60px) 80px; color: var(--mf-text); overflow-wrap: anywhere; }
+.mf-brief header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 48px; }
+.mf-brief a { color: inherit; text-underline-offset: 4px; }
+.mf-brief-brand { font-weight: 700; font-size: 22px; text-decoration: none; }
+.mf-brief h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.15; margin: 12px 0 20px; }
+.mf-brief h2 { font-size: 18px; }
+.mf-brief section { margin: 24px 0; }
+.mf-brief p, .mf-brief li, .mf-brief dd { line-height: 1.65; }
+.mf-brief-status { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; opacity: .7; }
+.mf-brief dl { display: grid; grid-template-columns: 100px 1fr; gap: 12px; margin-top: 28px; }
+.mf-brief dt { font-weight: 600; }
+.mf-brief dd { margin: 0; white-space: pre-wrap; }
+.mf-brief-preview { border: 1px solid var(--mf-border); border-radius: 12px; padding: 16px; background: var(--mf-panel); overflow: auto; }
+.mf-brief-preview svg { max-width: 100%; height: auto; }
+.mf-brief pre { overflow: auto; padding: 16px; font-size: 13px; background: var(--mf-panel); }
+.mf-brief li p { margin: 4px 0 16px; }
+.mf-brief [role=alert] { border: 1px solid currentColor; padding: 12px; }
+.mf-brief-actions { border-top: 1px solid var(--mf-border); padding-top: 16px; }
+.mf-brief-buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+.mf-brief button, .mf-brief-primary { padding: 10px 18px; border: 1px solid var(--mf-border); border-radius: 8px; background: var(--mf-panel); color: inherit; font: inherit; cursor: pointer; }
+.mf-brief .mf-brief-primary { display: inline-block; background: var(--mf-text); color: var(--mf-bg); text-decoration: none; font-weight: 600; }
+.mf-brief button:disabled { opacity: .45; cursor: default; }
+.mf-brief form { margin-top: 24px; display: grid; gap: 10px; }
+.mf-brief textarea { width: 100%; box-sizing: border-box; min-height: 100px; padding: 12px; border-radius: 8px; font: inherit; color: inherit; background: var(--mf-panel); border: 1px solid var(--mf-border); }
+.mf-brief form button { justify-self: start; }
+body:has(.mf-brief) { overflow: auto; }
+@media (max-width: 480px) { .mf-brief dl { grid-template-columns: 1fr; gap: 6px; } .mf-brief dd { margin-bottom: 12px; } }

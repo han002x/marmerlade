@@ -11,6 +11,8 @@ const svgCache = new Map<string, string>();
 let seq = 0;
 
 async function renderDiagramSvg(source: string, appearance: Appearance) {
+  await document.fonts.load(`16px ${FONTS[appearance.contentFont]}`);
+  await document.fonts.ready;
   const key = `${JSON.stringify(appearance)}\u0000${source}`;
   let svg = svgCache.get(key);
   if (!svg) {

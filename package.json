@@ -11,8 +11,9 @@
     "preview": "vite preview --outDir dist/web",
     "test:e2e": "playwright test",
     "prepack": "npm run build",
-    "test:mcp": "node --experimental-strip-types scripts/workspace-test.ts",
-    "test:mcp:integration": "node scripts/mcp-integration.mjs"
+    "test:mcp": "node --experimental-strip-types scripts/workspace-test.ts && node --experimental-strip-types scripts/brief-test.ts",
+    "test:mcp:integration": "node scripts/mcp-integration.mjs && node scripts/brief-integration.mjs",
+    "test:setup": "node scripts/setup-test.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.4",
@@ -50,6 +51,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "roughjs": "^4.6.6",
+    "smol-toml": "^1.9.1",
     "ws": "^8.23.0",
     "zod": "^4.6.7",
     "zustand": "^5.0.8"
@@ -78,6 +80,7 @@
     "dist/cli.js",
     "dist/web",
     "dist/guide.md",
+    "dist/skills",
     "dist/example.marmerlade.json"
   ],
   "engines": {

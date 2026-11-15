@@ -1,0 +1,6 @@
+[environments.preview]
+label = "Marmerlade workflow preview"
+start = "npm ci && npm run build && node dist/cli.js preview --file .preview/workspace.marmerlade.json --port $MULTICA_PORT --no-open"
+url = "http://127.0.0.1:$MULTICA_PORT"
+ready = "http://127.0.0.1:$MULTICA_PORT/api/health"
+ttl = "24h"

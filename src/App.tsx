@@ -61,6 +61,8 @@ import {
   clearSaved,
 } from './persist';
 import { exportGif } from './gif';
+import { exportImage } from './imageExport';
+import { isLiveWorkspace } from './liveWorkspace';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
 import type { DiagramNode as DNode } from './types';
@@ -292,6 +294,18 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
       setExporting(false);
     }
   }, [exporting, fitView, setSelection]);
+
+  const saveImage = useCallback(async (format: 'svg' | 'png') => {
+    if (exporting) return;
+    const element = document.querySelector<HTMLElement>('.react-flow');
+    if (!element) return;
+    setExporting(true); setSelection([], []);
+    fitView({ padding: 0.2, duration: 0 });
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    try { await exportImage(element, format); }
+    catch (error) { flash(error instanceof Error ? error.message : 'Image export failed'); }
+    finally { setExporting(false); }
+  }, [exporting, fitView, setSelection, flash]);
 
   const hidden = useMemo(() => hiddenNodeIds(), [hiddenNodeIds, nodes]);
   // not drawn as a node: folded away, or an unfolded group (just a sheet)
@@ -983,6 +997,8 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
           </ToolButton>
           {menuOpen && (
             <div className="mf-menu" role="menu">
+              {isLiveWorkspace() && <button className="mf-menu-item" role="menuitem" onClick={() => { setMenuOpen(false); window.location.hash = '#/brief'; }}><Icon name="book" /><span>Review brief</span></button>}
+              {(['svg', 'png'] as const).map(format => <button key={format} className="mf-menu-item" role="menuitem" disabled={exporting} onClick={() => { setMenuOpen(false); void saveImage(format); }}><Icon name="export" /><span>Export {format.toUpperCase()}</span></button>)}
               <button
                 className="mf-menu-item"
                 role="menuitem"

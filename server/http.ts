@@ -6,8 +6,9 @@ import { randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { snapshotSchema } from '../src/workspaceSchema.ts';
 import { Conflict, type Workspace } from './workspace.ts';
+import { reviewSchema } from '../src/briefSchema.ts';
 
-export async function serveWorkspace(workspace: Workspace) {
+export async function serveWorkspace(workspace: Workspace, options: { port?: number } = {}) {
   const token = randomBytes(32).toString('hex');
   const root = fileURLToPath(new URL('./web/', import.meta.url));
   let origin = '';
@@ -16,6 +17,18 @@ export async function serveWorkspace(workspace: Workspace) {
     try {
       if (req.headers.host !== new URL(origin).host) { res.writeHead(403).end(); return; }
       const url = new URL(req.url ?? '/', origin);
+      if (url.pathname === '/api/health' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true })); return;
+      }
+      if (url.pathname === '/api/brief' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(workspace.briefStatus())); return;
+      }
+      if (url.pathname === '/api/brief/review' && req.method === 'POST') {
+        if (req.headers['x-marmerlade-token'] !== token || req.headers.origin !== origin) { res.writeHead(403).end(); return; }
+        const review = reviewSchema.parse(JSON.parse(await body(req)));
+        const saved = await workspace.reviewBrief(review);
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(saved)); return;
+      }
       if (url.pathname === '/api/bootstrap' && req.method === 'GET') {
         res.setHeader('Cache-Control', 'no-store');
         res.setHeader('Content-Type', 'application/json');
@@ -48,7 +61,7 @@ export async function serveWorkspace(workspace: Workspace) {
     const payload = JSON.stringify(workspace.snapshot());
     for (const client of sockets.clients) if (client.readyState === WebSocket.OPEN) client.send(payload);
   });
-  await new Promise<void>((accept, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', accept); });
+  await new Promise<void>((accept, reject) => { server.once('error', reject); server.listen(options.port ?? 0, '127.0.0.1', accept); });
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Missing server address');
   origin = `http://127.0.0.1:${address.port}`;

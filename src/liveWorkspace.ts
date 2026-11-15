@@ -87,7 +87,7 @@ export async function initializeWorkspace() {
   async function reconnect() {
     try {
       const next = await bootstrap(); token = next.token;
-      // A new process starts its revision counter again. Treat this as a conflict if a draft exists.
+      // A restarted or restored workspace may differ; preserve the local draft on conflict.
       if (dirty() && (next.revision !== revision || JSON.stringify(next.diagram) !== accepted)) report('conflict', 'The workspace changed. Download your draft before reloading.');
       else if (!dirty()) apply(next);
       else { report('saved'); void save(); }

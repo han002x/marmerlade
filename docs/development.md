@@ -21,6 +21,7 @@ npm test
 npm run test:mcp
 npm run build
 npx playwright install chromium
+npm run test:setup
 npm run test:e2e
 npm run test:mcp:integration
 ```
@@ -73,7 +74,11 @@ The live workspace adds these modules:
 
 | File | Role |
 | --- | --- |
-| [server/cli.ts](../server/cli.ts) | CLI entry point, MCP tools and resources |
+| [server/cli.ts](../server/cli.ts) | CLI entry point, MCP tools, standalone preview and resources |
+| [server/setup.ts](../server/setup.ts) | Project-scoped client registration, workflow skill and readiness probe |
+| [server/repository.ts](../server/repository.ts) | Bounded repository evidence and source reads |
+| [server/brief.ts](../server/brief.ts) | Validated graph proposal tied to source evidence |
+| [src/brief/BriefApp.tsx](../src/brief/BriefApp.tsx) | Browser review, feedback and approval |
 | [server/workspace.ts](../server/workspace.ts) | Workspace mutations, revisions, file locking and atomic saves |
 | [server/http.ts](../server/http.ts) | Local browser server and live workspace connection |
 | [src/liveWorkspace.ts](../src/liveWorkspace.ts) | Browser connection and synchronization with the server workspace |
@@ -86,6 +91,8 @@ installation of the npm tarball:
 
 ```bash
 node scripts/mcp-integration.mjs /path/to/install/node_modules/marmerlade/dist/cli.js
+node scripts/setup-test.mjs /path/to/install/node_modules/marmerlade/dist/cli.js
+node scripts/brief-integration.mjs /path/to/install/node_modules/marmerlade/dist/cli.js
 ```
 
 Publish the verified tarball only after confirming npm name ownership and access.

@@ -22,6 +22,12 @@ command in a terminal alone does not register it with an assistant.
 
 ## Connect an assistant
 
+For project-scoped setup with the bundled repository-to-brief workflow, run
+`node dist/cli.js setup --client codex --repo /absolute/path/to/your-project`.
+Choose `codex`, `claude-code`, or `kiro`. See [brief workflow](brief-workflow.md)
+for approval, exports, configuration backups, removal, and packaged installation.
+The manual configuration below remains available.
+
 Use absolute paths for both the built CLI and workspace file because client
 working directories vary. Replace the paths below with your own, and merge the
 entry into any existing configuration. Stop any terminal instance using the same
@@ -96,8 +102,9 @@ For clients using `mcpServers` JSON, such as Claude Desktop and Cursor:
 }
 ```
 
-Restart the MCP connection after changing its configuration. Client configuration
-is never modified automatically by Marmerlade.
+Restart the MCP connection after changing its configuration. Only the explicit
+`setup` command modifies client configuration. Add `--repo` and an absolute
+repository path to manual server arguments to select its evidence root.
 
 ### Check the connection
 
@@ -128,10 +135,20 @@ as the arguments.
   It replaces diagram structure while preserving existing document content and
   surviving nodes' styling. New page/deck references create empty documents.
 - `export_mermaid` returns structure as Mermaid. JSON preserves all content.
-- `open_workspace` accepts `view` (`canvas`, `node`, `wiki`, `slides`) and an optional
+- `open_workspace` accepts `view` (`canvas`, `brief`, `node`, `wiki`, `slides`) and an optional
   `id` to open a particular item. `node` requires an ID.
+  Set `browser: false` to return the URL without opening a browser.
+- `inspect_repository` returns manifests, README and entry-point excerpts from
+  the configured `--repo`, along with a bounded source file list.
+- `read_repository_file` reads a source/document file inside that repository.
+- `create_brief` takes the current workspace `revision`, title, audience, goal,
+  workflow, Mermaid `source`, evidence (`path`, `line`, `note`), assumptions and
+  requested outputs. It stages a proposed graph without changing the canvas.
+- `get_brief` returns the draft, feedback or approval/generation record and URL.
+  Approval is performed by the user in the review page.
 - `marmerlade://guide` describes the model and Markdown syntax;
-  `marmerlade://example` contains a complete linked example.
+  `marmerlade://example` contains a complete linked example;
+  `marmerlade://workflow` contains the bundled repository explanation skill.
 
 Read `get_workspace` before editing and pass its revision to the edit tool.
 All operations in a batch are validated together. Deleting a node removes its
@@ -142,7 +159,7 @@ unlinks it from all nodes. Parent cycles and missing references are rejected.
 
 Without `--file`, the server uses `./diagram.marmerlade.json` in its working
 directory. One process owns each workspace file; a second writer is rejected.
-The file is created on the first successful edit and saved atomically as version 3.
+The file is created on the first successful edit or brief draft and saved atomically as version 3.
 Existing version 1–3 files and bare diagram JSON are accepted. Do not edit the file
 externally while the server owns it. Stop the server first. Locks from a crashed
 process expire automatically after the lock heartbeat becomes stale.

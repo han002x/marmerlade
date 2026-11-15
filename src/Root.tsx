@@ -9,9 +9,11 @@ import { parseRoute, useHash } from './route.ts'
 const WikiApp = lazy(() => import('./wiki/WikiApp.tsx'))
 const SlidesApp = lazy(() => import('./slides/SlidesApp.tsx'))
 const DocsApp = lazy(() => import('./docs/DocsApp.tsx'))
+const BriefApp = lazy(() => import('./brief/BriefApp.tsx'))
 
 function Route() {
   const route = parseRoute(useHash())
+  if (route.kind === 'brief') return <Suspense fallback={null}><BriefApp /></Suspense>
   if (route.kind === 'docs')
     return (
       <Suspense fallback={null}>

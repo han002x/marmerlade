@@ -23,13 +23,16 @@ npm run build
 npx playwright install chromium
 npm run test:e2e
 npm run test:mcp:integration
+npm run test:native
 ```
 
 `npm test` checks Mermaid round trips, folding, flow playback, wiki pages, slides,
 and the editor. It also checks exported diagrams against the real Mermaid parser.
 `npm run test:mcp` checks workspace behavior; the integration check needs a built
 app and Playwright's Chromium. Browser tests cover the editor, slides, appearance,
-and docs.
+and docs. `test:native` verifies idempotent project setup, existing host settings,
+isolated previews, measured layout, image import, and asynchronous GIF jobs.
+Both integration scripts accept a built CLI path to test a clean package install.
 
 Other useful commands:
 

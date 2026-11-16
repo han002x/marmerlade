@@ -66,6 +66,7 @@ import { clock, seek, usePlayer } from './flowPlayer';
 import type { DiagramNode as DNode } from './types';
 import { SAMPLE } from './sample';
 import { hasOutline, shapeDef } from './shapes';
+import { installRenderBridge } from './renderBridge';
 import './App.css';
 
 const GHOST_ID = '__mf_ghost__';
@@ -138,6 +139,23 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   const autoLayout = useDiagram((s) => s.autoLayout);
   const undo = useDiagram((s) => s.undo);
   const { fitView, screenToFlowPosition } = useReactFlow();
+  useEffect(() => installRenderBridge(async () => {
+    await document.fonts.ready;
+    if (!useDiagram.getState().nodes.length) return;
+    let previous = '';
+    let stable = 0;
+    for (let frame = 0; frame < 120 && stable < 3; frame++) {
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const current = Array.from(document.querySelectorAll('.react-flow__node'), node => {
+        const rect = node.getBoundingClientRect();
+        return `${rect.x},${rect.y},${rect.width},${rect.height}`;
+      }).join('|');
+      stable = current === previous ? stable + 1 : 0;
+      previous = current;
+    }
+    await fitView({ padding: 0.25, duration: 0 });
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  }), [fitView]);
   const load = useDiagram((s) => s.load);
   const theme = useTheme();
   const selected = useDiagram((s) => s.selectedNodeIds);
@@ -1162,7 +1180,7 @@ export default function App() {
   // also gets the panel closed and the first-run notes); then begin
   // autosaving every change back to localStorage
   useEffect(() => {
-    if (useDiagram.getState().nodes.length === 0 && !restore()) {
+    if (!window.__marmerladeRender && useDiagram.getState().nodes.length === 0 && !restore()) {
       load(SAMPLE);
       if (isFirstRun()) {
         setPanelOpen(false);

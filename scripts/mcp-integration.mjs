@@ -26,7 +26,7 @@ async function call(name, args = {}) {
 }
 try {
   client = await connect();
-  assert.deepEqual((await client.listTools()).tools.map(t => t.name).sort(), ['apply_changes', 'export_mermaid', 'get_workspace', 'import_mermaid', 'open_workspace']);
+  assert.deepEqual((await client.listTools()).tools.map(t => t.name).sort(), ['apply_changes', 'diagnose_environment', 'export_gif', 'export_mermaid', 'get_render_job', 'get_workspace', 'import_image', 'import_mermaid', 'layout_diagram', 'list_icons', 'open_workspace', 'render_preview']);
   const resources = await client.listResources(); assert.equal(resources.resources.length, 2);
   assert.ok((await client.readResource({ uri: 'marmerlade://guide' })).contents[0].text.includes('ontology'));
   const example = JSON.parse((await client.readResource({ uri: 'marmerlade://example' })).contents[0].text); assert.equal(example.version, 3);

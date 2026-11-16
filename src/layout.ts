@@ -55,12 +55,13 @@ export function layout(
   nodes: DiagramNode[],
   edges: DiagramEdge[],
   direction: Direction = 'TB',
+  sizes: Record<string, { width: number; height: number }> = {},
 ): Record<string, { x: number; y: number }> {
   try {
-    return run(nodes, edges, direction, true);
+    return run(nodes, edges, direction, true, sizes);
   } catch {
     // dagre's compound mode is stricter; never let a layout failure block Tidy
-    return run(nodes, edges, direction, false);
+    return run(nodes, edges, direction, false, sizes);
   }
 }
 
@@ -71,6 +72,7 @@ function run(
   edges: DiagramEdge[],
   direction: Direction,
   compound: boolean,
+  sizes: Record<string, { width: number; height: number }>,
 ): Record<string, { x: number; y: number }> {
   const visible = new Set(nodes.map((n) => n.id));
   // Each unfolded group becomes a cluster holding its visible children, so the
@@ -94,7 +96,7 @@ function run(
   g.setDefaultEdgeLabel(() => ({}));
 
   // an unfolded group has no card, only its sheet (cluster)
-  for (const n of nodes) if (!unfolded.has(n.id)) g.setNode(n.id, sizeFor(n.shape, n.icon, n.image));
+  for (const n of nodes) if (!unfolded.has(n.id)) g.setNode(n.id, sizes[n.id] ?? sizeFor(n.shape, n.icon, n.image));
   for (const id of open) g.setNode(sheetId(id), {});
   for (const n of nodes) {
     if (open.has(n.id)) {
@@ -117,7 +119,7 @@ function run(
     const p = g.node(n.id);
     if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
     // dagre gives node centers; React Flow positions are top-left
-    const { width, height } = sizeFor(n.shape, n.icon, n.image);
+    const { width, height } = sizes[n.id] ?? sizeFor(n.shape, n.icon, n.image);
     positions[n.id] = { x: p.x - width / 2, y: p.y - height / 2 };
   }
   return positions;

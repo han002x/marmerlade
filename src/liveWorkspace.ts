@@ -20,6 +20,12 @@ export function downloadWorkspaceDraft() {
 interface Snapshot { revision: number; diagram: Diagram }
 interface Bootstrap extends Snapshot { token: string }
 export async function initializeWorkspace() {
+  if (window.__marmerladeRender) {
+    const { parseDiagram } = await import('./workspaceSchema.ts');
+    const saved = JSON.parse(localStorage.getItem('marmerlade.diagram') ?? '{}');
+    useDiagram.getState().load(parseDiagram(saved.diagram));
+    return;
+  }
   if (!document.querySelector('meta[name="marmerlade-workspace"]')) return;
   live = true;
   const { snapshotSchema, bootstrapSchema } = await import('./workspaceSchema.ts');

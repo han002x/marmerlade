@@ -31,6 +31,13 @@ export interface FlowCapture {
   frame: (elapsed: number) => void;
 }
 
+export interface GifOptions {
+  fps: number;
+  maxWidth: number;
+  quality: number;
+  stillSeconds: number;
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -38,18 +45,19 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * `diagram` is read only to size the loop to the slowest animation; the pixels
  * come entirely from the live DOM so the result matches the canvas.
  */
-export async function exportGif(
+export async function captureGif(
   element: HTMLElement,
   diagram: Diagram,
-  opts: Partial<typeof GIF_DEFAULTS> = {},
+  opts: Partial<GifOptions> = {},
   flow?: FlowCapture,
-): Promise<void> {
+  progress?: (frame: number, total: number) => void,
+): Promise<Blob> {
   const { fps, maxWidth, quality, stillSeconds } = { ...GIF_DEFAULTS, ...opts };
 
   const rect = element.getBoundingClientRect();
   const srcW = Math.max(1, Math.round(rect.width));
   const srcH = Math.max(1, Math.round(rect.height));
-  if (srcW < 2 || srcH < 2) return; // nothing meaningful to capture
+  if (srcW < 2 || srcH < 2) throw new Error('The diagram has no capture area');
 
   const scale = fitScale(srcW, maxWidth);
   const outW = Math.max(1, Math.round(srcW * scale));
@@ -109,17 +117,26 @@ export async function exportGif(
       } finally {
         restoreStyles();
       }
+      progress?.(i + 1, frames);
       if (i < frames - 1) await sleep((seconds * 1000) / frames);
     }
   } finally {
     restoreTexture();
   }
 
-  const blob: Blob = await new Promise((resolve) => {
+  return new Promise((resolve) => {
     gif.on('finished', resolve);
     gif.render();
   });
+}
 
+export async function exportGif(
+  element: HTMLElement,
+  diagram: Diagram,
+  opts: Partial<GifOptions> = {},
+  flow?: FlowCapture,
+): Promise<void> {
+  const blob = await captureGif(element, diagram, opts, flow);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

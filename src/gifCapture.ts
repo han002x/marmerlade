@@ -23,6 +23,23 @@ export async function preparePaperTexture(element: HTMLElement): Promise<() => v
   };
 }
 
+// SVG descendants are deep-cloned by html-to-image. Keep their paint and
+// geometry without multiplying hundreds of unrelated CSS properties per path.
+const SVG_PROPERTIES = [
+  'alignment-baseline', 'baseline-shift', 'clip-path', 'clip-rule', 'color',
+  'color-interpolation', 'color-interpolation-filters', 'color-rendering',
+  'direction', 'display', 'dominant-baseline', 'fill', 'fill-opacity',
+  'fill-rule', 'filter', 'flood-color', 'flood-opacity', 'font-family',
+  'font-size', 'font-stretch', 'font-style', 'font-variant', 'font-weight',
+  'image-rendering', 'letter-spacing', 'lighting-color', 'marker-end',
+  'marker-mid', 'marker-start', 'mask', 'opacity', 'overflow', 'paint-order',
+  'shape-rendering', 'stop-color', 'stop-opacity', 'stroke', 'stroke-dasharray',
+  'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit',
+  'stroke-opacity', 'stroke-width', 'text-anchor', 'text-decoration',
+  'text-rendering', 'transform', 'transform-box', 'transform-origin',
+  'unicode-bidi', 'vector-effect', 'visibility', 'white-space', 'word-spacing',
+];
+
 /** Preserve SVG descendant styles that html-to-image's deep SVG clone skips. */
 export function prepareSvgStyles(element: HTMLElement): () => void {
   // Read first so writing an ancestor's styles cannot change a child's snapshot.
@@ -31,7 +48,7 @@ export function prepareSvgStyles(element: HTMLElement): () => void {
     return {
       node,
       original: node.getAttribute('style'),
-      properties: Array.from(computed, (name) => [name, computed.getPropertyValue(name)] as const),
+      properties: SVG_PROPERTIES.map((name) => [name, computed.getPropertyValue(name)] as const),
     };
   });
   for (const { node, properties } of snapshots) {

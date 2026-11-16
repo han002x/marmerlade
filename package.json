@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "prepack": "npm run build",
     "test:mcp": "node --experimental-strip-types scripts/workspace-test.ts",
-    "test:mcp:integration": "node scripts/mcp-integration.mjs"
+    "test:mcp:integration": "node scripts/mcp-integration.mjs",
+    "test:native": "node scripts/native-integration.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.4",
@@ -46,10 +47,12 @@
     "marked": "18.2.0",
     "mermaid": "11.17.2",
     "open": "^11.0.4",
+    "playwright": "1.65.0",
     "proper-lockfile": "^4.1.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "roughjs": "^4.6.6",
+    "smol-toml": "^1.9.1",
     "ws": "^8.23.0",
     "zod": "^4.6.7",
     "zustand": "^5.0.8"
@@ -78,7 +81,10 @@
     "dist/cli.js",
     "dist/web",
     "dist/guide.md",
-    "dist/example.marmerlade.json"
+    "dist/example.marmerlade.json",
+    "dist/skills",
+    "scripts/bootstrap.sh",
+    "scripts/bootstrap.ps1"
   ],
   "engines": {
     "node": ">=22.12"

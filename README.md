@@ -12,9 +12,9 @@
   </p>
 </div>
 
-![Marmerlade in Halloween mode, unfolding nested groups, playing a support workflow, and showing its Mermaid source](demo-materials/halloween-demo.gif)
+![Exported animated support workflow in Halloween mode with Kiro and GitHub icons](demo-materials/gif/04-exported-diagram.gif)
 
-<p align="center"><sub>The AI support agent example in Halloween mode. Unfold nested groups, play the flow, and inspect its Mermaid source.</sub></p>
+<p align="center"><sub>A support workflow in Halloween mode, exported directly from Marmerlade as an animated GIF.</sub></p>
 
 ## Start with the overview. Unfold the details.
 
@@ -96,7 +96,21 @@ Build the app from your checkout:
 npm run build
 ```
 
-Then register `dist/cli.js` with your MCP client using absolute paths.
+For guided setup in a project:
+
+```bash
+node dist/cli.js setup --project /absolute/project --host both --file architecture.marmerlade.json
+```
+
+Setup installs the rendering browser, project skills, and MCP configuration for
+Kiro, Codex, or both. Reload the host's MCP connection and skills, then ask
+`marmerlade-director` to discuss your project and key workflows. The agent can
+arrange diagrams, import generated images, inspect previews, and export animated
+GIFs through MCP. It reuses your agent's existing hosted image-generation tool.
+See [guided local setup](docs/mcp.md#guided-local-setup) for bootstrap scripts
+that can install Node.js, diagnostics, and standalone browser sessions.
+
+To configure a connection manually, register `dist/cli.js` using absolute paths.
 For clients that use `mcpServers` JSON:
 
 ```json

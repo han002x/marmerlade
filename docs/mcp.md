@@ -20,6 +20,51 @@ The server prints its browser URL to stderr. Open that URL, or ask your assistan
 to call `open_workspace`. The MCP connection uses stdin/stdout, so running the
 command in a terminal alone does not register it with an assistant.
 
+## Guided local setup
+
+The package includes director, docs, and setup skills. Configure a project with:
+
+```bash
+node dist/cli.js setup --project /absolute/project --host both --file architecture.marmerlade.json
+```
+
+Choose `codex`, `kiro`, or `both`. Setup installs Chromium if missing, copies
+skills to the host's project discovery directory, merges project-scoped MCP
+configuration, and verifies a real child MCP connection. It preserves unrelated
+settings and creates a backup before changing an existing config. Repeating it
+with the same options leaves configuration unchanged. Conflicting existing
+entries require another `--name` or explicit `--replace`. `--no-browser` skips
+browser installation and still requires an available working Chromium.
+
+Reload MCP and skills in the selected host after setup. Call `get_workspace` and
+`diagnose_environment`. Hosted image generation belongs to the host agent: reuse
+its existing tool, save images inside the project, and import them with
+`import_image`. Setup neither supplies an image provider nor handles its keys.
+
+If Node.js or the package has not been installed, source checkouts include:
+
+```bash
+bash scripts/bootstrap.sh --project /absolute/project --host codex
+```
+
+Windows PowerShell:
+
+```powershell
+& .\scripts\bootstrap.ps1 -Project C:\project -AgentHost kiro
+```
+
+Bootstrap reuses compatible Node/npm or downloads a user-local Node 22 runtime,
+verified against Node.js's official SHA-256 manifest. It builds a source checkout
+or installs a supplied trusted tarball via `--package` on POSIX / `-Package` on
+PowerShell. It does not assume this package has been published to npm. Chromium
+may need system libraries on a minimal Linux machine; doctor reports the launch
+failure and the host agent can address it with its normal installation policy.
+
+Run `node dist/cli.js doctor --file /absolute/project/architecture.marmerlade.json`
+when MCP cannot start. Run `node dist/cli.js serve --file /absolute/project/architecture.marmerlade.json --open`
+for a standalone browser session after stopping any MCP process owning that file.
+No FFmpeg, Python, or local image model is required for native rendering.
+
 ## Connect an assistant
 
 Use absolute paths for both the built CLI and workspace file because client
@@ -96,8 +141,8 @@ For clients using `mcpServers` JSON, such as Claude Desktop and Cursor:
 }
 ```
 
-Restart the MCP connection after changing its configuration. Client configuration
-is never modified automatically by Marmerlade.
+Restart the MCP connection after changing its configuration. Client configuration is changed only by the explicit `setup` command or your
+own edits.
 
 ### Check the connection
 
@@ -130,6 +175,20 @@ as the arguments.
 - `export_mermaid` returns structure as Mermaid. JSON preserves all content.
 - `open_workspace` accepts `view` (`canvas`, `node`, `wiki`, `slides`) and an optional
   `id` to open a particular item. `node` requires an ID.
+- `diagnose_environment` checks Node, packaged UI, project access, and Chromium.
+- `list_icons` finds supported IDs by query and group, with pagination.
+- `import_image` normalizes a project-local file and updates a target node using
+  `revision`, `nodeId`, and `path`. The original file is preserved.
+- `layout_diagram` measures labels in the actual app, arranges the expanded graph,
+  and saves positions without changing folds or documents. It takes `revision`
+  and optional `direction` (`TB` or `LR`). Inspect previews after arranging.
+- `render_preview` returns a PNG and diagnostics for an isolated revision. Choose
+  `view` (`canvas`, `wiki`, `slides`), document `id`, optional `nodeId`, `slide`,
+  `fold` (`current`, `expanded`, `collapsed`), `appearance`, `width`, and `height`.
+  Still captures finish finite animations, including slide entrances.
+- `export_gif` queues native canvas animation from the selected revision. It takes
+  the same canvas render options plus `fps`, `maxWidth`, and `flow`. Poll
+  `get_render_job` with its `jobId` for progress, a completed file, or an error.
 - `marmerlade://guide` describes the model and Markdown syntax;
   `marmerlade://example` contains a complete linked example.
 
@@ -137,6 +196,14 @@ Read `get_workspace` before editing and pass its revision to the edit tool.
 All operations in a batch are validated together. Deleting a node removes its
 subtree and incident edges, retaining wiki pages and decks. Deleting a document
 unlinks it from all nodes. Parent cycles and missing references are rejected.
+
+Previews and exports save under `marmerlade-output/` beside the workspace file.
+They do not change the live view. Preview diagnostics include unrelated-node
+and sheet overlaps, clipping, small labels, broken images, browser errors, and
+slide overflow. Export jobs pin their requested revision and remain responsive
+to polling. The server processes one render operation at a time with a bounded
+queue. Closing it cancels unfinished jobs. Use the packaged docs skill's MCP
+reference for option bounds and image limits.
 
 ## Saving and recovery
 

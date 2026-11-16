@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.kiro
+demo-materials
+examples
+test-results
+playwright-report
+*.tgz
+*.log
+.env*
+!.env.example

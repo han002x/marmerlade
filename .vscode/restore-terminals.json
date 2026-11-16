@@ -1,0 +1,45 @@
+{
+  "artificialDelayMilliseconds": 700,
+  "keepExistingTerminalsOpen": false,
+  "runOnStartup": true,
+  "terminals": [
+    {
+      "splitTerminals": [
+         {
+          "name": "app",
+          "commands": ["docker compose -f docker-compose.dev.yml up -d --build"]
+        }
+      ]
+    },
+    {
+      "splitTerminals": [
+        {
+          "name": "codex",
+          "commands": [
+            "codex --yolo"
+          ]
+        }
+      ]
+    },
+    {
+      "splitTerminals": [
+        {
+          "name": "claude",
+          "commands": [
+            "claude --dangerously-skip-permissions"
+          ]
+        }
+      ]
+    },
+    {  
+      "splitTerminals": [
+        {
+          "name": "kiro",
+          "commands": [
+            "kiro-cli"
+          ]
+        }
+      ]
+    }
+  ]
+}

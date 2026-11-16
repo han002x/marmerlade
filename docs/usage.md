@@ -221,7 +221,7 @@ survive reloads. Reset Custom from any preset to start again.
 | `Ctrl/⌘C` | Copy the selected image node (pastes back with its size and label; other apps get the picture) |
 
 Shortcuts are suspended while you're typing in a field. Toolbar buttons with
-shortcuts show their keys below the icons and in their tooltips.
+shortcuts show their keys in the bottom-right corner of each button and in their tooltips.
 
 ## Mermaid support
 

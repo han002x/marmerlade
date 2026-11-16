@@ -165,16 +165,12 @@ body,
 
 .mf-toolbar .mf-tool {
   position: relative;
-  height: 42px;
-  padding: 0 0 12px;
 }
 .mf-tool-key {
   position: absolute;
   bottom: 3px;
-  left: 0;
-  right: 0;
-  font: 10px/1 var(--mf-mono);
-  text-align: center;
+  right: 3px;
+  font: 5px/1 var(--mf-mono);
   color: var(--mf-muted);
   pointer-events: none;
 }

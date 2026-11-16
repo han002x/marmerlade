@@ -94,7 +94,7 @@ function placeHalf({ shape, icon, image }: Placement): { x: number; y: number } 
   return shapeDef(shape).square ? { x: 45, y: 45 } : { x: 60, y: 24 };
 }
 
-/** A toolbar button with its keyboard shortcut below the icon. */
+/** A toolbar button with its keyboard shortcut in the bottom-right corner. */
 function ToolButton({
   label,
   hotkey,

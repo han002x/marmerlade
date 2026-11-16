@@ -1,0 +1,12 @@
+{
+  "xray-api": {
+    "head": "9d5a5fc49e28a4c665cef403b6d189a81cc01692",
+    "status": "",
+    "diff": ""
+  },
+  "xray-web": {
+    "head": "e60e9e2fb7843f8b95dd6af8de5833d8b15bd2ab",
+    "status": "",
+    "diff": ""
+  }
+}

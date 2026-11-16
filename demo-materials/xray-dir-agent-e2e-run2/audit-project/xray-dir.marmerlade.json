@@ -1,0 +1,885 @@
+{
+  "version": 3,
+  "diagram": {
+    "nodes": [
+      {
+        "id": "reviewer",
+        "label": "Xray reviewer",
+        "shape": "round",
+        "parentId": null,
+        "collapsed": false,
+        "position": {
+          "x": 260,
+          "y": 0
+        },
+        "icon": "lucide:user",
+        "pageIds": [
+          "overview"
+        ],
+        "deckIds": [
+          "briefing"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "setup",
+        "label": "Freeze study",
+        "shape": "round",
+        "parentId": null,
+        "collapsed": true,
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "pageIds": [
+          "setup"
+        ],
+        "style": {
+          "stroke": "#ae7cca",
+          "background": "#201927",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 22,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "sources",
+        "label": "Final + original",
+        "shape": "round",
+        "parentId": "setup",
+        "collapsed": false,
+        "position": {
+          "x": 260,
+          "y": 180
+        },
+        "icon": "lucide:layers",
+        "pageIds": [
+          "setup"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "area",
+        "label": "Working area",
+        "shape": "round",
+        "parentId": "setup",
+        "collapsed": false,
+        "position": {
+          "x": 500,
+          "y": 145
+        },
+        "pageIds": [
+          "setup"
+        ],
+        "image": {
+          "src": "data:image/svg+xml;base64,PHN2ZyBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PGcgY2xpcC1wYXRoPSJ1cmwoI2EpIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTEwLjI3IDE0LjFhNi41IDYuNSAwIDAgMCAzLjY3LTMuNDVxLTEuMjQuMjEtMi43LjM0LS4zMSAxLjgzLS45NyAzLjFNOCAxNkE4IDggMCAxIDAgOCAwYTggOCAwIDAgMCAwIDE2bS40OC0xLjUyYTcgNyAwIDAgMS0uOTYgMEg3LjVhNCA0IDAgMCAxLS44NC0xLjMycS0uMzgtLjg5LS42My0yLjA4YTQwIDQwIDAgMCAwIDMuOTIgMHEtLjI1IDEuMi0uNjMgMi4wOGE0IDQgMCAwIDEtLjg0IDEuMzF6bTIuOTQtNC43NnExLjY2LS4xNSAyLjk1LS40M2E3IDcgMCAwIDAgMC0yLjU4cS0xLjMtLjI3LTIuOTUtLjQzYTE4IDE4IDAgMCAxIDAgMy40NG0tMS4yNy0zLjU0YTE3IDE3IDAgMCAxIDAgMy42NCAzOSAzOSAwIDAgMS00LjMgMCAxNyAxNyAwIDAgMSAwLTMuNjQgMzkgMzkgMCAwIDEgNC4zIDBtMS4xLTEuMTdxMS40NS4xMyAyLjY5LjM0YTYuNSA2LjUgMCAwIDAtMy42Ny0zLjQ0cS42NSAxLjI2Ljk4IDMuMU04LjQ4IDEuNWwuMDEuMDJxLjQxLjM3Ljg0IDEuMzEuMzguODkuNjMgMi4wOGE0MCA0MCAwIDAgMC0zLjkyIDBxLjI1LTEuMi42My0yLjA4YTQgNCAwIDAgMSAuODUtMS4zMiA3IDcgMCAwIDEgLjk2IDBtLTIuNzUuNGE2LjUgNi41IDAgMCAwLTMuNjcgMy40NCAyOSAyOSAwIDAgMSAyLjctLjM0cS4zMS0xLjgzLjk3LTMuMU00LjU4IDYuMjhxLTEuNjYuMTYtMi45NS40M2E3IDcgMCAwIDAgMCAyLjU4cTEuMy4yNyAyLjk1LjQzYTE4IDE4IDAgMCAxIDAtMy40NG0uMTcgNC43MXEtMS40NS0uMTItMi42OS0uMzRhNi41IDYuNSAwIDAgMCAzLjY3IDMuNDRxLS42NS0xLjI3LS45OC0zLjEiIGZpbGw9IiM2NjYiLz48L2c+PGRlZnM+PGNsaXBQYXRoIGlkPSJhIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMCAwaDE2djE2SDB6Ii8+PC9jbGlwUGF0aD48L2RlZnM+PC9zdmc+",
+          "w": 128,
+          "h": 128
+        },
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "provenance",
+        "label": "Original?",
+        "shape": "diamond",
+        "parentId": "setup",
+        "collapsed": false,
+        "position": {
+          "x": 760,
+          "y": 195
+        },
+        "pageIds": [
+          "setup"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "s1",
+        "label": "1 · Grade review",
+        "shape": "round",
+        "parentId": "review",
+        "collapsed": false,
+        "position": {
+          "x": 260,
+          "y": 400
+        },
+        "pageIds": [
+          "evidence"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "anchor",
+        "label": "Final GeoCUP anchor",
+        "shape": "round",
+        "parentId": "geometry",
+        "collapsed": false,
+        "position": {
+          "x": 260,
+          "y": 600
+        },
+        "pageIds": [
+          "geometry"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "match",
+        "label": "Paired?",
+        "shape": "diamond",
+        "parentId": "geometry",
+        "collapsed": false,
+        "position": {
+          "x": 510,
+          "y": 580
+        },
+        "pageIds": [
+          "geometry"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "tolerance",
+        "label": "Within tolerance",
+        "shape": "round",
+        "parentId": "geometry",
+        "collapsed": false,
+        "position": {
+          "x": 760,
+          "y": 490
+        },
+        "pageIds": [
+          "geometry"
+        ],
+        "style": {
+          "stroke": "#85d5ad",
+          "background": "#19352f",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "deviation",
+        "label": "Deviation + correction",
+        "shape": "round",
+        "parentId": "geometry",
+        "collapsed": false,
+        "position": {
+          "x": 760,
+          "y": 600
+        },
+        "pageIds": [
+          "geometry"
+        ],
+        "style": {
+          "stroke": "#ffa34d",
+          "background": "#3d2820",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "unmatched",
+        "label": "No baseline match",
+        "shape": "round",
+        "parentId": "geometry",
+        "collapsed": false,
+        "position": {
+          "x": 760,
+          "y": 710
+        },
+        "pageIds": [
+          "geometry"
+        ],
+        "style": {
+          "stroke": "#ffa34d",
+          "background": "#3d2820",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "s3",
+        "label": "3 · EML / MCGPR",
+        "shape": "round",
+        "parentId": "review",
+        "collapsed": false,
+        "position": {
+          "x": 260,
+          "y": 840
+        },
+        "pageIds": [
+          "evidence"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "s4",
+        "label": "4 · Trial trench",
+        "shape": "round",
+        "parentId": "review",
+        "collapsed": false,
+        "position": {
+          "x": 500,
+          "y": 840
+        },
+        "pageIds": [
+          "evidence"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "s5",
+        "label": "5 · Grade audit",
+        "shape": "round",
+        "parentId": "review",
+        "collapsed": false,
+        "position": {
+          "x": 760,
+          "y": 840
+        },
+        "pageIds": [
+          "evidence"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "skip",
+        "label": "Skip 1–5 + reason",
+        "shape": "round",
+        "parentId": "review",
+        "collapsed": false,
+        "position": {
+          "x": 500,
+          "y": 960
+        },
+        "pageIds": [
+          "evidence"
+        ],
+        "style": {
+          "stroke": "#ffa34d",
+          "background": "#3d2820",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "ready",
+        "label": "Ready?",
+        "shape": "diamond",
+        "parentId": "compile",
+        "collapsed": false,
+        "position": {
+          "x": 260,
+          "y": 1140
+        },
+        "pageIds": [
+          "exports"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "authoring",
+        "label": "Kiro · authoring tool",
+        "shape": "round",
+        "parentId": null,
+        "collapsed": false,
+        "position": {
+          "x": 900,
+          "y": 0
+        },
+        "icon": "logos:kiro",
+        "pageIds": [
+          "verification"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "strokeStyle": "dashed",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 16,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "copy",
+        "label": "Copy original as E",
+        "shape": "round",
+        "parentId": "compile",
+        "collapsed": false,
+        "position": {
+          "x": 500,
+          "y": 1110
+        },
+        "pageIds": [
+          "exports"
+        ],
+        "style": {
+          "stroke": "#85d5ad",
+          "background": "#19352f",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "blocked",
+        "label": "Resolve block",
+        "shape": "round",
+        "parentId": "compile",
+        "collapsed": false,
+        "position": {
+          "x": 500,
+          "y": 1250
+        },
+        "icon": "lucide:lock",
+        "pageIds": [
+          "blocks"
+        ],
+        "style": {
+          "stroke": "#ffa34d",
+          "background": "#3d2820",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "xlsx",
+        "label": "Excel workbook",
+        "shape": "round",
+        "parentId": "outputs",
+        "collapsed": false,
+        "position": {
+          "x": 260,
+          "y": 1460
+        },
+        "icon": "lucide:file",
+        "pageIds": [
+          "exports"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "gis",
+        "label": "GDB with layer IDs",
+        "shape": "round",
+        "parentId": "outputs",
+        "collapsed": false,
+        "position": {
+          "x": 500,
+          "y": 1400
+        },
+        "icon": "lucide:layers",
+        "pageIds": [
+          "exports"
+        ],
+        "style": {
+          "stroke": "#d7a1f1",
+          "background": "#241a31",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "empty",
+        "label": "Empty ≠ accurate",
+        "shape": "round",
+        "parentId": "outputs",
+        "collapsed": false,
+        "position": {
+          "x": 500,
+          "y": 1540
+        },
+        "pageIds": [
+          "exports"
+        ],
+        "style": {
+          "stroke": "#ffa34d",
+          "background": "#3d2820",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 18,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "review",
+        "label": "Review stages",
+        "shape": "round",
+        "parentId": null,
+        "collapsed": false,
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "pageIds": [
+          "evidence"
+        ],
+        "style": {
+          "stroke": "#ae7cca",
+          "background": "#201927",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 22,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "geometry",
+        "label": "2 · Geometry review",
+        "shape": "round",
+        "parentId": "review",
+        "collapsed": false,
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "pageIds": [
+          "geometry",
+          "geometry_map"
+        ],
+        "style": {
+          "stroke": "#ae7cca",
+          "background": "#201927",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 22,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "compile",
+        "label": "6 · Compile DIR",
+        "shape": "round",
+        "parentId": null,
+        "collapsed": true,
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "pageIds": [
+          "exports"
+        ],
+        "style": {
+          "stroke": "#ae7cca",
+          "background": "#201927",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 22,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "outputs",
+        "label": "Report + GIS",
+        "shape": "round",
+        "parentId": null,
+        "collapsed": true,
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "pageIds": [
+          "exports"
+        ],
+        "style": {
+          "stroke": "#ae7cca",
+          "background": "#201927",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 22,
+          "animation": "none"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "start",
+        "source": "reviewer",
+        "target": "setup",
+        "label": "start",
+        "order": 1,
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "to_review",
+        "source": "setup",
+        "target": "review",
+        "label": "frozen sources",
+        "order": 2,
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "to_compile",
+        "source": "review",
+        "target": "compile",
+        "label": "complete / skip",
+        "order": 3,
+        "style": {
+          "stroke": "#f5ad61",
+          "fontSize": 15,
+          "animation": "flow",
+          "animationSpeed": 7
+        }
+      },
+      {
+        "id": "to_outputs",
+        "source": "compile",
+        "target": "outputs",
+        "label": "generated",
+        "order": 4,
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "source_area",
+        "source": "sources",
+        "target": "area",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "area_proof",
+        "source": "area",
+        "target": "provenance",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "s1_s2",
+        "source": "s1",
+        "target": "geometry",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "s2_s3",
+        "source": "geometry",
+        "target": "s3",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "s3_s4",
+        "source": "s3",
+        "target": "s4",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "s4_s5",
+        "source": "s4",
+        "target": "s5",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "anchor_match",
+        "source": "anchor",
+        "target": "match",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "within",
+        "source": "match",
+        "target": "tolerance",
+        "label": "paired < rule",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "deviated",
+        "source": "match",
+        "target": "deviation",
+        "label": "paired ≥ rule",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "no_match",
+        "source": "match",
+        "target": "unmatched",
+        "label": "reject / unmatched",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "ready_copy",
+        "source": "ready",
+        "target": "copy",
+        "label": "yes",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "ready_block",
+        "source": "ready",
+        "target": "blocked",
+        "label": "no / invalid",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "report_gis",
+        "source": "xlsx",
+        "target": "gis",
+        "label": "if layers",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      },
+      {
+        "id": "report_empty",
+        "source": "xlsx",
+        "target": "empty",
+        "label": "all skipped",
+        "style": {
+          "stroke": "#efb876",
+          "sloppiness": 0,
+          "fontFamily": "sans",
+          "fontSize": 15,
+          "animation": "none"
+        }
+      }
+    ],
+    "pages": [
+      {
+        "id": "overview",
+        "title": "Xray DIR today",
+        "body": "A reviewer opens project settings, selects DIR, and starts or resumes a current study. The current panel uses workflow version 3 with six stages. Previous DIR studies retain separate v2 and legacy panels.\n\nThe workflow audits one final GeoCUP against an original baseline. It records geometry decisions and investigation evidence, then compiles inaccurate original geometry and an Excel report. Uploaded geometry and grades remain source data.\n\n## Read the model\n\nExpand **Review stages**, then **2 · Geometry review**, for the main decision path. Open a linked page for the rule and its source. The short deck is attached to **Xray reviewer**.\n\n- [[Study setup and scope]] explains the frozen sources and area.\n- [[Geometry review decisions]] explains automatic and manual decisions.\n- [[Evidence and grade audit]] covers the other stages.\n- [[Compile and exports]] explains the report and GIS boundaries.\n- [[Blocks and recovery]] explains failed prerequisites and source changes.\n- [[Intent and verification]] distinguishes plans from code and records local checks.\n\nThis is a source-derived explanation. No customer records, Xray API, or database were used.\n\n## Code evidence\n\n[Current and previous panels](/home/han/projects/xray/xray-web/app/projects/[id]/settings/ProjectSettings.tsx:1313).\n[Six current stage labels](/home/han/projects/xray/xray-api/app/services/dir_constants.py:16).\n[v3 API and owner guard](/home/han/projects/xray/xray-api/app/api/v1/endpoints/dir_workflow_v3.py:26).",
+        "updatedAt": 1794715857438
+      },
+      {
+        "id": "setup",
+        "title": "Study setup and scope",
+        "body": "A new v3 study freezes one final **S5_GCUP** import with the highest numeric version. It also requires an original baseline category and version. The server resolves every matching layer in that baseline group. Eligible baseline categories are **S5A_CUP** and **S5_GCUP**.\n\nThe reviewer must confirm original provenance. The baseline group must not contain any selected final layer. A same-version independent import discussed in older plans can therefore still be rejected when the resolved category/version group contains the final import.\n\n## Working area\n\nThe UI offers the final GeoCUP area with a 10 m buffer, a registered polygon boundary layer, the project boundary box, or a drawn box. Drawn coordinates are WGS84; the stored area uses EPSG:3414. Features touching the area stay whole. The area does not clip or edit uploaded features.\n\nSelected sources receive hashes. Later analysis, review, compilation, and report generation check those hashes. A missing or changed source requires a new study.\n\nThe globe image in this group is a generic geography symbol copied from Xray web's public assets. It is not a project map, screenshot, or Xray logo.\n\nSee [[Blocks and recovery]] and [[Intent and verification]].\n\n## Code evidence\n\n[Setup UI and request](/home/han/projects/xray/xray-web/app/projects/[id]/settings/DirStudySetup.tsx:13).\n[Baseline, provenance, and highest version checks](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:410).\n[Working area validation and persistence](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:445).\n[Source hash checks](/home/han/projects/xray/xray-api/app/services/dir_study.py:365).\n[Whole features in the workbook](/home/han/projects/xray/xray-api/app/services/dir_study.py:1051).",
+        "updatedAt": 1794715857438
+      },
+      {
+        "id": "geometry",
+        "title": "Geometry review decisions",
+        "body": "New Stage 2 analyses save **geocup_anchor_v2**. Each review stays anchored to a final GeoCUP feature. Matching first uses compatible kind and infrastructure keys, then a compatible baseline within 10 m. A manhole can also match one uncoded polygon with strict full-overlap conditions.\n\nTOPO selection is optional. Eligible nearby surveyed covers support manholes. TOPO never becomes the original baseline reference. Generic nodes can affect missing-data counts but do not enter geometry-deviation review.\n\n## Distance and decisions\n\nManhole distance uses centroids. Alignment distance is the maximum offset of final vertices from the original geometry. This is not a symmetric Hausdorff distance. A shorter final line lying on the original can have zero offset.\n\nThe rule comes from **DIR_DEVIATION** for **R3_2026**. The documented threshold is 600 mm. The code reads the rule at runtime; this run did not query its live value.\n\n- **Within tolerance** is confirmed automatically.\n- Certain polygon manhole matches are confirmed automatically even when deviated. They use matching infrastructure keys or strict spatial overlap.\n- Other deviations remain pending. Review requires a measured distance, a matching outcome, and a correction flag for a deviation.\n- The reviewer can explicitly set a new original reference. Selecting a feature alone does not save it.\n- **No baseline match** sends a rejected outcome with no distance or correction. It clears the original reference, preserves a reviewed audit row, and updates missing-data counts. It creates no Grade E geometry.\n\nUnmatched final manholes remain pending for review. Unmatched alignments and original-only features are summary counts, not new geometry findings. A rejected manhole counts as Found Additional in the report; rejected alignments do not enter its summary.\n\nSee [[Compile and exports]] for the Grade E boundary. Earlier saved analysis methods keep their older behavior until sources reset the analysis.\n\n## Code evidence\n\n[Matching index and eligibility](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:193).\n[Measurement and automatic confirmation](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:253).\n[Final-driven candidate generation](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:333).\n[Saved method and automatic reviews](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:663).\n[Review constraints and rejection](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:876).\n[Reference change endpoint](/home/han/projects/xray/xray-api/app/api/v1/endpoints/dir_workflow_v3.py:135).\n[Report inclusion and additional manholes](/home/han/projects/xray/xray-api/app/services/dir_study.py:936).\n[Runtime rule lookup](/home/han/projects/xray/xray-api/app/services/dir_study.py:673).",
+        "updatedAt": 1794715857438
+      },
+      {
+        "id": "evidence",
+        "title": "Evidence and grade audit",
+        "body": "Stages run in order. Each earlier stage must be completed or skipped before analysis continues. Stages 1 through 5 can be skipped with a nonblank reason. Stage 6 is mandatory.\n\n## Stages around the geometry review\n\n1. **Review GeoCUP grades.** Analyze stored grade counts, then confirm the review with the workflow revision. Optional service-plan confirmation assigns study-local Grade D defaults only to ungraded original baseline records.\n2. **Geometry review.** See [[Geometry review decisions]].\n3. **EML and MCGPR.** Select complete S2_EML or S3_MCGPR datasets. Analyze nearby alignment evidence and proposed coverage. Review each finding or use Confirm evidence. Bulk confirmation validates all pending saved findings before writing, accepts saved proposed coverage when no validated length exists, and leaves prior reviews unchanged.\n4. **Trial trench.** Select complete S4_TTR datasets. Review local trench evidence and dependent grades. B+ requires the Stage 4 check and full reviewed prior non-invasive coverage.\n5. **Validate final GeoCUP.** Audit final alignment grades. Missing source grades do not block completion; the workbook lists them and reviewed proposals separately.\n\nGrades and coverage are study decisions. The workflow does not overwrite uploaded GeoCUP geometry or grades. No source grade correction or publication action appears in this model.\n\n## Code evidence\n\n[Stage names and evidence categories](/home/han/projects/xray/xray-api/app/services/dir_constants.py:16).\n[Prior-stage gate](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:168).\n[Analysis, proposals, and Stage 5 audit](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:632).\n[Stage 1 confirmation](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:732).\n[Atomic Stage 3 confirmation](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:831).\n[B+ constraints](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:941).\n[Grade proposal function](/home/han/projects/xray/xray-api/app/services/dir_workflow.py:219).\n[Missing-grade workbook](/home/han/projects/xray/xray-api/app/services/dir_study.py:1000).",
+        "updatedAt": 1794715857438
+      },
+      {
+        "id": "exports",
+        "title": "Compile and exports",
+        "body": "Stage 6 requires every Stage 1 through 5 to be completed or skipped. Every stored finding must be reviewed. Source hashes must still match.\n\nFor v3, compilation considers Stage 2 findings with an independent original baseline. It excludes generic nodes and rejected findings. The current geocup_anchor_v2 method accepts paired within-tolerance or deviated comparisons. Qualifying deviations copy distinct original baseline geometry into Grade E output. Original-only missing counts alone do not create Grade E records in this method.\n\nOnly original lines and polygons can compile. Unsupported point geometry blocks generation. The generated layers are **S6_DIR / DIR_CLIN** and **S6_DIR / DIR_NODE**. They copy available owner and infrastructure fields, store Grade E attributes, and link qualifying findings to generated features.\n\n## Deliverables and empty output\n\nThe Excel download uses the shared **/dir/studies/{id}/report.xlsx** endpoint after generation. It includes owner manhole and alignment summaries, final grade review, workflow sources and skip reasons, reviewed evidence, and conditional sheets for missing or other grades. Report lengths use whole selected features. They are not clipped area lengths.\n\nThe current panel offers **Export DIR GIS** only when at least one generated layer ID exists. It calls the project GDB export. A separate project GeoJSON endpoint exists but is not a second button in this panel.\n\nIf all five optional stages are skipped, compilation can succeed with no output layers. The workbook explicitly says no accuracy assessment was performed. An empty output does not establish accuracy.\n\nSee [[Blocks and recovery]] for locks and failures.\n\n## Code evidence\n\n[Mandatory Stage 6 gate](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:1008).\n[Compilation filter and geometry creation](/home/han/projects/xray/xray-api/app/services/dir_study.py:816).\n[Report contents](/home/han/projects/xray/xray-api/app/services/dir_study.py:925).\n[All-skipped statement](/home/han/projects/xray/xray-api/app/services/dir_study.py:1080).\n[Report route and owner guard](/home/han/projects/xray/xray-api/app/api/v1/endpoints/dir_studies.py:276).\n[Current download and GDB handlers](/home/han/projects/xray/xray-web/app/projects/[id]/settings/DirWorkflowV3Panel.tsx:1563).\n[GIS button requires output layers](/home/han/projects/xray/xray-web/app/projects/[id]/settings/DirReportActions.tsx:19).\n[Project GDB and GeoJSON routes](/home/han/projects/xray/xray-api/app/api/v1/endpoints/projects.py:818).",
+        "updatedAt": 1794715857438
+      },
+      {
+        "id": "blocks",
+        "title": "Blocks and recovery",
+        "body": "A block means the reviewer must change an input, finish a review, or start a new study. It is not a hidden approval step.\n\n- **422 during setup.** Select the highest-version final GeoCUP, a disjoint usable baseline group, confirmed original provenance, and a valid area touching final data.\n- **409 before the next stage.** Complete or skip preceding stages. Pending findings keep their stage incomplete.\n- **409 on review or confirmation.** Reload a stale finding or workflow revision before saving.\n- **409 on changed sources.** Create a new study when a selected layer disappears or its hash changes.\n- **422 during evidence review.** Select eligible unique evidence, confirm a valid measurement and outcome, and keep validated length within the alignment.\n- **422 during compilation.** Resolve original point geometry; Grade E output accepts lines and polygons.\n- **503 for the DIR rule.** The runtime rule is missing or invalid. This local explanation cannot verify database configuration.\n\n## Reset, skip, and generated locks\n\nChanging a stage's sources clears that stage's findings and resets later reviews and Stage 6. Skipping requires a reason and also resets dependent work. A generated study locks source changes and finding edits. A new study is required to change generated sources.\n\nThe delete route removes a workflow, its findings, and its generated layers while retaining source layers. This explanation did not call it.\n\nSee [[Study setup and scope]], [[Evidence and grade audit]], and [[Compile and exports]].\n\n## Code evidence\n\n[Setup checks](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:410).\n[Reset and source selection](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:552).\n[Skip and analyze gates](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:606).\n[Finding revisions and validation](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:883).\n[Source hash errors](/home/han/projects/xray/xray-api/app/services/dir_study.py:365).\n[Rule errors](/home/han/projects/xray/xray-api/app/services/dir_study.py:673).\n[Delete implementation](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:532).",
+        "updatedAt": 1794715857438
+      },
+      {
+        "id": "verification",
+        "title": "Intent and verification",
+        "body": "## What the sources intend\n\nThe six-stage plan maps the Annex C template to an audit of an already graded final GeoCUP. It preserves original geometry as the basis for Grade E DIR and separates evidence proposals from uploaded grades.\n\nThe later Stage 2 plan changes the candidate direction to final GeoCUP. The current implementation confirms that direction and records geocup_anchor_v2. Historical defect descriptions and data counts in plans are not evidence about this run. No historical customer records or identifiers are reproduced here.\n\n## Where current code is narrower\n\nNew v3 setup requires an independent baseline group and original-provenance confirmation. Older plan language about operating without an independent baseline describes broader intent or compatibility handling, not an available new-study path.\n\nStage 5 audits missing grades and completes. It does not enforce complete grading as a hard compilation prerequisite. New Stage 2 original-only features are missing-data counts; they are not automatically confirmed missing legacy geometry.\n\n## What this run checks\n\nThe editable Marmerlade workspace, native rendered views, linked documents, slide deck, imported image, Mermaid export, and native GIF are local deliverables. Their actual checks and file paths are recorded in the completion report and artifacts manifest.\n\nXray screens, API transactions, rule rows, migrations, reports generated from live data, and GDB conversion were not run. All Xray behavior described here is supported by source inspection, not runtime acceptance.\n\n## Authoring context\n\nThe catalog Kiro icon identifies an authoring/tool context only. It is not part of the Xray DIR processing path. This project was authored through Marmerlade MCP in Codex. The host exposes image_gen.imagegen; no generation call or provider credential was needed. The imported globe is generic public artwork from Xray web.\n\nThe Halloween palette and restrained flow animation belong to this explanation, not to Xray's product UI.\n\n## Sources\n\n[Six-stage intent](/home/han/projects/xray/xray-api/docs/plans/2026-10-20-dir-six-stage-workflow.md:18).\n[Stage 2 change and historical caveats](/home/han/projects/xray/xray-api/docs/plans/2026-10-21-dir-stage2-geocup-anchor.md:1).\n[Current DIR spec](/home/han/projects/xray/xray-api/docs/specs/dir-automation.md:1).\n[Current candidate method](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:663).\n[Current baseline requirement](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:410).\n[Current Stage 5 completion](/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py:653).\n[Generic globe source](/home/han/projects/xray/xray-web/public/globe.svg:1).",
+        "updatedAt": 1794715857438
+      },
+      {
+        "id": "geometry_map",
+        "title": "Geometry decision map",
+        "body": "The current Stage 2 anchors review to final GeoCUP geometry.\n\n{{diagram:geometry}}\n\nWithin-tolerance results and certain polygon manhole matches are automatic. Other deviations need review. No baseline match preserves the audit without Grade E geometry.\n\nRead [[Geometry review decisions]] for distances, reference changes, and source citations. Return to [[Xray DIR today]].",
+        "updatedAt": 1794715857438
+      }
+    ],
+    "decks": [
+      {
+        "id": "briefing",
+        "title": "Xray DIR reviewer briefing",
+        "body": "---\nbackgroundColor: '#19131f'\ncolor: '#f8e7d0'\nfont: sans\nheadingFont: sans\ntransition: fade\n---\n\n# Xray data inaccuracy report\n\nThe current workflow audits a fixed GeoCUP against original geometry.\n\nSix stages. Reviewed decisions. Traceable exports.\n\nRead [[Xray DIR today]].\n\n<!-- This is a source-derived briefing for the reviewer and engineer. Xray runtime was not contacted. -->\n\n---\n\n## Freeze the right sources\n\nChoose the highest-version final GeoCUP.\n\nConfirm an independent original baseline and a working area.\n\nWhole features stay whole. Source hashes protect the study.\n\nRead [[Study setup and scope]].\n\n---\n\n## Geometry decisions drive Grade E\n\nFinal GeoCUP stays the review anchor.\n\nWithin-tolerance results are automatic. Some polygon manhole deviations are automatic too.\n\nOther deviations need review. No baseline match preserves an audit row without Grade E.\n\nRead [[Geometry review decisions]].\n\n---\n\n## Compilation has explicit gates\n\nComplete or skip Stages 1–5. Record skip reasons.\n\nResolve pending reviews, source changes, and unsupported original points.\n\nAn all-skipped report states that no accuracy assessment occurred.\n\nRead [[Blocks and recovery]] and [[Compile and exports]].\n\n---\n\n## Hand off the report and its limits\n\nExcel retains summaries, sources, decisions, and skip reasons.\n\nThe current panel offers GDB only when output layers exist.\n\nSource grades stay unchanged. Xray runtime remains unverified here.\n\nRead [[Intent and verification]].\n\n<!-- Kiro is shown only as an authoring tool context on the canvas. It is not an Xray service. -->\n",
+        "updatedAt": 1794715735316
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "url": "http://127.0.0.1:41085",
+  "workspace": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/audit-project/xray-dir.marmerlade.json",
+  "checks": [
+    "saved workspace loads",
+    "geometry unfolds and folds",
+    "node opens its linked wiki",
+    "wikilink navigates",
+    "wiki opens in its own window",
+    "node opens its linked deck",
+    "deck opens and advances in Present view",
+    "diagram content and document links preserved"
+  ],
+  "foldChanges": [],
+  "errors": [],
+  "captures": [
+    "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/ui-audit/01-saved-starting-view.png",
+    "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/ui-audit/02-drill-down.png",
+    "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/ui-audit/03-diagram-linked-wiki.png",
+    "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/ui-audit/04-wiki-window.png",
+    "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/ui-audit/05-diagram-linked-slides.png",
+    "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/ui-audit/06-presentation-navigation.png"
+  ]
+}

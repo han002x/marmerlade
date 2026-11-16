@@ -1,0 +1,6 @@
+{
+  "status": "failed",
+  "error": "setup agent exited with code 1; inspect /home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e/agent\n\n1 !== 0\n",
+  "project": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e/project",
+  "workspace": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e/project/xray-dir.marmerlade.json"
+}

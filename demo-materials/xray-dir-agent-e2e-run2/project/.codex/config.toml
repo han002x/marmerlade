@@ -1,0 +1,3 @@
+[mcp_servers.marmerlade]
+command = "/home/han/.nvm/versions/node/v24.13.1/bin/node"
+args = [ "/home/han/projects/merfolk/dist/cli.js", "--file", "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/xray-dir.marmerlade.json" ]

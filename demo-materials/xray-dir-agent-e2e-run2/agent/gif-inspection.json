@@ -1,0 +1,23 @@
+{
+  "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/diagram-15dc750a-8250-4748-a039-b66b850a8853.gif",
+  "size": [
+    900,
+    563
+  ],
+  "frames": 84,
+  "duration_ms": 6720,
+  "frame_durations_ms": [
+    80
+  ],
+  "loop": 0,
+  "distinct_frames": 77,
+  "sampled_indices": [
+    0,
+    10,
+    21,
+    42,
+    63,
+    83
+  ],
+  "contact_sheet": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/fresh-gif-frames.png"
+}

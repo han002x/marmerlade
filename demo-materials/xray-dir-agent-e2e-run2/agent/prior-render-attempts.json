@@ -1,0 +1,1413 @@
+[
+  {
+    "id": "item_23",
+    "tool": "import_image",
+    "arguments": {
+      "revision": 1,
+      "nodeId": "area",
+      "path": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/assets/xray-public-globe.svg"
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 2,
+        "nodeId": "area",
+        "original": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/assets/xray-public-globe.svg",
+        "image": {
+          "w": 128,
+          "h": 128,
+          "bytes": 1406
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_25",
+    "tool": "layout_diagram",
+    "arguments": {
+      "revision": 2,
+      "direction": "LR"
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 3
+      }
+    ]
+  },
+  {
+    "id": "item_27",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 3,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "current",
+      "width": 1800,
+      "height": 1100
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 3,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-257bde39-90eb-4694-9554-bd2d48f17b1d.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": [
+            "reviewer",
+            "setup",
+            "review",
+            "compile",
+            "outputs",
+            "authoring"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_28",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 3,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "expanded",
+      "width": 2600,
+      "height": 1700
+    },
+    "status": "failed",
+    "error": null,
+    "result": [
+      "MCP error -32602: Input validation error: Invalid arguments for tool render_preview: Too big: expected number to be <=2400 at width"
+    ]
+  },
+  {
+    "id": "item_29",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 3,
+      "appearance": "halloween",
+      "fold": "expanded",
+      "width": 2400,
+      "height": 1600
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 3,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-28ddac04-fe3f-4678-a57a-e9fe963d501d.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "__sheet__setup",
+              "__sheet__review",
+              "__sheet__geometry",
+              "__sheet__compile",
+              "__sheet__outputs",
+              "reviewer",
+              "sources",
+              "area",
+              "provenance",
+              "s1",
+              "anchor",
+              "match",
+              "tolerance",
+              "deviation",
+              "unmatched",
+              "s3",
+              "s4",
+              "s5",
+              "skip",
+              "ready",
+              "copy",
+              "blocked",
+              "xlsx",
+              "gis",
+              "empty",
+              "authoring"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_31",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 3,
+      "appearance": "halloween",
+      "fold": "expanded",
+      "width": 2400,
+      "height": 1600
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 3,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-019d55a7-d4bd-4ff1-a4ec-8f373329babb.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "__sheet__setup",
+              "__sheet__review",
+              "__sheet__geometry",
+              "__sheet__compile",
+              "__sheet__outputs",
+              "reviewer",
+              "sources",
+              "area",
+              "provenance",
+              "s1",
+              "anchor",
+              "match",
+              "tolerance",
+              "deviation",
+              "unmatched",
+              "s3",
+              "s4",
+              "s5",
+              "skip",
+              "ready",
+              "copy",
+              "blocked",
+              "xlsx",
+              "gis",
+              "empty",
+              "authoring"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_36",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 4,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "current",
+      "width": 1600,
+      "height": 1200
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 4,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-f5a6fdba-8cf1-4e37-aa83-2a5dda045d28.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": [
+            "reviewer",
+            "setup",
+            "review",
+            "compile",
+            "outputs",
+            "authoring"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_37",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 4,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "expanded",
+      "width": 1800,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 4,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-c435a0c3-5983-442a-a1be-936c30c72099.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "__sheet__setup",
+              "__sheet__review",
+              "__sheet__geometry",
+              "__sheet__compile",
+              "__sheet__outputs",
+              "reviewer",
+              "sources",
+              "area",
+              "provenance",
+              "s1",
+              "anchor",
+              "match",
+              "tolerance",
+              "deviation",
+              "unmatched",
+              "s3",
+              "s4",
+              "s5",
+              "skip",
+              "ready",
+              "copy",
+              "blocked",
+              "xlsx",
+              "gis",
+              "empty",
+              "authoring"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_38",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 4,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "collapsed",
+      "width": 1600,
+      "height": 1200
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 4,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-ceaca78b-dd66-43c0-869e-aa932d0fd623.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": [
+            "reviewer",
+            "setup",
+            "review",
+            "compile",
+            "outputs",
+            "authoring"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_39",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 4,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "expanded",
+      "nodeId": "geometry",
+      "width": 1600,
+      "height": 1000
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 4,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-ae41a5d3-22b1-49e0-98c8-78f97a027c12.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [
+              "Xray reviewer",
+              "Final + original",
+              "Working area",
+              "Original?",
+              "1 \u00b7 Grade review",
+              "Final GeoCUP anchor",
+              "Paired?",
+              "Within tolerance",
+              "Deviation + correction",
+              "No baseline match",
+              "3 \u00b7 EML / MCGPR",
+              "4 \u00b7 Trial trench",
+              "5 \u00b7 Grade audit",
+              "Skip 1\u20135 + reason",
+              "Ready?",
+              "Copy original as E",
+              "Resolve block",
+              "Excel workbook",
+              "GDB with layer IDs",
+              "Empty \u2260 accurate",
+              "Kiro \u00b7 authoring tool"
+            ],
+            "visibleNodes": [
+              "__sheet__setup",
+              "__sheet__review",
+              "__sheet__geometry",
+              "__sheet__compile",
+              "__sheet__outputs",
+              "reviewer",
+              "sources",
+              "area",
+              "provenance",
+              "s1",
+              "anchor",
+              "match",
+              "tolerance",
+              "deviation",
+              "unmatched",
+              "s3",
+              "s4",
+              "s5",
+              "skip",
+              "ready",
+              "copy",
+              "blocked",
+              "xlsx",
+              "gis",
+              "empty",
+              "authoring"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_40",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 4,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "geometry",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 4,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-2649f413-ae97-4f5d-9ccc-79f0f998f0ed.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_45",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "slides",
+      "id": "briefing",
+      "slide": 1,
+      "width": 1600,
+      "height": 1000
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-200bf0e5-dfb5-4624-bd11-1450d8863561.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_46",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "slides",
+      "id": "briefing",
+      "slide": 2,
+      "width": 1600,
+      "height": 1000
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-83aa25af-9ff4-42b8-855c-15b9e5a5a2d1.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_47",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "slides",
+      "id": "briefing",
+      "slide": 3,
+      "width": 1600,
+      "height": 1000
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-92b245d9-1402-4bd9-90f4-66dfd9ebbd84.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_48",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "slides",
+      "id": "briefing",
+      "slide": 4,
+      "width": 1600,
+      "height": 1000
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-49acbc97-698a-4159-bf5b-a91a18429709.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_49",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "slides",
+      "id": "briefing",
+      "slide": 5,
+      "width": 1600,
+      "height": 1000
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-94ae62f2-64cf-47c2-bb84-bbd5e47e6f2c.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_50",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "geometry_map",
+      "nodeId": "geometry",
+      "width": 1500,
+      "height": 1300
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-574ffddb-ff1c-4278-86ec-a8212c5931b3.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_51",
+    "tool": "open_workspace",
+    "arguments": {
+      "view": "canvas"
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "url": "http://127.0.0.1:35801/#/",
+        "opened": true
+      }
+    ]
+  },
+  {
+    "id": "item_54",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "slides",
+      "id": "briefing",
+      "slide": 5,
+      "width": 1600,
+      "height": 1000
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-8d391ff0-4649-4e82-b243-7aaea532020b.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_55",
+    "tool": "export_gif",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "fold": "current",
+      "view": "canvas",
+      "flow": true,
+      "fps": 10,
+      "width": 1600,
+      "height": 1200,
+      "maxWidth": 1200
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "jobId": "2e51cfc9-3f6c-418d-85dd-02966d8bf1b3",
+        "revision": 5,
+        "status": "queued"
+      }
+    ]
+  },
+  {
+    "id": "item_56",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "current",
+      "width": 1800,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 5,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-f66084d7-a0ba-4294-9250-e60ba7d0adf9.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "reviewer",
+              "setup",
+              "review",
+              "compile",
+              "outputs",
+              "authoring"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_57",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "collapsed",
+      "width": 1800,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 5,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-09f93489-6ecb-4de8-ab58-cfeeeeefb21d.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "reviewer",
+              "setup",
+              "review",
+              "compile",
+              "outputs",
+              "authoring"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_58",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "expanded",
+      "width": 1800,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 5,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-3ee5a98b-b430-4bd3-a4ea-da95855407ba.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "__sheet__setup",
+              "__sheet__review",
+              "__sheet__geometry",
+              "__sheet__compile",
+              "__sheet__outputs",
+              "reviewer",
+              "sources",
+              "area",
+              "provenance",
+              "s1",
+              "anchor",
+              "match",
+              "tolerance",
+              "deviation",
+              "unmatched",
+              "s3",
+              "s4",
+              "s5",
+              "skip",
+              "ready",
+              "authoring",
+              "copy",
+              "blocked",
+              "xlsx",
+              "gis",
+              "empty"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_59",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "overview",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-bd1fa7c8-8a6d-4e49-b3be-b7a1d5b0da98.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_60",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "setup",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-10b1a394-9afe-4b6b-bb39-2b6d38ce7705.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_61",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "geometry",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-8b21afa5-3d22-4f35-b265-7eb28fc577c1.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_62",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "evidence",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-be8e8937-db79-41dc-b54c-096c66cb3918.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_63",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "exports",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-c780992f-7f0a-4ab4-add7-9ee3af606145.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_64",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "blocks",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-18fd2a22-dccf-47e6-840c-d47f953bccd7.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_65",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "verification",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 5,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-f49402be-92ef-4bbd-a9b8-f52a8cfe9d4b.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_66",
+    "tool": "get_render_job",
+    "arguments": {
+      "jobId": "2e51cfc9-3f6c-418d-85dd-02966d8bf1b3"
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "id": "2e51cfc9-3f6c-418d-85dd-02966d8bf1b3",
+        "revision": 5,
+        "createdAt": "2026-11-15T04:11:33.377Z",
+        "status": "failed",
+        "error": "page.evaluate: Error: GIF exceeds the render memory budget. Reduce fps, maxWidth, or animation duration.\n    at Object.gif (http://127.0.0.1:35801/assets/index-Bjqy6yr2.js:69:19052)\n    at eval (eval at evaluate (:370:30), <anonymous>:3:46)\n    at UtilityScript.evaluate (<anonymous>:372:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+      }
+    ]
+  },
+  {
+    "id": "item_68",
+    "tool": "export_gif",
+    "arguments": {
+      "revision": 5,
+      "appearance": "halloween",
+      "fold": "current",
+      "view": "canvas",
+      "flow": false,
+      "fps": 6,
+      "width": 1600,
+      "height": 1200,
+      "maxWidth": 900
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "jobId": "f4a66aeb-1de1-4802-b12b-0be7ab292ab5",
+        "revision": 5,
+        "status": "queued"
+      }
+    ]
+  },
+  {
+    "id": "item_70",
+    "tool": "export_gif",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "fold": "current",
+      "flow": false,
+      "fps": 3,
+      "width": 1800,
+      "height": 1800,
+      "maxWidth": 1200
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "jobId": "4054c812-8f6e-49ce-b0e1-9b991a73f600",
+        "revision": 6,
+        "status": "queued"
+      }
+    ]
+  },
+  {
+    "id": "item_71",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "current",
+      "width": 1800,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 6,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-ac0557d3-e7c8-49cc-8dfc-dc51de27c23c.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "__sheet__review",
+              "reviewer",
+              "setup",
+              "s1",
+              "s3",
+              "s4",
+              "s5",
+              "skip",
+              "compile",
+              "outputs",
+              "authoring",
+              "geometry"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_72",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "collapsed",
+      "width": 1800,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 6,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-9cae34c1-efb3-47b4-b2af-c7bf6f9725a4.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "reviewer",
+              "setup",
+              "compile",
+              "outputs",
+              "authoring",
+              "review"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_73",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "canvas",
+      "fold": "expanded",
+      "width": 1800,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      [
+        {
+          "revision": 6,
+          "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-7262ef75-9d47-419b-b2b4-1162970c7bd9.png",
+          "diagnostics": {
+            "overlaps": [],
+            "clipped": [],
+            "failedImages": [],
+            "errors": [],
+            "contentOverflow": false,
+            "smallLabels": [],
+            "visibleNodes": [
+              "__sheet__setup",
+              "__sheet__compile",
+              "__sheet__outputs",
+              "__sheet__review",
+              "__sheet__geometry",
+              "reviewer",
+              "sources",
+              "area",
+              "provenance",
+              "s1",
+              "anchor",
+              "match",
+              "tolerance",
+              "deviation",
+              "unmatched",
+              "s3",
+              "s4",
+              "s5",
+              "skip",
+              "ready",
+              "authoring",
+              "copy",
+              "blocked",
+              "xlsx",
+              "gis",
+              "empty"
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "id": "item_74",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "geometry_map",
+      "nodeId": "geometry",
+      "width": 1500,
+      "height": 1300
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 6,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-046f1387-1b77-4efe-a627-ef264ee0f13f.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_75",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "overview",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 6,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-ae2271a0-2694-49c8-9889-97e3f1fa4dd5.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_76",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "setup",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 6,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-ec322bf5-fdc1-4186-975f-cdd6d53942b6.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_77",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "geometry",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 6,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-a64247b5-d0b8-4c8f-9e41-766ee7c745e2.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_78",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "evidence",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 6,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-1e5336e0-d9b7-4f24-a403-4392a166adbe.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  },
+  {
+    "id": "item_79",
+    "tool": "render_preview",
+    "arguments": {
+      "revision": 6,
+      "appearance": "halloween",
+      "view": "wiki",
+      "id": "exports",
+      "width": 1500,
+      "height": 1800
+    },
+    "status": "completed",
+    "error": null,
+    "result": [
+      {
+        "revision": 6,
+        "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-a0568104-6288-4312-86af-8ef1fca560f6.png",
+        "diagnostics": {
+          "overlaps": [],
+          "clipped": [],
+          "failedImages": [],
+          "errors": [],
+          "contentOverflow": false,
+          "smallLabels": [],
+          "visibleNodes": []
+        }
+      }
+    ]
+  }
+]

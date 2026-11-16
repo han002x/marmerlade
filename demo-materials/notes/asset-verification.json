@@ -1,0 +1,124 @@
+{
+  "screenshots": [
+    {
+      "filename": "01-drill-overview.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 696437
+    },
+    {
+      "filename": "02-drill-level-1.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 926156
+    },
+    {
+      "filename": "03-drill-level-2.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 1108800
+    },
+    {
+      "filename": "04-drill-up-overview.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 680200
+    },
+    {
+      "filename": "05-diagram-linked-wiki.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 950965
+    },
+    {
+      "filename": "06-wiki-second-linked-page.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 875859
+    },
+    {
+      "filename": "07-diagram-linked-slides.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 775429
+    },
+    {
+      "filename": "08-linked-deck-window.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 39359
+    },
+    {
+      "filename": "09-export-animated-gif.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 1111227
+    },
+    {
+      "filename": "10-export-completed.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 1113950
+    }
+  ],
+  "animations": [
+    {
+      "filename": "01-drill-levels.gif",
+      "width": 1280,
+      "height": 800,
+      "frames": 238,
+      "seconds": 23.8,
+      "bytes": 7606316
+    },
+    {
+      "filename": "02-linked-wiki.gif",
+      "width": 1280,
+      "height": 800,
+      "frames": 238,
+      "seconds": 23.8,
+      "bytes": 5244994
+    },
+    {
+      "filename": "03-linked-slides.gif",
+      "width": 1280,
+      "height": 800,
+      "frames": 220,
+      "seconds": 22,
+      "bytes": 3882717
+    },
+    {
+      "filename": "04-exported-diagram.gif",
+      "width": 900,
+      "height": 563,
+      "frames": 29,
+      "seconds": 2.32,
+      "bytes": 3998432
+    }
+  ],
+  "videos": [
+    {
+      "filename": "01-drill-levels.mp4",
+      "width": 1600,
+      "height": 1000,
+      "frames": 572,
+      "seconds": 23.833333,
+      "bytes": 4966357
+    },
+    {
+      "filename": "02-linked-wiki.mp4",
+      "width": 1600,
+      "height": 1000,
+      "frames": 570,
+      "seconds": 23.75,
+      "bytes": 3376730
+    },
+    {
+      "filename": "03-linked-slides.mp4",
+      "width": 1600,
+      "height": 1000,
+      "frames": 529,
+      "seconds": 22.041667,
+      "bytes": 2950188
+    }
+  ]
+}

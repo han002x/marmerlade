@@ -1,0 +1,18 @@
+{
+  "revision": 5,
+  "file": "/home/han/projects/merfolk/demo-materials/marmerlade-walkthrough/marmerlade-output/preview-342f246a-3aa7-4bf3-b231-64323b480a4a.png",
+  "diagnostics": {
+    "overlaps": [],
+    "clipped": [],
+    "failedImages": [],
+    "errors": [],
+    "contentOverflow": false,
+    "smallLabels": [],
+    "visibleNodes": [
+      "create",
+      "explore",
+      "explain",
+      "share"
+    ]
+  }
+}

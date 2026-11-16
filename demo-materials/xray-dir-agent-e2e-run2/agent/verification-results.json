@@ -1,0 +1,379 @@
+{
+  "passed": true,
+  "counts": {
+    "nodes": 26,
+    "edges": 18,
+    "pages": 8,
+    "decks": 1,
+    "slides": 5,
+    "wikiLinks": 22,
+    "embeds": 1,
+    "previews": 18
+  },
+  "stable_ids_and_content_preserved": true,
+  "saved_file_matches_mcp": true,
+  "workspace": {
+    "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/xray-dir.marmerlade.json",
+    "sha256": "708309c737e50695e6556a43265860c790c2d1210effcbd3f479aebcf743940b"
+  },
+  "source_citations": [
+    {
+      "file": "/home/han/projects/xray/xray-web/app/projects/[id]/settings/ProjectSettings.tsx",
+      "sha256": "1adbd12e91f0bb9b1cdec096a9205171d2132e1572d4658c3b9b1c3c81473b5e",
+      "lines": [
+        1313
+      ],
+      "documents": [
+        "overview",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/app/services/dir_constants.py",
+      "sha256": "6ae873fd82faf3d7635040f7433411cc05b8f035d10a7d9fe5e27fe28c471edc",
+      "lines": [
+        16
+      ],
+      "documents": [
+        "overview",
+        "evidence",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/app/api/v1/endpoints/dir_workflow_v3.py",
+      "sha256": "abcdd1ede901dd06aaa012eb868d5d4c9a0d9fac3fe4d0c4f5fa77051daa0fa2",
+      "lines": [
+        26,
+        135
+      ],
+      "documents": [
+        "overview",
+        "geometry",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-web/app/projects/[id]/settings/DirStudySetup.tsx",
+      "sha256": "3c325fec34aac880c08ed7cdb6237ce5538d6aaa5e7c89e30662ee89eecccabc",
+      "lines": [
+        13
+      ],
+      "documents": [
+        "setup",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/app/services/dir_workflow_v3.py",
+      "sha256": "61464b3e4aa45bd38800e87f1b9d387fd96f86616395b4bd100ff7c3c93ae969",
+      "lines": [
+        410,
+        445,
+        193,
+        253,
+        333,
+        663,
+        876,
+        168,
+        632,
+        732,
+        831,
+        941,
+        1008,
+        552,
+        606,
+        883,
+        532,
+        653
+      ],
+      "documents": [
+        "setup",
+        "geometry",
+        "evidence",
+        "exports",
+        "blocks",
+        "verification",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/app/services/dir_study.py",
+      "sha256": "d3be27942aa204e635f656746ad6e1743db2aa0079537afeda4be0b2bd73ee0c",
+      "lines": [
+        365,
+        1051,
+        936,
+        673,
+        1000,
+        816,
+        925,
+        1080
+      ],
+      "documents": [
+        "setup",
+        "geometry",
+        "evidence",
+        "exports",
+        "blocks",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/app/services/dir_workflow.py",
+      "sha256": "0ed2923258c9cf0210d4e9f4fbf16151076a16df85ed9f4fad2d868d5f1d175a",
+      "lines": [
+        219
+      ],
+      "documents": [
+        "evidence"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/app/api/v1/endpoints/dir_studies.py",
+      "sha256": "4589b12982d098c9e8fa19375a7f76b8267c08d0a5e19d22eca0ddc5ecf67dce",
+      "lines": [
+        276
+      ],
+      "documents": [
+        "exports",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-web/app/projects/[id]/settings/DirWorkflowV3Panel.tsx",
+      "sha256": "cab3846622cd476d590a2d0a929df4b03632e97169036bc08518177151bbcc57",
+      "lines": [
+        1563
+      ],
+      "documents": [
+        "exports",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-web/app/projects/[id]/settings/DirReportActions.tsx",
+      "sha256": "ad705ed4eb55da7942c45f85680cc763596a996b8e92a1c7310204101b73892c",
+      "lines": [
+        19
+      ],
+      "documents": [
+        "exports",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/app/api/v1/endpoints/projects.py",
+      "sha256": "d5185793cfd89b7ea7111bbb167d9877f97af205cd9d78f6a4cc371c00022c43",
+      "lines": [
+        818
+      ],
+      "documents": [
+        "exports",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/docs/plans/2026-10-20-dir-six-stage-workflow.md",
+      "sha256": "f30e47b633ef5a6e745c34544c0fa921383ca1fa82f52f5b0330434ddae78595",
+      "lines": [
+        18
+      ],
+      "documents": [
+        "verification",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/docs/plans/2026-10-21-dir-stage2-geocup-anchor.md",
+      "sha256": "f586ec8f1181b97751dba6aa012456873fb941ca64471676b56efc3db8374625",
+      "lines": [
+        1
+      ],
+      "documents": [
+        "verification",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/docs/specs/dir-automation.md",
+      "sha256": "1d30055bdb48b827291277055e3ac41986d77c36e90718bdb21987632b4e3a1f",
+      "lines": [
+        1
+      ],
+      "documents": [
+        "verification",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-web/public/globe.svg",
+      "sha256": "b614b9bf183925957661ac851498fe1d8029fd43a62fbfed86f9e2624a57e7cf",
+      "lines": [
+        1
+      ],
+      "documents": [
+        "verification",
+        "source-grounding-report"
+      ]
+    },
+    {
+      "file": "/home/han/projects/xray/xray-api/app/services/dir_report_xlsx.py",
+      "sha256": "2758ca9f315a7c7c2564baa694695094419eaebc34a07344a58de695469915a8",
+      "lines": [
+        1
+      ],
+      "documents": [
+        "source-grounding-report"
+      ]
+    }
+  ],
+  "original_image": {
+    "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/assets/xray-public-globe.svg",
+    "source": "/home/han/projects/xray/xray-web/public/globe.svg",
+    "bytes": 1035,
+    "sha256": "b614b9bf183925957661ac851498fe1d8029fd43a62fbfed86f9e2624a57e7cf",
+    "identical_to_source_and_embedded_image": true
+  },
+  "mermaid": {
+    "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/xray-dir.mmd",
+    "sha256": "2b5877506a28357c9c77889b4c77d40e52853a71beb06a55e1a93162bc35c753",
+    "parsed_with_runtime_parser": true,
+    "structure_and_document_references_match": true
+  },
+  "previews": [
+    {
+      "name": "canvas-collapsed",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-789489af-9a26-4734-8dad-2598868d6b22.png",
+      "bytes": 992897,
+      "sha256": "bcd4eb54d3e3b19a430af7aaad0b77e6b6e5f4739f8f7c848ce615bdd2773724"
+    },
+    {
+      "name": "canvas-current",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-e7bdac90-f0a2-4d90-8de8-1ee84205f5dc.png",
+      "bytes": 1632142,
+      "sha256": "0e8e4b944af7640eddcabb027fc653b01bdf6d9dfd99c95f97a1a90b5a3831be"
+    },
+    {
+      "name": "canvas-expanded",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-1e512b37-aba8-46f0-a118-058b493cbf89.png",
+      "bytes": 2026879,
+      "sha256": "7a9f820c34c4b76e63eeecb799fd68d17d9c4caa6937af0a0410a041b71e08b9"
+    },
+    {
+      "name": "wiki-overview",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-1c8dbfbd-8ee8-4c02-a6c8-54c8a271508c.png",
+      "bytes": 222493,
+      "sha256": "bfc24d14d583cb044aa881b8b7411c188b5192328870a519151c790e1885c003"
+    },
+    {
+      "name": "wiki-setup",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-d5d977a7-fb8e-4a16-82f0-887f70768f60.png",
+      "bytes": 225093,
+      "sha256": "7a581fc2494b8196d8c211348b6c907e252416d6088dbafd520f40205d9e2005"
+    },
+    {
+      "name": "wiki-geometry",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-22b86da1-c9eb-4c0f-8141-6cac5a6e034f.png",
+      "bytes": 281431,
+      "sha256": "a26d4c16d609dc81bdae60da94a96eccd5e09a84617948965f739f3b745b1acb"
+    },
+    {
+      "name": "wiki-evidence",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-d0ca031a-eef1-4fab-8732-1768b6b5afdf.png",
+      "bytes": 248418,
+      "sha256": "b617d76967bf315582bf909e842970543bcf7f9203ac3eb50de46a6cd6231287"
+    },
+    {
+      "name": "wiki-blocks",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-66bbfa16-f4ca-4110-b13a-736e66520f48.png",
+      "bytes": 252767,
+      "sha256": "13254a664a2f0a5200ea006ba7a827770177437cb8978f711a4265bf9df730c7"
+    },
+    {
+      "name": "wiki-exports",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-75ad88ae-a559-4b5a-82b0-2aa287eb09d0.png",
+      "bytes": 259809,
+      "sha256": "454aab8967defc5a1f44bf5873595b08eaf96a21a3bb43d9dfb8875fd20618c7"
+    },
+    {
+      "name": "wiki-verification",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-60016693-2ae0-4e25-9ce8-deebf11aab79.png",
+      "bytes": 270387,
+      "sha256": "5576ae10f1e3612ad7f9f2fa937e8e1e747a00eddc215782437de2f990b2d1aa"
+    },
+    {
+      "name": "wiki-geometry_map",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-260a4417-7591-4a1b-b1c8-c8ba33a62ecd.png",
+      "bytes": 226560,
+      "sha256": "56b2302ab8b6aefa0c0a49b5be1d2352e6bc298cce18330f4fdd3168b3b33955"
+    },
+    {
+      "name": "slide-1",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-b71bdb99-3879-4c9c-9e35-4437e12b0cbd.png",
+      "bytes": 61400,
+      "sha256": "3bf379b6cc2db134b92d24ee93f7036d15166da4a2499db206d3db79f2cebf22"
+    },
+    {
+      "name": "slide-4",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-acb1ce26-e7fb-4e4d-a72b-86caf07b23c3.png",
+      "bytes": 72953,
+      "sha256": "a8f6155d590ce52b822bb184aa60eda739305612eaa7db3f658955190b47289a"
+    },
+    {
+      "name": "slide-2",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-93134688-e44c-4f8f-b0b2-c606fb6385c7.png",
+      "bytes": 61591,
+      "sha256": "3fa7bf57e9943d84b02bb4afd1b4fe0e93a5c85b4448e8e46df9d2e965366d40"
+    },
+    {
+      "name": "slide-3",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-3955333e-53d1-424e-ae9c-940d7f080c87.png",
+      "bytes": 80355,
+      "sha256": "1743c82f68932e7970b6a0047302b0ccff07fd91404381e3a2ac3080978d50d1"
+    },
+    {
+      "name": "slide-5",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-44900151-8bc9-41bc-bf9d-7bfd708ee864.png",
+      "bytes": 61106,
+      "sha256": "e25c44527da3c52a64da06731c747d02d7497aa22ecae3d63a0d530fcdb341ce"
+    },
+    {
+      "name": "mixed-geometry",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-cb899f48-65ac-46d3-a5b2-c0e254cfba03.png",
+      "bytes": 1719122,
+      "sha256": "a53c3c357cd7882e4f113ff61a7bfb169672b10e9ef3063f62315c2d15cb46d4"
+    },
+    {
+      "name": "mixed-exports",
+      "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/preview-6ac8672e-bf00-4646-ba55-8161e7718f0b.png",
+      "bytes": 1818741,
+      "sha256": "66a09f710d20aadea12f7e5548f9bc27616402b63702f4cf798071d017a4f8a7"
+    }
+  ],
+  "gif": {
+    "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/diagram-c03134d6-12e2-49eb-9d8b-7b97f7ab7d09.gif",
+    "bytes": 6153520,
+    "size": [
+      1200,
+      1200
+    ],
+    "frames": 28,
+    "duration_ms": 7000,
+    "frame_durations_ms": [
+      250
+    ],
+    "loop": 0,
+    "distinct_frames": 27,
+    "sampled_indices": [
+      0,
+      3,
+      7,
+      14,
+      21,
+      27
+    ],
+    "contact_sheet": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/final-gif-frames.png",
+    "sha256": "71033c0ae41627e153b12fa3208ca4e7b60bc01d81a9b7d00851e0312bbc37e5"
+  }
+}

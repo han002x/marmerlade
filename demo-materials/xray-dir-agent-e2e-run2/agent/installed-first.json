@@ -1,0 +1,66 @@
+{
+  ".codex/config.toml": {
+    "sha256": "04c58c49536204c65b4090ae231ef4dc8c314c2e4d8fced160f33022071fd758",
+    "size": 248
+  },
+  ".agents/skills/marmerlade-director/SKILL.md": {
+    "sha256": "d05f76a6d24a7851e7db68afc1960b18ced8fe42400c7ce6f0a8543a64425b03",
+    "size": 10885
+  },
+  ".agents/skills/marmerlade-director/agents/openai.yaml": {
+    "sha256": "597df24bab2ef0b5022da11a1756732c3cddf21115eff2ea8a9ffaaaaf881fd6",
+    "size": 124
+  },
+  ".agents/skills/marmerlade-docs/SKILL.md": {
+    "sha256": "df28a48e37662cb3fee2cb3060c88e4f11bc8d46464f0a7e89e04969b4d996e8",
+    "size": 4469
+  },
+  ".agents/skills/marmerlade-docs/agents/openai.yaml": {
+    "sha256": "74d281fa3db8036ee532b54fe571b93ffa614a40b8843344ed56d51aa3e7171c",
+    "size": 121
+  },
+  ".agents/skills/marmerlade-docs/references/changes.schema.json": {
+    "sha256": "db06a55090506d509b61aab4df8dcf48031d5f3ffdbc86440712ca394131a590",
+    "size": 14358
+  },
+  ".agents/skills/marmerlade-docs/references/example.marmerlade.json": {
+    "sha256": "745c5f4eff44b466af350bf4cafb7507c102b07e0855e12344c6c40a6fbe4e54",
+    "size": 797
+  },
+  ".agents/skills/marmerlade-docs/references/formats.md": {
+    "sha256": "dc0e4f94372a82be0c05047590bfb6761145e2d53fe03e39da044d14f2cec3a5",
+    "size": 8452
+  },
+  ".agents/skills/marmerlade-docs/references/gif.schema.json": {
+    "sha256": "94fa2ccd2ac28ee2b33a8ac851aabf76afc2dffd161142b039e014d699cbd2d4",
+    "size": 1767
+  },
+  ".agents/skills/marmerlade-docs/references/mcp.md": {
+    "sha256": "c17ff13deddb992b36b239b11cd386435eb9ad23230028a6839941a102ce93b8",
+    "size": 9133
+  },
+  ".agents/skills/marmerlade-docs/references/ontology.md": {
+    "sha256": "e11e1d9d9ea1e88bd54f3c1356427862318396b8c7e85a432c5330afd381a99e",
+    "size": 8975
+  },
+  ".agents/skills/marmerlade-docs/references/preview.schema.json": {
+    "sha256": "cb261eb3575d4ba3ba334b89c3f611f04d5a34126a73dfbb04e633d91603ed65",
+    "size": 1480
+  },
+  ".agents/skills/marmerlade-docs/references/workspace.schema.json": {
+    "sha256": "49593953c41042f2ae1d10797b437110af87fd2dbb505e6551358d16eaedb95b",
+    "size": 10733
+  },
+  ".agents/skills/marmerlade-docs/scripts/export-schemas.mjs": {
+    "sha256": "216863d7ace24a580841fb6131e1327d490748c943a9279e3e93a9e0e2113e4b",
+    "size": 1552
+  },
+  ".agents/skills/marmerlade-setup/SKILL.md": {
+    "sha256": "81b65b666daa472a04c23f4439edb33d1d585321cd166eaffa43cc83991998f1",
+    "size": 5099
+  },
+  ".agents/skills/marmerlade-setup/agents/openai.yaml": {
+    "sha256": "69dde0832cb1ecf19de482df6b5711946d30ff80f9831dffdb149a56e5e92ff2",
+    "size": 123
+  }
+}

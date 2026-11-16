@@ -1,0 +1,469 @@
+{
+  "version": 3,
+  "diagram": {
+    "nodes": [
+      {
+        "id": "Question",
+        "label": "Customer question",
+        "shape": "round",
+        "icon": "lucide:message-square",
+        "parentId": null,
+        "collapsed": false,
+        "position": {
+          "x": 40,
+          "y": 40
+        },
+        "style": {
+          "stroke": "#ffaf62",
+          "background": "#35231d",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        },
+        "pageIds": [
+          "overview"
+        ]
+      },
+      {
+        "id": "Kiro",
+        "label": "Kiro agent",
+        "shape": "round",
+        "icon": "logos:kiro",
+        "parentId": null,
+        "collapsed": false,
+        "position": {
+          "x": 40,
+          "y": 230
+        },
+        "style": {
+          "stroke": "#c4a3ff",
+          "background": "#2b203b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        },
+        "pageIds": [
+          "agent_design",
+          "runbook"
+        ],
+        "deckIds": [
+          "architecture"
+        ]
+      },
+      {
+        "id": "Retrieval",
+        "label": "Retrieve knowledge",
+        "shape": "round",
+        "icon": "lucide:folder",
+        "parentId": null,
+        "collapsed": true,
+        "position": {
+          "x": 340,
+          "y": 40
+        },
+        "style": {
+          "stroke": "#c4a3ff",
+          "background": "#2b203b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        },
+        "pageIds": [
+          "retrieval",
+          "runbook"
+        ],
+        "deckIds": [
+          "architecture"
+        ]
+      },
+      {
+        "id": "Rewrite",
+        "label": "Rewrite query",
+        "shape": "round",
+        "icon": "lucide:sparkles",
+        "parentId": "Retrieval",
+        "collapsed": false,
+        "position": {
+          "x": 340,
+          "y": 40
+        },
+        "style": {
+          "stroke": "#c4a3ff",
+          "background": "#2b203b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "Search",
+        "label": "Hybrid search",
+        "shape": "round",
+        "icon": "lucide:layers",
+        "parentId": "Retrieval",
+        "collapsed": true,
+        "position": {
+          "x": 340,
+          "y": 230
+        },
+        "style": {
+          "stroke": "#c4a3ff",
+          "background": "#2b203b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        },
+        "pageIds": [
+          "search"
+        ]
+      },
+      {
+        "id": "GitHub",
+        "label": "GitHub docs",
+        "shape": "round",
+        "icon": "simple-icons:github",
+        "parentId": "Search",
+        "collapsed": false,
+        "position": {
+          "x": 340,
+          "y": 230
+        },
+        "style": {
+          "stroke": "#c4a3ff",
+          "background": "#2b203b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        },
+        "pageIds": [
+          "search"
+        ]
+      },
+      {
+        "id": "Index",
+        "label": "Vector index",
+        "shape": "round",
+        "icon": "lucide:database",
+        "parentId": "Search",
+        "collapsed": false,
+        "position": {
+          "x": 590,
+          "y": 230
+        },
+        "style": {
+          "stroke": "#a9d47a",
+          "background": "#243121",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "Merge",
+        "label": "Merge evidence",
+        "shape": "round",
+        "icon": "lucide:git-branch",
+        "parentId": "Search",
+        "collapsed": false,
+        "position": {
+          "x": 460,
+          "y": 440
+        },
+        "style": {
+          "stroke": "#c4a3ff",
+          "background": "#2b203b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "Rank",
+        "label": "Rank sources",
+        "shape": "round",
+        "icon": "lucide:layers",
+        "parentId": "Retrieval",
+        "collapsed": false,
+        "position": {
+          "x": 460,
+          "y": 640
+        },
+        "style": {
+          "stroke": "#c4a3ff",
+          "background": "#2b203b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "Draft",
+        "label": "Draft answer",
+        "shape": "round",
+        "icon": "lucide:bot",
+        "parentId": null,
+        "collapsed": false,
+        "position": {
+          "x": 860,
+          "y": 40
+        },
+        "style": {
+          "stroke": "#ffaf62",
+          "background": "#35231d",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "Check",
+        "label": "Check citations",
+        "shape": "round",
+        "icon": "lucide:shield",
+        "parentId": null,
+        "collapsed": false,
+        "position": {
+          "x": 860,
+          "y": 270
+        },
+        "style": {
+          "stroke": "#a9d47a",
+          "background": "#243121",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        },
+        "pageIds": [
+          "contract"
+        ]
+      },
+      {
+        "id": "Reply",
+        "label": "Customer reply",
+        "shape": "round",
+        "icon": "lucide:mail",
+        "parentId": null,
+        "collapsed": false,
+        "position": {
+          "x": 860,
+          "y": 500
+        },
+        "style": {
+          "stroke": "#a9d47a",
+          "background": "#243121",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "sloppiness": 1,
+          "animation": "pulse",
+          "animationSpeed": 2.4
+        },
+        "pageIds": [
+          "contract"
+        ],
+        "deckIds": [
+          "architecture"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "e0",
+        "source": "Question",
+        "target": "Kiro",
+        "label": "ask",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e1",
+        "source": "Kiro",
+        "target": "Rewrite",
+        "label": "retrieve",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e2",
+        "source": "Rewrite",
+        "target": "GitHub",
+        "label": "exact terms",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e3",
+        "source": "Rewrite",
+        "target": "Index",
+        "label": "semantic query",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e4",
+        "source": "GitHub",
+        "target": "Merge",
+        "label": "docs",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e5",
+        "source": "Index",
+        "target": "Merge",
+        "label": "matches",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e6",
+        "source": "Merge",
+        "target": "Rank",
+        "label": "evidence",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e7",
+        "source": "Rank",
+        "target": "Draft",
+        "label": "sources",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e8",
+        "source": "Draft",
+        "target": "Check",
+        "label": "draft",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      },
+      {
+        "id": "e9",
+        "source": "Check",
+        "target": "Reply",
+        "label": "approved",
+        "style": {
+          "stroke": "#b692cd",
+          "strokeWidth": 2,
+          "sloppiness": 1,
+          "animation": "flow",
+          "animationSpeed": 2.4
+        }
+      }
+    ],
+    "pages": [
+      {
+        "id": "overview",
+        "title": "The haunted help desk",
+        "body": "# The haunted help desk\n\nA fictional support workflow for Harbor Notes.\n\n**Question:** How do I export my workspace?\n\nThe [[Kiro agent design]] describes how the assistant retrieves evidence before it writes a reply.\n\n## One connected workspace\n\nExplore the diagram, read the linked design notes, then open the architecture deck.",
+        "updatedAt": 1794528000000
+      },
+      {
+        "id": "agent_design",
+        "title": "Kiro agent design",
+        "body": "# Kiro agent design\n\nOne customer question. A grounded, cited answer.\n\n## How the agent works\n\n1. **Retrieve** documentation and related passages.\n2. **Draft** an answer from the ranked sources.\n3. **Check** citations before sending the reply.\n\n## Connected knowledge\n\nRead the [[Retrieval design]] or follow the [[Support runbook]]. Both pages are linked to the canvas.\n\n> Fold the system for the big picture. Unfold a group when you need the details.\n\n## Answer contract\n\nEvery reply follows the shared [[Response contract]].",
+        "updatedAt": 1794528000000
+      },
+      {
+        "id": "retrieval",
+        "title": "Retrieval design",
+        "body": "# Retrieval design\n\nCombine exact product terms with semantic matches.\n\n## Two complementary sources\n\n| Source | Purpose |\n| --- | --- |\n| GitHub docs | Approved product documentation |\n| Vector index | Related passages and wording |\n\nMerge the results, remove duplicates, then rank the evidence.\n\nSee [[Hybrid search]] for the branch details.\n\n{{diagram:Search}}",
+        "updatedAt": 1794528000000
+      },
+      {
+        "id": "search",
+        "title": "Hybrid search",
+        "body": "# Hybrid search\n\nRun keyword and vector retrieval for the same customer question.\n\n## Search paths\n\n- **GitHub docs** preserve exact feature names.\n- **Vector index** finds related wording.\n- **Merge evidence** combines both result sets.\n\nThe parent [[Retrieval design]] ranks the merged sources.\n\n{{diagram:Search}}",
+        "updatedAt": 1794528000000
+      },
+      {
+        "id": "runbook",
+        "title": "Support runbook",
+        "body": "# Support runbook\n\n## When evidence is missing\n\n1. Check that GitHub documentation is available.\n2. Verify that the vector index is current.\n3. Ask a support specialist to review uncertain answers.\n\nReturn to [[Kiro agent design]] for the normal flow.",
+        "updatedAt": 1794528000000
+      },
+      {
+        "id": "contract",
+        "title": "Response contract",
+        "body": "# Response contract\n\nEvery customer reply must include:\n\n- A direct answer to the question.\n- Links to the supporting documentation.\n- A clear next step if human review is required.\n\nThe [[Kiro agent design]] and reply node share this page.",
+        "updatedAt": 1794528000000
+      }
+    ],
+    "decks": [
+      {
+        "id": "architecture",
+        "title": "Inside the haunted help desk",
+        "body": "---\ntitle: Inside the haunted help desk\nbackgroundColor: '#211a2b'\ncolor: '#f7e6cf'\nfont: sans\nheadingFont: sans\ntransition: fade\n---\n\n# Inside the haunted help desk\n\nOne question. One connected workflow.\n\n**Kiro agent · Architecture walkthrough**\n\n---\n\n# Retrieve. Draft. Verify.\n\n- **Retrieve** evidence from GitHub docs and a vector index.\n- **Draft** an answer grounded in ranked sources.\n- **Verify** citations before sending the reply.\n\nThe diagram, wiki pages, and deck share one workspace.\n\n---\n\n# One diagram, three levels\n\n| Level | What you see |\n| --- | --- |\n| Overview | The complete support workflow |\n| Retrieval | Rewrite, search, and ranking |\n| Search | GitHub docs and vector matches |\n\nKeep the diagram and its explanation in the same workspace.\n\n---\n\n# Share the flow\n\nExport an animated GIF for a README, design review, or team update.\n\n**Keep the context. Share the motion.**",
+        "updatedAt": 1794528000000
+      }
+    ]
+  }
+}

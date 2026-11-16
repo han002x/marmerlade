@@ -1,0 +1,56 @@
+{
+  "project": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project",
+  "file": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/xray-dir.marmerlade.json",
+  "hosts": [
+    "codex"
+  ],
+  "configured": [],
+  "runtime": {
+    "ready": true,
+    "platform": "linux",
+    "arch": "x64",
+    "wsl": true,
+    "checks": [
+      {
+        "name": "node",
+        "status": "ready",
+        "detail": "v24.13.1"
+      },
+      {
+        "name": "web",
+        "status": "ready",
+        "detail": "Packaged app found"
+      },
+      {
+        "name": "project",
+        "status": "ready",
+        "detail": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project"
+      },
+      {
+        "name": "workspace",
+        "status": "ready",
+        "detail": "New workspace will be saved on its first edit"
+      },
+      {
+        "name": "workspace-lock",
+        "status": "ready",
+        "detail": "No active writer lock"
+      },
+      {
+        "name": "chromium",
+        "status": "ready",
+        "detail": "/home/han/.cache/ms-playwright/chromium-1254/chrome-linux64/chrome"
+      }
+    ],
+    "imageGeneration": {
+      "status": "host-managed",
+      "detail": "The host agent must discover its image-generation tool. No provider or credentials are installed by Marmerlade."
+    },
+    "cli": "/home/han/projects/merfolk/dist/cli.js"
+  },
+  "nextSteps": [
+    "Reload the selected agent MCP connection and skills.",
+    "Call get_workspace, discover the host image tool, then use marmerlade-director.",
+    "Use open_workspace to open the live app in the local browser."
+  ]
+}

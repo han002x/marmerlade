@@ -1,0 +1,48 @@
+flowchart TD
+  subgraph create ["1. Create your diagram"]
+    source["Open Mermaid · M"]
+    tidy["Arrange with Tidy"]
+  end
+  subgraph explore ["2. Explore the detail"]
+    fold["Fold or unfold · F"]
+    play["Play the flow · P"]
+  end
+  subgraph explain ["3. Add the explanation"]
+    wiki["Open linked notes · W"]
+    slides["Open linked slides · K"]
+  end
+  subgraph share ["4. Share your work"]
+    save["Export workspace file"]
+    gif["Export GIF"]
+  end
+  source -->|edit source| tidy
+  fold -->|trace connections| play
+  wiki -->|prepare a walkthrough| slides
+  save -->|make an animation| gif
+  tidy -->|inspect| fold
+  play -->|add context| wiki
+  slides -->|keep and share| save
+  click create href "#/wiki/start"
+  %% marmerlade-pages create ["start","create_notes"]
+  click source href "#/wiki/create_notes"
+  %% marmerlade-pages source ["create_notes"]
+  click tidy href "#/wiki/create_notes"
+  %% marmerlade-pages tidy ["create_notes"]
+  click explore href "#/wiki/explore_notes"
+  %% marmerlade-pages explore ["explore_notes"]
+  click fold href "#/wiki/explore_notes"
+  %% marmerlade-pages fold ["explore_notes"]
+  click play href "#/wiki/explore_notes"
+  %% marmerlade-pages play ["explore_notes"]
+  click explain href "#/wiki/explain_notes"
+  %% marmerlade-pages explain ["explain_notes"]
+  click wiki href "#/wiki/explain_notes"
+  %% marmerlade-pages wiki ["explain_notes"]
+  click slides href "#/wiki/explain_notes"
+  %% marmerlade-pages slides ["explain_notes"]
+  click share href "#/wiki/share_notes"
+  %% marmerlade-pages share ["share_notes"]
+  click save href "#/wiki/share_notes"
+  %% marmerlade-pages save ["share_notes"]
+  click gif href "#/wiki/share_notes"
+  %% marmerlade-pages gif ["share_notes"]

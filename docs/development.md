@@ -34,6 +34,21 @@ and docs. `test:native` verifies idempotent project setup, existing host setting
 isolated previews, measured layout, image import, and asynchronous GIF jobs.
 Both integration scripts accept a built CLI path to test a clean package install.
 
+`npm run test:agent -- /absolute/new-output-directory /path/to/xray` runs two
+real Codex CLI sessions using the built package. The setup session installs the
+project skills and MCP configuration. A fresh authoring session then researches
+Xray's DIR implementation and creates a linked workspace through MCP, including
+native previews, image import, and GIF export. The runner inherits the configured
+Codex model and authentication, disables unrelated MCP servers for these sessions,
+and leaves global configuration unchanged. It requires an authenticated `codex`
+CLI, a build, Chromium, and local `xray-api` and `xray-web` checkouts. Output
+includes the prompts, JSONL tool traces, source commit IDs, and the editable
+project. The runner checks required tool calls and unchanged Xray git state;
+an independent review must still assess source accuracy and rendered artifacts.
+Use `npm run test:agent -- --continue /absolute/existing-output-directory /path/to/xray`
+to finish an interrupted run from its saved project and trace. The new agent
+reopens the workspace and requests new render jobs instead of reusing expired IDs.
+
 Other useful commands:
 
 | Command | Purpose |

@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "verifiedFileHashes": 40,
+  "acceptedPreviews": 18,
+  "allFinalDiagnosticsClear": true,
+  "uiAuditMatchesFinalContent": true,
+  "xraySourcesUnchanged": true,
+  "nativeGif": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/diagram-c03134d6-12e2-49eb-9d8b-7b97f7ab7d09.gif"
+}

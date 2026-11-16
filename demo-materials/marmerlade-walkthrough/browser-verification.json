@@ -1,0 +1,15 @@
+{
+  "foldUnfold": true,
+  "linkedPages": [
+    "Start here",
+    "Create a diagram"
+  ],
+  "flowPlayback": true,
+  "exportMenu": {
+    "exportFile": true,
+    "exportGif": true
+  },
+  "wikiNavigation": "http://127.0.0.1:42623/#/wiki/start",
+  "allGroupsFolded": true,
+  "errors": []
+}

@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "workspace_url": "http://127.0.0.1:46385/#/",
+  "source": "Existing MCP-owned live app. No additional server.",
+  "wiki_link_clicks": [
+    "overview to setup",
+    "geometry_map to geometry"
+  ],
+  "deck_to_wiki_click": "briefing slide 5 to verification",
+  "diagram_embed_visible": true,
+  "page_errors": [],
+  "earlier_check_attempts": [
+    "The first run expected the page title to be a heading in the default Edit view.",
+    "The second run used a button locator for Read, whose accessible role is tab.",
+    "The third run selected Read but still expected a title heading. The title is a textbox in both modes.",
+    "The fourth run expected the slide wiki link to navigate the same page. It opens a wiki window. The final check waits for that window. These were check-locator errors, not native rendering failures."
+  ],
+  "appearance": "halloween in this isolated browser context",
+  "gif_browser_decode": true,
+  "gif_playback_observation_ms": 7700,
+  "gif_changed_between_captures": true,
+  "gif_loop_duration_ms": 7000,
+  "screenshot": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/marmerlade-output/live-workspace.png"
+}

@@ -1,0 +1,21 @@
+{
+  "status": "agent-completed",
+  "project": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project",
+  "workspace": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/xray-dir.marmerlade.json",
+  "evidence": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/agent",
+  "requiredTools": [
+    "get_workspace",
+    "diagnose_environment",
+    "list_icons",
+    "apply_changes",
+    "import_image",
+    "layout_diagram",
+    "render_preview",
+    "export_gif",
+    "get_render_job",
+    "export_mermaid",
+    "open_workspace"
+  ],
+  "calls": 88,
+  "sourcesUnchanged": true
+}

@@ -1,0 +1,95 @@
+{
+  "recordedAt": "2026-11-15T04:05:24.501995+00:00",
+  "status": "setup-passed-host-reload-pending",
+  "scope": "First-run setup only; no content created.",
+  "project": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project",
+  "workspace": {
+    "path": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/xray-dir.marmerlade.json",
+    "exists": false,
+    "detail": "Configured path. Marmerlade saves the workspace on its first edit."
+  },
+  "host": "codex",
+  "runtime": {
+    "command": "/home/han/.nvm/versions/node/v24.13.1/bin/node",
+    "version": "v24.13.1",
+    "cli": "/home/han/projects/merfolk/dist/cli.js",
+    "npmVersion": "11.8.0",
+    "dependenciesInstalled": false,
+    "doctorBefore": "doctor-before.json",
+    "doctorAfter": "doctor-after.json",
+    "ready": true
+  },
+  "configuration": {
+    "path": "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/.codex/config.toml",
+    "matchesExpectedAbsoluteRuntimeCliAndWorkspace": true,
+    "entry": {
+      "command": "/home/han/.nvm/versions/node/v24.13.1/bin/node",
+      "args": [
+        "/home/han/projects/merfolk/dist/cli.js",
+        "--file",
+        "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/xray-dir.marmerlade.json"
+      ]
+    },
+    "installedSkills": [
+      "marmerlade-director",
+      "marmerlade-docs",
+      "marmerlade-setup"
+    ]
+  },
+  "setupRuns": [
+    {
+      "result": "setup-first.json",
+      "exitCode": 0,
+      "runtimeReady": true,
+      "configured": [
+        "/home/han/projects/merfolk/demo-materials/xray-dir-agent-e2e-run2/project/.codex/config.toml"
+      ],
+      "childMcpSmoke": "passed"
+    },
+    {
+      "result": "setup-repeat.json",
+      "exitCode": 0,
+      "runtimeReady": true,
+      "configured": [],
+      "childMcpSmoke": "passed"
+    }
+  ],
+  "childMcpSmokeEvidence": "The built setup implementation connects a child stdio MCP server, calls get_workspace and checks that listTools includes export_gif. Both setup commands exited 0. Setup closes the child before returning. This is separate from a Codex-host tool call.",
+  "idempotence": {
+    "passed": true,
+    "installedContentUnchanged": true,
+    "configuredOnRepeat": [],
+    "fileCount": 16,
+    "changes": []
+  },
+  "activeLockPathsAfterSetup": [],
+  "imageGeneration": {
+    "available": true,
+    "tool": "image_gen__imagegen",
+    "evidence": "Tool exposed in this Codex session tool list.",
+    "invoked": false,
+    "generationVerified": false,
+    "detail": "Available in this host, untested. No provider or credentials installed."
+  },
+  "hostConnection": {
+    "status": "fresh-session-required",
+    "marmerladeToolsAvailableInThisSession": false,
+    "detail": "This session started before project MCP configuration existed. Setup verified an independent child MCP connection; the current session has not loaded the new project server or installed skills.",
+    "nextStep": "Start a fresh Codex session with this project as its working directory and ensure the project is trusted so Codex loads .codex/config.toml and .agents/skills. Call the configured Marmerlade get_workspace and diagnose_environment tools. Check the exact workspace path and Chromium readiness. Do not create content until the next test authorizes it."
+  },
+  "browser": {
+    "launchedHeadlessByRuntimeChecks": true,
+    "desktopOpened": false,
+    "liveUrl": null,
+    "detail": "Setup child MCP servers are closed; no persistent app URL is handed off."
+  },
+  "constraints": {
+    "workspaceJsonDirectlyEdited": false,
+    "credentialsOrEnvOrAuthFilesRead": false,
+    "globalMcpConfigurationRead": false,
+    "globalHostSettingsChanged": false,
+    "productionDatabaseOrXrayApiCalled": false,
+    "deployed": false,
+    "sourceCheckoutModifiedOutsideAuthorizedProjectAndReportDirectories": false
+  }
+}

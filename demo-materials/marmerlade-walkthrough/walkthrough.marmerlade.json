@@ -1,0 +1,405 @@
+{
+  "version": 3,
+  "diagram": {
+    "nodes": [
+      {
+        "id": "create",
+        "label": "1. Create your diagram",
+        "shape": "rect",
+        "parentId": null,
+        "collapsed": true,
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "pageIds": [
+          "start",
+          "create_notes"
+        ],
+        "style": {
+          "stroke": "#99502c",
+          "background": "#fff0df",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "source",
+        "label": "Open Mermaid · M",
+        "shape": "rect",
+        "parentId": "create",
+        "collapsed": false,
+        "position": {
+          "x": 74.99998715308946,
+          "y": 35
+        },
+        "pageIds": [
+          "create_notes"
+        ],
+        "style": {
+          "stroke": "#99502c",
+          "background": "#fff0df",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "tidy",
+        "label": "Arrange with Tidy",
+        "shape": "rect",
+        "parentId": "create",
+        "collapsed": false,
+        "position": {
+          "x": 78.10156037454254,
+          "y": 174.99998520251143
+        },
+        "pageIds": [
+          "create_notes"
+        ],
+        "style": {
+          "stroke": "#99502c",
+          "background": "#fff0df",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "explore",
+        "label": "2. Explore the detail",
+        "shape": "rect",
+        "parentId": null,
+        "collapsed": true,
+        "position": {
+          "x": 660,
+          "y": 0
+        },
+        "pageIds": [
+          "explore_notes"
+        ],
+        "style": {
+          "stroke": "#356c72",
+          "background": "#e9f4f2",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "fold",
+        "label": "Fold or unfold · F",
+        "shape": "rect",
+        "parentId": "explore",
+        "collapsed": false,
+        "position": {
+          "x": 79.70310825641748,
+          "y": 314.99997040502285
+        },
+        "pageIds": [
+          "explore_notes"
+        ],
+        "style": {
+          "stroke": "#356c72",
+          "background": "#e9f4f2",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "play",
+        "label": "Play the flow · P",
+        "shape": "rect",
+        "parentId": "explore",
+        "collapsed": false,
+        "position": {
+          "x": 82.10150650271599,
+          "y": 454.9999556075343
+        },
+        "pageIds": [
+          "explore_notes"
+        ],
+        "style": {
+          "stroke": "#356c72",
+          "background": "#e9f4f2",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "explain",
+        "label": "3. Add the explanation",
+        "shape": "rect",
+        "parentId": null,
+        "collapsed": true,
+        "position": {
+          "x": 440,
+          "y": 140
+        },
+        "pageIds": [
+          "explain_notes"
+        ],
+        "style": {
+          "stroke": "#536b3d",
+          "background": "#eff3e6",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "wiki",
+        "label": "Open linked notes · W",
+        "shape": "rect",
+        "parentId": "explain",
+        "collapsed": false,
+        "position": {
+          "x": 60,
+          "y": 594.9999408100457
+        },
+        "pageIds": [
+          "explain_notes"
+        ],
+        "style": {
+          "stroke": "#536b3d",
+          "background": "#eff3e6",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "slides",
+        "label": "Open linked slides · K",
+        "shape": "rect",
+        "parentId": "explain",
+        "collapsed": false,
+        "position": {
+          "x": 61.60149183078188,
+          "y": 734.9999820636501
+        },
+        "pageIds": [
+          "explain_notes"
+        ],
+        "style": {
+          "stroke": "#536b3d",
+          "background": "#eff3e6",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "share",
+        "label": "4. Share your work",
+        "shape": "rect",
+        "parentId": null,
+        "collapsed": true,
+        "position": {
+          "x": 220,
+          "y": 280
+        },
+        "pageIds": [
+          "share_notes"
+        ],
+        "style": {
+          "stroke": "#795968",
+          "background": "#f6edf1",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "save",
+        "label": "Export workspace file",
+        "shape": "rect",
+        "parentId": "share",
+        "collapsed": false,
+        "position": {
+          "x": 64.00003020481303,
+          "y": 874.9999672661615
+        },
+        "pageIds": [
+          "share_notes"
+        ],
+        "style": {
+          "stroke": "#795968",
+          "background": "#f6edf1",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      },
+      {
+        "id": "gif",
+        "label": "Export GIF",
+        "shape": "rect",
+        "parentId": "share",
+        "collapsed": false,
+        "position": {
+          "x": 105.90618151901654,
+          "y": 1014.9999524686729
+        },
+        "pageIds": [
+          "share_notes"
+        ],
+        "style": {
+          "stroke": "#795968",
+          "background": "#f6edf1",
+          "strokeWidth": 1.7,
+          "sloppiness": 1,
+          "fontFamily": "hand",
+          "fontSize": 20
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e0",
+        "source": "source",
+        "target": "tidy",
+        "label": "edit source",
+        "order": 1,
+        "style": {
+          "stroke": "#5c625b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "animation": "flow",
+          "animationSpeed": 1.8
+        }
+      },
+      {
+        "id": "e1",
+        "source": "fold",
+        "target": "play",
+        "label": "trace connections",
+        "order": 3,
+        "style": {
+          "stroke": "#5c625b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "animation": "flow",
+          "animationSpeed": 1.8
+        }
+      },
+      {
+        "id": "e2",
+        "source": "wiki",
+        "target": "slides",
+        "label": "prepare a walkthrough",
+        "order": 5,
+        "style": {
+          "stroke": "#5c625b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "animation": "flow",
+          "animationSpeed": 1.8
+        }
+      },
+      {
+        "id": "e3",
+        "source": "save",
+        "target": "gif",
+        "label": "make an animation",
+        "order": 7,
+        "style": {
+          "stroke": "#5c625b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "animation": "flow",
+          "animationSpeed": 1.8
+        }
+      },
+      {
+        "id": "e4",
+        "source": "tidy",
+        "target": "fold",
+        "label": "inspect",
+        "order": 2,
+        "style": {
+          "stroke": "#5c625b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "animation": "flow",
+          "animationSpeed": 1.8
+        }
+      },
+      {
+        "id": "e5",
+        "source": "play",
+        "target": "wiki",
+        "label": "add context",
+        "order": 4,
+        "style": {
+          "stroke": "#5c625b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "animation": "flow",
+          "animationSpeed": 1.8
+        }
+      },
+      {
+        "id": "e6",
+        "source": "slides",
+        "target": "save",
+        "label": "keep and share",
+        "order": 6,
+        "style": {
+          "stroke": "#5c625b",
+          "fontFamily": "sans",
+          "fontSize": 14,
+          "animation": "flow",
+          "animationSpeed": 1.8
+        }
+      }
+    ],
+    "pages": [
+      {
+        "id": "start",
+        "title": "Start here",
+        "body": "# Your first Marmerlade walkthrough\n\nTurn a diagram into a workspace people can explore.\n\nThis canvas shows a new user's journey. Four folded cards keep the overview short. Open a card to see its actions.\n\n1. Select a group and press **F** to unfold it. Use **[** and **]** to fold or unfold one level across the canvas.\n2. Select **1. Create your diagram** and press **W**. Its page picker includes this guide and **Create a diagram**.\n3. Follow the arrows through **Explore**, **Explain**, and **Share**.\n4. Press **P** to play the connections. Use **,** and **.** to step through them.\n\nRead [[Create a diagram]], [[Explore a diagram]], [[Add notes and slides]], or [[Save and share]].\n\n## Work with an assistant\n\nThis workspace was created through the local Marmerlade MCP server. The assistant used revision-checked Mermaid imports and document edits. A connected browser follows those edits.\n\nThe server saves this workspace to **walkthrough.marmerlade.json**. The ordinary development app uses separate browser storage.\n\nProduct references: [User guide](https://github.com/han002x/merfolk/blob/main/docs/usage.md) and [MCP setup](https://github.com/han002x/merfolk/blob/main/docs/mcp.md).",
+        "updatedAt": 1794818027073
+      },
+      {
+        "id": "create_notes",
+        "title": "Create a diagram",
+        "body": "# Create your diagram\n\n{{diagram:create}}\n\nPress **M** to toggle the panel and choose **Mermaid**. Edit the source to update the canvas.\n\nTry this in a separate workspace:\n\n```mermaid\nflowchart LR\n  question[Customer question] --> search[Search notes]\n  search --> answer[Write answer]\n```\n\nUse the panel's **Tidy** button, or the toolbar's **Tidy and fold** menu, to arrange nodes. Drag a node to adjust it. Double-click its label to rename it.\n\nThe toolbar also creates shapes, icons, and images. You can edit visually and return to Mermaid source.\n\nNext: [[Explore a diagram]].",
+        "updatedAt": 1794818027074
+      },
+      {
+        "id": "explore_notes",
+        "title": "Explore a diagram",
+        "body": "# Explore the detail without losing the overview\n\n{{diagram:explore}}\n\nSelect a group and press **F**. Folding hides its children and brings outside connections onto the folded card. Unfold it to inspect its steps.\n\nPress **[** to fold a level and **]** to unfold a level. Nest groups when the next level needs more detail.\n\nPress **P** to play the flow. Use **,** and **.** to move between flow steps. Playback illustrates the connections; it does not run the actions named on these cards.\n\nNext: [[Add notes and slides]].",
+        "updatedAt": 1794818027074
+      },
+      {
+        "id": "explain_notes",
+        "title": "Add notes and slides",
+        "body": "# Keep the explanation with the diagram\n\n{{diagram:explain}}\n\n## Add a wiki page\n\nSelect a node and press **W**. The **Page** tab opens its default linked page, or creates a page when none exists.\n\nUse **New page** for another topic or **Link existing page** to share a page between nodes. Try the page picker on **1. Create your diagram** to switch between its two linked guides.\n\nUse **[[Start here]]** to navigate by wiki link. A page can embed the current sub-diagram with the literal text `{{diagram}}` on its own line. An explicit target such as `{{diagram:create}}` keeps the embed attached to that group.\n\n## Build slides when you need to present\n\nSelect a node and press **K**. Write slides as Markdown, separated by `---` on its own line with blank lines around it. Diagram embeds can appear in slides too.\n\nOpen the deck in its own window for **Present**, speaker notes, and **Export Markdown**. Print while presenting to make a PDF.\n\nThis walkthrough includes wiki guides. It leaves slide creation as a step for the reader.\n\nNext: [[Save and share]].",
+        "updatedAt": 1794818027074
+      },
+      {
+        "id": "share_notes",
+        "title": "Save and share",
+        "body": "# Choose the export for your reader\n\n{{diagram:share}}\n\n## Keep an editable workspace\n\nChoose **More actions → Export file** for a complete **.marmerlade.json** workspace. It retains positions, folds, styles, wiki pages, and slide decks. Use **Import file** to open it elsewhere. Import replaces that destination's workspace.\n\n## Share an animated diagram\n\nPress **P** to start the flow, then choose **More actions → Export GIF**. The result is an animation of the diagram, rather than a recording of the app's controls.\n\n## Reuse the structure\n\nUse **Copy** in the **Mermaid** tab for Mermaid source. It carries structure and document references. Keep the workspace JSON when you also need document bodies and styling.\n\nAn MCP workspace saves to its JSON file after edits. Browser-only work saves in localStorage until you export it.\n\nReturn to [[Start here]].",
+        "updatedAt": 1794818027074
+      }
+    ],
+    "decks": []
+  }
+}

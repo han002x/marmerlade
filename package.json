@@ -13,7 +13,8 @@
     "prepack": "npm run build",
     "test:mcp": "node --experimental-strip-types scripts/workspace-test.ts",
     "test:mcp:integration": "node scripts/mcp-integration.mjs",
-    "test:native": "node scripts/native-integration.mjs"
+    "test:native": "node scripts/native-integration.mjs",
+    "test:agent": "node scripts/agent-e2e.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.4",

@@ -84,7 +84,6 @@ const sizeKeySelector = (s: { nodeLookup: Map<string, { type?: string; measured:
 };
 const edgeTypes: EdgeTypes = { diagram: DiagramEdge };
 
-/** A toolbar button whose tooltip announces its keyboard shortcut. */
 /** half the rendered size of a freshly placed node (see `.mf-place-ghost`) */
 function placeHalf({ shape, icon, image }: Placement): { x: number; y: number } {
   if (image) {
@@ -95,6 +94,7 @@ function placeHalf({ shape, icon, image }: Placement): { x: number; y: number } 
   return shapeDef(shape).square ? { x: 45, y: 45 } : { x: 60, y: 24 };
 }
 
+/** A toolbar button with its keyboard shortcut below the icon. */
 function ToolButton({
   label,
   hotkey,
@@ -121,6 +121,7 @@ function ToolButton({
       onClick={onClick}
     >
       {children}
+      {hotkey && <kbd className="mf-tool-key" aria-hidden="true">{hotkey}</kbd>}
     </button>
   );
 }

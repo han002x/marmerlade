@@ -220,8 +220,8 @@ survive reloads. Reset Custom from any preset to start again.
 | `Ctrl/⌘V` | Paste an image (screenshot, copied web image, image URL) as an image node at the pointer |
 | `Ctrl/⌘C` | Copy the selected image node (pastes back with its size and label; other apps get the picture) |
 
-Shortcuts are suspended while you're typing in a field. Every toolbar button
-shows its key in the tooltip.
+Shortcuts are suspended while you're typing in a field. Toolbar buttons with
+shortcuts show their keys below the icons and in their tooltips.
 
 ## Mermaid support
 

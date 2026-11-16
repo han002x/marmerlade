@@ -37,6 +37,7 @@ export function ImagePicker({
         onClick={() => onOpenChange(!open)}
       >
         <Icon name="image" />
+        <kbd className="mf-tool-key" aria-hidden="true">I</kbd>
       </button>
       {open && <ImagePanel onPick={pick} />}
     </div>

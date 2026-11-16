@@ -163,6 +163,22 @@ body,
   border-color: color-mix(in srgb, var(--mf-accent) 30%, transparent);
 }
 
+.mf-toolbar .mf-tool {
+  position: relative;
+  height: 42px;
+  padding: 0 0 12px;
+}
+.mf-tool-key {
+  position: absolute;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+  font: 10px/1 var(--mf-mono);
+  text-align: center;
+  color: var(--mf-muted);
+  pointer-events: none;
+}
+
 /* ---- floating selection bar (above 2+ selected nodes) ------------------ */
 .mf-selbar {
   display: flex;

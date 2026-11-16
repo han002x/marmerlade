@@ -92,6 +92,7 @@ export function ShapePicker({
         onClick={() => onOpenChange(!open)}
       >
         <Icon name="shapes" />
+        <kbd className="mf-tool-key" aria-hidden="true">S</kbd>
       </button>
       {open && <PickerPanel onPick={pick} />}
     </div>

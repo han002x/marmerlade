@@ -74,6 +74,14 @@
     "vite": "^8.3.6"
   },
   "description": "Foldable diagrams, linked wiki pages and slides with a live MCP canvas",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/han002x/marmerlade.git"
+  },
+  "homepage": "https://github.com/han002x/marmerlade#readme",
+  "bugs": {
+    "url": "https://github.com/han002x/marmerlade/issues"
+  },
   "bin": {
     "marmerlade": "dist/cli.js"
   },

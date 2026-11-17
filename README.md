@@ -12,7 +12,7 @@
   </p>
 </div>
 
-![Exported animated support workflow in Halloween mode with Kiro and GitHub icons](demo-materials/gif/04-exported-diagram.gif)
+![Exported animated support workflow in Halloween mode with Kiro and GitHub icons](public/04-exported-diagram.gif)
 
 <p align="center"><sub>A support workflow in Halloween mode, exported directly from Marmerlade as an animated GIF.</sub></p>
 

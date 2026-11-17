@@ -18,7 +18,7 @@ nesting is expressed with IDs, not nested JSON objects. See
 
 The server also accepts version 1-3 envelopes and bare diagram objects. The
 browser file importer accepts an envelope or bare diagram. Author new files as
-version 3. Old `.merfolk.json` examples use the same workspace import format.
+version 3.
 Normalization migrates a legacy node `pageId` to `pageIds` when no `pageIds`
 exists. New output uses `pageIds` only.
 

@@ -232,8 +232,8 @@ function parseCore(src: string): CoreResult {
 
   for (let idx = 0; idx < rawLines.length; idx++) {
     const line = rawLines[idx].trim();
-    if (/^%%\s+(?:marmerlade|merfolk)-(pages|decks)\b/.test(line)) {
-      const meta = line.match(/^%%\s+(?:marmerlade|merfolk)-(pages|decks)\s+([A-Za-z0-9_]+)\s+(.+)$/);
+    if (/^%%\s+marmerlade-(pages|decks)\b/.test(line)) {
+      const meta = line.match(/^%%\s+marmerlade-(pages|decks)\s+([A-Za-z0-9_]+)\s+(.+)$/);
       try {
         if (!meta) throw new Error('Expected a node ID and a JSON array of IDs');
         const value: unknown = JSON.parse(meta[3]);

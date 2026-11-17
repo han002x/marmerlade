@@ -42,7 +42,7 @@ across the canvas, wiki, and slides.
 Requires **Node.js 22.12 or newer**.
 
 ```bash
-git clone https://github.com/han002x/merfolk.git marmerlade
+git clone https://github.com/han002x/marmerlade.git marmerlade
 cd marmerlade
 npm install
 npm run dev
@@ -76,14 +76,13 @@ The [AI support agent example](examples/ai-support-agent/README.md) follows a
 customer question through retrieval, generation, checking, and human handoff.
 It includes nested groups, eight linked wiki pages, and a six-slide deck.
 
-1. Download the [example bundle](examples/ai-support-agent-demo.zip) and extract it.
+1. Open the [example folder](examples/ai-support-agent).
 2. In Marmerlade, choose **More actions → Import file**.
-3. Select `ai-support-agent.merfolk.json` for the folded overview, or
-   `ai-support-agent.expanded.merfolk.json` to see every group open.
+3. Select `ai-support-agent.marmerlade.json` for the folded overview, or
+   `ai-support-agent.expanded.marmerlade.json` to see every group open.
 
 Import replaces the current workspace. Export your work first if you want to keep
-it. The example's `.merfolk.json` filenames use the same import format as
-`.marmerlade.json`.
+it.
 
 ## Work with an AI assistant
 

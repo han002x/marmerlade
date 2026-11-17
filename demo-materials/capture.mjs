@@ -17,7 +17,7 @@ const directory = dirname(fileURLToPath(import.meta.url));
 const appUrl = process.argv[2] ?? 'http://127.0.0.1:5173';
 const output = join(directory, 'halloween-demo.gif');
 const scratch = await mkdtemp(join(tmpdir(), 'marmerlade-halloween-'));
-const fixture = JSON.parse(await readFile(join(directory, '../examples/ai-support-agent/ai-support-agent.merfolk.json'), 'utf8'));
+const fixture = JSON.parse(await readFile(join(directory, '../examples/ai-support-agent/ai-support-agent.marmerlade.json'), 'utf8'));
 for (const node of fixture.diagram.nodes) {
   node.position.x *= 0.72;
   node.position.y *= 0.72;

@@ -5,6 +5,7 @@
   <p>A visual workspace built around Mermaid, with a live canvas for your AI assistant.</p>
   <p>
     <a href="#quick-start">Quick start</a> ·
+    <a href="#connect-your-ai-assistant-from-npm">Connect your AI assistant</a> ·
     <a href="#try-a-complete-workspace">Example workspace</a> ·
     <a href="docs/mcp.md">MCP setup</a> ·
     <a href="docs/usage.md">User guide</a> ·
@@ -89,6 +90,72 @@ it.
 The local MCP server gives your assistant access to diagrams, wiki pages, and
 slide decks. The browser shows the same workspace as the assistant edits it.
 
+### Connect your AI assistant from npm
+
+Requires **Node.js 22.12 or newer** and an assistant that supports local MCP
+servers. You can connect Marmerlade to your project without cloning this
+repository.
+
+1. Install the published CLI:
+
+   ```bash
+   npm install -g marmerlade
+   ```
+
+2. Choose your assistant's host value:
+
+   | Assistant | Host value | MCP configuration |
+   | --- | --- | --- |
+   | Codex | `codex` | `.codex/config.toml` |
+   | Kiro | `kiro` | `.kiro/settings/mcp.json` |
+   | Claude Code | `claude` | `.mcp.json` |
+   | Cursor | `cursor` | `.cursor/mcp.json` |
+   | Antigravity | `antigravity` | `~/.gemini/antigravity/mcp_config.json` |
+
+   Run setup from the project you want to document. Replace `YOUR_HOST` with
+   the value from the table:
+
+   ```bash
+   cd /path/to/your/project
+   marmerlade setup --project . --host YOUR_HOST --file architecture.marmerlade.json
+   ```
+
+   Setup installs Chromium for previews and exports, registers the local MCP
+   server, installs the bundled skills in your assistant's discovery directory,
+   and verifies the server connection. It preserves unrelated settings and backs
+   up existing configuration before changing it. Configuration is project-local
+   except for Antigravity, which uses the user-level path shown above. Use
+   `--host both` to configure Codex and Kiro together. For other MCP clients,
+   follow the [manual setup instructions](docs/mcp.md#connect-an-assistant).
+
+3. Open the project in your assistant, then reload its MCP connection and skills
+   or restart the assistant. Approve or trust the project if prompted. Confirm
+   that `marmerlade` is connected in the assistant's MCP tools view, then ask it
+   to call `get_workspace` and `diagnose_environment` to verify the workspace
+   and rendering environment.
+
+4. Ask your assistant to create and open your workspace:
+
+   > Use marmerlade-director to explain this project's architecture. Create a
+   > diagram with foldable groups, attach wiki pages to the main components,
+   > and open the live canvas.
+
+   Your assistant edits the workspace through MCP and calls `open_workspace` to
+   open the local browser canvas. Changes save to `architecture.marmerlade.json`
+   in your project. The public website's browser-local workspace is separate
+   from this file.
+
+If setup or connection fails, run this from your project directory:
+
+```bash
+marmerlade doctor --file architecture.marmerlade.json
+```
+
+To update the CLI, run `npm install -g marmerlade@latest`, then restart your
+assistant's MCP connection.
+
+### Set up from a source checkout
+
 Build the app from your checkout:
 
 ```bash
@@ -98,11 +165,12 @@ npm run build
 For guided setup in a project:
 
 ```bash
-node dist/cli.js setup --project /absolute/project --host both --file architecture.marmerlade.json
+node dist/cli.js setup --project /absolute/project --host YOUR_HOST --file architecture.marmerlade.json
 ```
 
-Setup installs the rendering browser, project skills, and MCP configuration for
-Kiro, Codex, or both. Reload the host's MCP connection and skills, then ask
+Replace `YOUR_HOST` with a host value from the table above. Setup installs the
+rendering browser, project skills, and MCP configuration for your assistant.
+Reload the host's MCP connection and skills, then ask
 `marmerlade-director` to discuss your project and key workflows. The agent can
 arrange diagrams, import generated images, inspect previews, and export animated
 GIFs through MCP. It reuses your agent's existing hosted image-generation tool.

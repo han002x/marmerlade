@@ -12,7 +12,7 @@ import { mergeDiagram, parseMermaid, toMermaid } from '../src/mermaid/io.ts';
 import { layout } from '../src/layout.ts';
 import { createRenderer } from './renderer.ts';
 import { diagnoseEnvironment } from './environment.ts';
-import { setupProject } from './setup.ts';
+import { hostNames, setupProject } from './setup.ts';
 import { previewRequestSchema, gifRequestSchema } from '../src/renderContract.ts';
 import { ICONS } from '../src/icons/catalog.ts';
 
@@ -23,7 +23,7 @@ async function main() {
     'no-browser': { type: 'boolean', default: false }, replace: { type: 'boolean', default: false }, open: { type: 'boolean', default: false },
   } });
   if (values.help || values.version) {
-    process.stderr.write(values.version ? '0.1.0\n' : 'Usage: marmerlade [--file ./diagram.marmerlade.json]\n       marmerlade doctor [--file path]\n       marmerlade setup --project directory --host codex|kiro|both [--file path] [--no-browser] [--replace]\n       marmerlade serve --file path [--open]\nDefault starts MCP over stdio and serves a live canvas on localhost.\n'); return;
+    process.stderr.write(values.version ? '0.1.0\n' : 'Usage: marmerlade [--file ./diagram.marmerlade.json]\n       marmerlade doctor [--file path]\n       marmerlade setup --project directory --host codex|kiro|claude|cursor|antigravity|both [--file path] [--no-browser] [--replace]\n       marmerlade serve --file path [--open]\nDefault starts MCP over stdio and serves a live canvas on localhost.\n'); return;
   }
   if (positionals[0] === 'doctor') {
     const report = await diagnoseEnvironment(values.file);
@@ -32,7 +32,7 @@ async function main() {
     return;
   }
   if (positionals[0] === 'setup') {
-    const host = z.enum(['codex', 'kiro', 'both']).parse(values.host);
+    const host = z.enum([...hostNames, 'both']).parse(values.host);
     const report = await setupProject({ project: values.project, file: values.file, host, name: values.name, browser: !values['no-browser'], replace: values.replace });
     process.stdout.write(JSON.stringify(report, null, 2) + '\n'); return;
   }

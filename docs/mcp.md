@@ -28,8 +28,19 @@ The package includes director, docs, and setup skills. Configure a project with:
 node dist/cli.js setup --project /absolute/project --host both --file architecture.marmerlade.json
 ```
 
-Choose `codex`, `kiro`, or `both`. Setup installs Chromium if missing, copies
-skills to the host's project discovery directory, merges project-scoped MCP
+Choose `codex`, `kiro`, `claude`, `cursor`, `antigravity`, or `both` (codex and
+kiro). Config and skills go to:
+
+| Host | MCP config | Skills |
+| --- | --- | --- |
+| codex | `.codex/config.toml` | `.agents/skills` |
+| kiro | `.kiro/settings/mcp.json` | `.kiro/skills` |
+| claude | `.mcp.json` | `.claude/skills` |
+| cursor | `.cursor/mcp.json` | `.cursor/skills` |
+| antigravity | `~/.gemini/antigravity/mcp_config.json` (user-level) | `.agent/skills` |
+
+Setup installs Chromium if missing, copies
+skills to the host's project discovery directory, merges MCP
 configuration, and verifies a real child MCP connection. It preserves unrelated
 settings and creates a backup before changing an existing config. Repeating it
 with the same options leaves configuration unchanged. Conflicting existing

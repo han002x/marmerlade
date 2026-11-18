@@ -167,14 +167,21 @@ function DiagramNodeInner({ id, data, selected, dragging }: NodeProps) {
       {image && <NodeImg image={image} />}
       <div className="mf-node-body" style={diamond ? { transform: 'rotate(-45deg)' } : undefined}>
         {editing ? (
-          <input
+          <textarea
             autoFocus
-            className="mf-node-input"
+            className="mf-node-input nodrag nopan"
+            aria-label="Edit node text"
+            title="Shift+Enter for a new line · Enter to save"
+            rows={Math.max(2, draft.split('\n').length)}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') commit();
+              e.stopPropagation();
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                commit();
+              }
               if (e.key === 'Escape') setEditing(false);
             }}
           />

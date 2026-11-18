@@ -203,7 +203,8 @@ export function sheets(
     out.push({ groupId: g.id, rect: rectOf(g), depth }); // placeholder, keeps outer sheets first
     const box = children.map((c) => build(c, depth + 1)).reduce(union);
     const padded = pad(box, SHEET_PAD);
-    const rect = { ...padded, y: padded.y - SHEET_TITLE, height: padded.height + SHEET_TITLE };
+    const titleHeight = SHEET_TITLE * g.label.split('\n').length;
+    const rect = { ...padded, y: padded.y - titleHeight, height: padded.height + titleHeight };
     out[index] = { groupId: g.id, rect, depth };
     return rect;
   };

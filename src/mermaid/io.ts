@@ -67,6 +67,9 @@ function stripQuotes(s: string): string {
   return t;
 }
 
+const decodeNodeLabel = (label: string) => label.replace(/<br\s*\/?\s*>/gi, '\n');
+const encodeNodeLabel = (label: string) => label.replace(/\r?\n/g, '<br/>');
+
 const positiveNum = (v: string | undefined): number | undefined => {
   const n = Number(v);
   return v != null && Number.isFinite(n) && n > 0 ? n : undefined;
@@ -89,9 +92,9 @@ function parseMeta(id: string, body: string, parentId: string | null): ParsedNod
   for (const m of body.matchAll(META_PAIR_RE)) meta[m[1]] = stripQuotes(m[2]);
   if (meta.img) {
     // like mermaid, an image node without a label shows no text
-    return { id, label: meta.label ?? '', shape: 'rect', parentId, image: parseImage(meta) };
+    return { id, label: decodeNodeLabel(meta.label ?? ''), shape: 'rect', parentId, image: parseImage(meta) };
   }
-  const label = meta.label ?? id;
+  const label = decodeNodeLabel(meta.label ?? id);
   if (meta.icon) {
     return { id, label, shape: shapeForForm(meta.form), parentId, icon: meta.icon };
   }
@@ -111,7 +114,7 @@ function parseNodeToken(
     const m = t.match(re);
     if (m) {
       // a blank `" "` is how an unlabelled node is written (see shapeWrap)
-      const label = stripQuotes(m[2]);
+      const label = decodeNodeLabel(stripQuotes(m[2]));
       return { id: m[1], label: label.trim() === '' ? '' : label, shape, parentId };
     }
   }
@@ -264,7 +267,7 @@ function parseCore(src: string): CoreResult {
       const rest = sg[1].trim();
       const idMatch = rest.match(/^([A-Za-z0-9_]+)\s*\[(.+?)\]$/);
       const id = idMatch ? idMatch[1] : rest.replace(/\s+/g, '_');
-      const label = idMatch ? stripQuotes(idMatch[2]) : rest;
+      const label = decodeNodeLabel(idMatch ? stripQuotes(idMatch[2]) : rest);
       const parentId = subgraphStack.length
         ? subgraphStack[subgraphStack.length - 1]
         : null;
@@ -424,7 +427,7 @@ export function mergeDiagram(parsed: Diagram, current: Diagram): Diagram {
 }
 
 function shapeWrap(node: DiagramNode): string {
-  const l = node.label;
+  const l = encodeNodeLabel(node.label);
   if (node.image) {
     // always quoted: a data: URI carries commas, which end a bare value
     const { src, pos, w, h, constraint } = node.image;
@@ -484,7 +487,7 @@ export function toMermaidWithMap(diagram: Diagram): MermaidResult {
         // the subgraph opener line represents the group node
         lineRefs.set(out.length, { kind: 'node', id: n.id });
         // an untitled group still needs a (blank) title to stay valid Mermaid
-        out.push(`${indent(depth)}subgraph ${n.id} ["${n.label || ' '}"]`);
+        out.push(`${indent(depth)}subgraph ${n.id} ["${encodeNodeLabel(n.label) || ' '}"]`);
         emit(n.id, depth + 1);
         out.push(`${indent(depth)}end`);
       } else {

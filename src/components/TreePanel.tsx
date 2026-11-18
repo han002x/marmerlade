@@ -14,9 +14,11 @@ function EditableLabel({ label, fallback, onSave }: {
   const [draft, setDraft] = useState<string | null>(null);
   if (draft !== null) {
     return (
-      <input
+      <textarea
         className="mf-tree-edit"
         aria-label={`Rename ${fallback}`}
+        title="Shift+Enter for a new line · Enter to save"
+        rows={Math.max(2, draft.split('\n').length)}
         autoFocus
         value={draft}
         onClick={(event) => event.stopPropagation()}
@@ -27,7 +29,10 @@ function EditableLabel({ label, fallback, onSave }: {
         }}
         onKeyDown={(event) => {
           event.stopPropagation();
-          if (event.key === 'Enter') event.currentTarget.blur();
+          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            event.currentTarget.blur();
+          }
           if (event.key === 'Escape') setDraft(null);
         }}
       />

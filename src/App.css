@@ -433,7 +433,8 @@ body,
 }
 
 .mf-node-label {
-  white-space: nowrap;
+  white-space: pre-wrap;
+  text-align: center;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
@@ -446,6 +447,7 @@ body,
   padding: 2px 6px;
   font-size: 13px;
   width: 120px;
+  resize: vertical;
 }
 
 .mf-unfold {
@@ -1214,7 +1216,8 @@ body,
 }
 .mf-sheet-title {
   overflow: hidden;
-  white-space: nowrap;
+  height: auto;
+  white-space: pre-wrap;
   text-overflow: ellipsis;
   cursor: grab;
 }
@@ -1228,6 +1231,8 @@ body,
 }
 .mf-sheet-title-input {
   width: 180px;
+  height: auto;
+  resize: vertical;
   background: var(--mf-input);
   border: 1px solid var(--mf-accent);
   outline: none;

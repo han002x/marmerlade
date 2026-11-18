@@ -48,15 +48,22 @@ function SheetNodeInner({ data }: NodeProps) {
       <Handle type="target" position={Position.Top} isConnectable={false} className="mf-sheet-handle" />
       <Handle type="source" position={Position.Bottom} isConnectable={false} className="mf-sheet-handle" />
       {editing ? (
-          <input
+          <textarea
             autoFocus
             className="mf-sheet-title-input nodrag nopan"
+            aria-label="Edit group text"
+            title="Shift+Enter for a new line · Enter to save"
+            rows={Math.max(2, draft.split('\n').length)}
             value={draft}
             placeholder="Untitled"
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') commit();
+              e.stopPropagation();
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                commit();
+              }
               if (e.key === 'Escape') setEditing(false);
             }}
           />

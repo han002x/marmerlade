@@ -30,6 +30,7 @@ import {
   foldEdges,
   groupOrigin,
   groupPlan,
+  ungroupTarget,
   isOpenGroup,
   nextFoldLevel,
   nextUnfoldLevel,
@@ -163,6 +164,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   const selectedEdges = useDiagram((s) => s.selectedEdgeIds);
   const setSelection = useDiagram((s) => s.setSelection);
   const groupNodes = useDiagram((s) => s.groupNodes);
+  const ungroupNodes = useDiagram((s) => s.ungroupNodes);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // a new user's demo diagram is framed below the first-run notes
@@ -741,15 +743,13 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
     else fold(ids.filter((id) => !byId.get(id)?.collapsed));
   }, [fold, unfold]);
 
-  // what ⌘G would do with the current selection: wrap it in a new group,
-  // move it into the one group already selected, or nothing (no bar)
-  const groupAction = useMemo(() => groupPlan(nodes, selected)?.kind ?? null, [nodes, selected]);
+  const groupAction = useMemo(() => ungroupTarget(nodes, selected) ? 'ungroup' : groupPlan(nodes, selected)?.kind ?? null, [nodes, selected]);
 
-  // ⌘G: group the selection into an untitled frame (no new card on screen),
-  // or into the one group already selected
   const groupSelection = useCallback(() => {
-    groupNodes(useDiagram.getState().selectedNodeIds);
-  }, [groupNodes]);
+    const { nodes: all, selectedNodeIds } = useDiagram.getState();
+    if (ungroupTarget(all, selectedNodeIds)) ungroupNodes(selectedNodeIds);
+    else groupNodes(selectedNodeIds);
+  }, [groupNodes, ungroupNodes]);
 
   // [ / ]: fold or unfold the whole diagram one crease at a time, then frame it
   const foldLevel = useCallback(
@@ -842,6 +842,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         { key: 'm', run: onTogglePanel },
         { key: 'z', meta: true, run: undo },
         { key: 'g', meta: true, run: groupSelection },
+        { key: 'g', run: groupSelection },
         { key: 'escape', run: cancelPending },
         { key: 'backspace', run: deleteSelected },
         { key: 'delete', run: deleteSelected },
@@ -1115,11 +1116,12 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
           <div className="mf-selbar">
             <button
               className="mf-selbar-btn"
-              title={`${groupAction === 'join' ? 'Add to group' : 'Group'}  ·  ⌘G`}
+              title={`${groupAction === 'ungroup' ? 'Ungroup' : groupAction === 'join' ? 'Add to group' : 'Group'}  ·  G`}
               onClick={groupSelection}
             >
               <Icon name="group" />
-              <span>{groupAction === 'join' ? 'Add to group' : 'Group'}</span>
+              <span>{groupAction === 'ungroup' ? 'Ungroup' : groupAction === 'join' ? 'Add to group' : 'Group'}</span>
+              <kbd className="mf-tool-key" aria-hidden="true">G</kbd>
             </button>
           </div>
         </NodeToolbar>

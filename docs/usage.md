@@ -213,6 +213,7 @@ survive reloads. Reset Custom from any preset to start again.
 | `K` | Open the selected node's default slide deck in the side panel (all decks when nothing is selected) |
 | `E` | Page tab: switch between Edit and Read |
 | `F` | Fold / unfold the selected group (or the sheet a selected node sits on) |
+| `G` | Group selected nodes, or ungroup a selected group or all of its children. A group with a label, links, connections, or styling remains as a node. |
 | `[` / `]` | Fold / unfold one level |
 | `P` | Play / pause the flow |
 | `,` / `.` | Step the flow back / forward |

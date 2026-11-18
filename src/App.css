@@ -186,11 +186,12 @@ body,
   box-shadow: var(--mf-contact);
 }
 .mf-selbar-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 26px;
-  padding: 0 10px 0 7px;
+  padding: 0 14px 0 7px;
   background: transparent;
   color: var(--mf-text);
   border: 1px solid transparent;

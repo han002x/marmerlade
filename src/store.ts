@@ -19,6 +19,7 @@ import {
   descendants,
   groupOrigin,
   groupPlan,
+  ungroupTarget,
   hiddenIds as computeHidden,
 } from './fold.ts';
 
@@ -220,6 +221,7 @@ interface State {
   /** wrap the given nodes in a new untitled group (a sheet, no card of its own),
    *  or move them into the one group already among them; returns its id */
   groupNodes: (ids: string[]) => string | null;
+  ungroupNodes: (ids: string[]) => void;
   autoLayout: (direction?: Direction) => void;
 
   // interop
@@ -793,6 +795,24 @@ export const useDiagram = create<State>((set, get) => {
     }));
     return id;
   },
+
+  ungroupNodes: (ids) => set((s) => {
+    const id = ungroupTarget(s.nodes, ids);
+    const group = s.nodes.find((node) => node.id === id);
+    if (!group) return s;
+    const members = s.nodes.filter((node) => node.parentId === id);
+    const preserve = !!(group.label || group.icon || group.image || group.style || group.pageIds?.length || group.deckIds?.length || s.edges.some((edge) => edge.source === id || edge.target === id));
+    const position = groupOrigin(group.id, s.nodes) ?? group.position;
+    return {
+      ...snapshot(),
+      nodes: s.nodes.filter((node) => preserve || node.id !== id).map((node) => {
+        if (node.id === id) return { ...node, position, collapsed: false };
+        return node.parentId === id ? { ...node, parentId: group.parentId } : node;
+      }),
+      selectedNodeIds: members.map((node) => node.id),
+      selectedEdgeIds: [],
+    };
+  }),
 
   autoLayout: (direction = 'TB') =>
     set((s) => {

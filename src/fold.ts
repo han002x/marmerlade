@@ -233,6 +233,19 @@ export type GroupPlan =
   /** the selection already holds a group: move the other `members` into it */
   | { kind: 'join'; groupId: string; members: string[] };
 
+export function ungroupTarget(nodes: DiagramNode[], ids: string[]): string | null {
+  const picked = new Set(ids);
+  const kids = childrenOf(nodes);
+  if (picked.size === 1 && kids.has(ids[0])) return ids[0];
+  if (picked.size < 2) return null;
+  const first = nodes.find((node) => picked.has(node.id));
+  const parent = first?.parentId;
+  const siblings = parent ? kids.get(parent) : undefined;
+  return siblings && siblings.length === picked.size && siblings.every((node) => picked.has(node.id))
+    ? parent ?? null
+    : null;
+}
+
 /**
  * Plan grouping a selection. A selected group brings its subtree along, so
  * only the outermost selected nodes count. With no group among them, they are

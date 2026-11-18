@@ -11,7 +11,8 @@ import type {
   Page,
 } from './types';
 import { fromMermaid, mergeDiagram, parseMermaid, toMermaid } from './mermaid/io.ts';
-import { layout, type Direction } from './layout.ts';
+import { layout, sizeFor, type Direction } from './layout.ts';
+import type { NodeClipboard } from './clipboard.ts';
 import { createPageFor, mergePages, newPageId, normalizeDiagram, type LinkKey } from './pages.ts';
 import {
   childrenOf,
@@ -199,6 +200,7 @@ interface State {
     position: { x: number; y: number },
     extra?: { icon?: string; image?: NodeImage; label?: string },
   ) => string;
+  pasteNodes: (fragment: NodeClipboard, center: DiagramNode['position']) => void;
   updateLabel: (id: string, label: string) => void;
   /** patch a node's image (`null` turns it back into a plain node) */
   updateNodeImage: (id: string, patch: Partial<NodeImage> | null) => void;
@@ -391,6 +393,8 @@ export const useDiagram = create<State>((set, get) => {
         nodes: prev.nodes,
         edges: prev.edges,
         history: s.history.slice(0, -1),
+        selectedNodeIds: s.selectedNodeIds.filter((id) => prev.nodes.some((node) => node.id === id)),
+        selectedEdgeIds: s.selectedEdgeIds.filter((id) => prev.edges.some((edge) => edge.id === id)),
       };
     }),
 
@@ -500,6 +504,60 @@ export const useDiagram = create<State>((set, get) => {
     set((s) => ({ ...snapshot(), nodes: [...s.nodes, node] }));
     return id;
   },
+
+  pasteNodes: (fragment, center) => set((s) => {
+    if (fragment.nodes.length === 0) return s;
+
+    const kids = childrenOf(fragment.nodes);
+    const bounds = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+    for (const node of fragment.nodes) {
+      // A group's stored position does not describe where its contents are drawn.
+      if (kids.has(node.id)) continue;
+      const { x, y } = node.position;
+      const { width, height } = sizeFor(node.shape, node.icon, node.image);
+      bounds.left = Math.min(bounds.left, x);
+      bounds.top = Math.min(bounds.top, y);
+      bounds.right = Math.max(bounds.right, x + width);
+      bounds.bottom = Math.max(bounds.bottom, y + height);
+    }
+    const dx = center.x - (bounds.left + bounds.right) / 2;
+    const dy = center.y - (bounds.top + bounds.bottom) / 2;
+
+    const ids = new Map<string, string>();
+    const usedNodes = [...s.nodes];
+    const copies = fragment.nodes.map((node) => {
+      const copy = { ...node, id: nextNodeId(usedNodes) };
+      usedNodes.push(copy);
+      ids.set(node.id, copy.id);
+      return copy;
+    });
+    const pageIds = new Set(s.pages.map((page) => page.id));
+    const deckIds = new Set(s.decks.map((deck) => deck.id));
+    const pasted = copies.map((node) => ({
+      ...node,
+      parentId: node.parentId === null ? null : ids.get(node.parentId) ?? null,
+      position: { x: node.position.x + dx, y: node.position.y + dy },
+      pageIds: node.pageIds && [...new Set(node.pageIds)].filter((id) => pageIds.has(id)),
+      deckIds: node.deckIds && [...new Set(node.deckIds)].filter((id) => deckIds.has(id)),
+    }));
+    const usedEdges = new Set(s.edges.map((edge) => edge.id));
+    const edges = fragment.edges.flatMap((edge) => {
+      const source = ids.get(edge.source);
+      const target = ids.get(edge.target);
+      if (source === undefined || target === undefined) return [];
+      let id = nextId('e');
+      while (usedEdges.has(id)) id = nextId('e');
+      usedEdges.add(id);
+      return [{ ...edge, id, source, target }];
+    });
+    return {
+      ...snapshot(),
+      nodes: [...s.nodes, ...pasted],
+      edges: [...s.edges, ...edges],
+      selectedNodeIds: pasted.filter((node) => node.parentId === null).map((node) => node.id),
+      selectedEdgeIds: [],
+    };
+  }),
 
   updateLabel: (id, label) =>
     set((s) => {

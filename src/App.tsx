@@ -51,7 +51,7 @@ import { foldedAncestors } from './pages.ts';
 import { nameCanvasWindow, openDocs, parseRoute } from './route';
 import { showDeck, showPage, useDock } from './dock';
 import { isTyping, useHotkeys } from './useHotkeys';
-import { copyImageNode, imagesFromClipboard, snapshotClipboard } from './clipboard';
+import { copyNodes, imagesFromClipboard, nodesFromClipboard, snapshotClipboard } from './clipboard';
 import {
   startAutosave,
   startSync,
@@ -179,7 +179,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   /** the image (URL / upload / clipboard) popover */
   const [imageOpen, setImageOpen] = useState(false);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
-  /** last pointer position over the canvas: where a pasted image lands */
+  /** last pointer position over the canvas: where pasted nodes land */
   const pointer = useRef<{ x: number; y: number } | null>(null);
   /** a short-lived message, e.g. why a paste was refused */
   const [notice, setNotice] = useState<string | null>(null);
@@ -850,22 +850,21 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
     ),
   );
 
-  // Ctrl/Cmd+C on one selected image node copies it; Ctrl/Cmd+V of any picture
-  // (file, copied web image, image URL, or a copied node) drops an image node
-  // at the pointer. Text fields keep their own native copy/paste.
+  // Use native clipboard events so text fields and external images keep working.
   useEffect(() => {
+    const isEditing = (e: ClipboardEvent) =>
+      e.defaultPrevented || isTyping(e.target) || isTyping(document.activeElement) || document.querySelector('dialog[open]') !== null;
     const onCopy = (e: ClipboardEvent) => {
-      if (isTyping(document.activeElement) || window.getSelection()?.toString()) return;
-      const { nodes: all, selectedNodeIds, selectedEdgeIds } = useDiagram.getState();
-      if (selectedNodeIds.length !== 1 || selectedEdgeIds.length > 0) return;
-      const node = all.find((n) => n.id === selectedNodeIds[0]);
-      if (node?.image) copyImageNode(e, node.image, node.label);
+      if (isEditing(e) || window.getSelection()?.toString()) return;
+      const diagram = useDiagram.getState();
+      copyNodes(e, diagram, diagram.selectedNodeIds);
     };
     let lastPaste: { x: number; y: number; n: number } | null = null;
-    const onPaste = (e: ClipboardEvent) => {
-      if (isTyping(document.activeElement) || !e.clipboardData) return;
+    const onPaste = async (e: ClipboardEvent) => {
+      if (isEditing(e) || !e.clipboardData) return;
+      const readNodes = nodesFromClipboard(e.clipboardData.getData('text/html'));
       const clip = snapshotClipboard(e.clipboardData);
-      if (!clip) return;
+      if (!readNodes && !clip) return;
       e.preventDefault();
       // at the pointer when it is over the canvas, else the middle of the view
       const pane = document.querySelector('.react-flow')?.getBoundingClientRect();
@@ -876,6 +875,13 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
       // pasting again at the same spot cascades instead of stacking exactly
       const n = lastPaste && Math.hypot(lastPaste.x - at.x, lastPaste.y - at.y) < 1 ? lastPaste.n + 1 : 0;
       lastPaste = { ...at, n };
+      const fragment = readNodes && await readNodes.catch(() => null);
+      if (fragment) {
+        const offset = (n + 1) * 24;
+        useDiagram.getState().pasteNodes(fragment, { x: at.x + offset, y: at.y + offset });
+        return;
+      }
+      if (!clip) return;
       imagesFromClipboard(clip)
         .then((items) => {
           if (items.length === 0) return;

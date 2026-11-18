@@ -1,13 +1,5 @@
-// Copy and paste of images.
-//
-// Paste (Ctrl/Cmd+V) turns whatever picture is on the clipboard into an image
-// node: a marmerlade image node copied earlier (exact size and label), an image
-// file (screenshot, "Copy image"), an <img> from a copied web page, or a bare
-// image URL. Copy (Ctrl/Cmd+C) puts a selected image node on the clipboard as
-// HTML carrying the node, plain text, and, where the browser allows, a PNG so
-// other apps get the picture itself.
-
-import type { NodeImage } from './types.ts';
+import type { Diagram, NodeImage } from './types.ts';
+import { childrenOf } from './fold.ts';
 import { asImageSrc, isDataUri, looksLikeImageUrl, readImageFile, sizedImage } from './imageUpload.ts';
 
 /** what a pasted picture becomes */
@@ -18,6 +10,8 @@ export interface ClipImage {
 
 /** marks an <img> as a copied marmerlade node; holds the node minus its src */
 const MF_ATTR = 'data-marmerlade';
+const NODES_ATTR = 'data-marmerlade-nodes';
+export type NodeClipboard = Pick<Diagram, 'nodes' | 'edges'>;
 
 const escAttr = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -27,6 +21,75 @@ export function imageNodeHtml(image: NodeImage, label: string): string {
   const { src, ...rest } = image;
   const meta = escAttr(JSON.stringify({ image: rest, label }));
   return `<img src="${escAttr(src)}" alt="${escAttr(label)}" ${MF_ATTR}="${meta}">`;
+}
+
+/** Copy selected nodes, including the contents of any selected groups. */
+export function copyNodes(e: ClipboardEvent, diagram: NodeClipboard, selection: string[]) {
+  if (!e.clipboardData || selection.length === 0) return;
+  const kids = childrenOf(diagram.nodes);
+  const ids = new Set(selection);
+  // Set iteration visits child IDs added during the walk and skips overlaps.
+  for (const id of ids) {
+    for (const child of kids.get(id) ?? []) ids.add(child.id);
+  }
+  const nodes = diagram.nodes.filter((node) => ids.has(node.id)).map((node) => ({
+    ...node,
+    parentId: node.parentId && ids.has(node.parentId) ? node.parentId : null,
+  }));
+  if (nodes.length === 0) return;
+  const edges = diagram.edges.filter((edge) => ids.has(edge.source) && ids.has(edge.target));
+
+  const singleImage = nodes.length === 1 ? nodes[0].image : undefined;
+  const image = singleImage && asImageSrc(singleImage.src) ? singleImage : undefined;
+  const label = nodes[0].label;
+  const text = image
+    ? (isDataUri(image.src) ? label || 'image' : image.src)
+    : nodes.map((node) => node.label).filter(Boolean).join('\n');
+  const content = image ? imageNodeHtml(image, label) : escAttr(text).replace(/\n/g, '<br>');
+  const html = `<div ${NODES_ATTR}="${escAttr(JSON.stringify({ nodes, edges }))}">${content}</div>`;
+
+  e.preventDefault();
+  e.clipboardData.setData('text/html', html);
+  e.clipboardData.setData('text/plain', text);
+  if (image) offerPng(image.src, html, text);
+}
+
+/** Read a diagram selection from the system clipboard. */
+export function nodesFromClipboard(html: string): Promise<NodeClipboard | null> | null {
+  if (!html.includes(NODES_ATTR)) return null;
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const payload = template.content.querySelector(`[${NODES_ATTR}]`)?.getAttribute(NODES_ATTR);
+  return payload ? parseNodes(payload) : null;
+}
+
+async function parseNodes(payload: string): Promise<NodeClipboard | null> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(payload);
+  } catch {
+    return null;
+  }
+  const { diagramSchema } = await import('./workspaceSchema.ts');
+  const parsed = diagramSchema.pick({ nodes: true, edges: true }).safeParse(raw);
+  if (!parsed.success || parsed.data.nodes.length === 0) return null;
+
+  const { nodes, edges } = parsed.data;
+  const parents = new Map(nodes.map((node) => [node.id, node.parentId]));
+  if (parents.size !== nodes.length) return null;
+  const checked = new Set<string>();
+  for (const id of parents.keys()) {
+    const path = new Set<string>();
+    let current: string | null = id;
+    while (current !== null && !checked.has(current)) {
+      const parent = parents.get(current);
+      if (parent === undefined || path.has(current)) return null;
+      path.add(current);
+      current = parent;
+    }
+    for (const member of path) checked.add(member);
+  }
+  return { nodes, edges };
 }
 
 /**
@@ -108,21 +171,14 @@ async function pngBlob(src: string): Promise<Blob> {
   );
 }
 
-/** Put an image node on the clipboard from inside a `copy` event. */
-export function copyImageNode(e: ClipboardEvent, image: NodeImage, label: string) {
-  const html = imageNodeHtml(image, label);
-  // an embedded image's text form would be a wall of base64; use the label
-  const text = isDataUri(image.src) ? label || 'image' : image.src;
-  e.preventDefault();
-  e.clipboardData?.setData('text/html', html);
-  e.clipboardData?.setData('text/plain', text);
+function offerPng(src: string, html: string, text: string) {
   // also offer the picture itself to other apps. This async write replaces
   // the data above only if it succeeds, so a CORS-blocked image still copies.
   if (typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) return;
   navigator.clipboard
     .write([
       new ClipboardItem({
-        'image/png': pngBlob(image.src),
+        'image/png': pngBlob(src),
         'text/html': new Blob([html], { type: 'text/html' }),
         'text/plain': new Blob([text], { type: 'text/plain' }),
       }),

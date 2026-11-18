@@ -217,8 +217,8 @@ survive reloads. Reset Custom from any preset to start again.
 | `P` | Play / pause the flow |
 | `,` / `.` | Step the flow back / forward |
 | `⌫` / `Del` | Delete selected node(s) |
-| `Ctrl/⌘V` | Paste an image (screenshot, copied web image, image URL) as an image node at the pointer |
-| `Ctrl/⌘C` | Copy the selected image node (pastes back with its size and label; other apps get the picture) |
+| `Ctrl/⌘C` | Copy selected nodes, including group contents and connections between copied nodes |
+| `Ctrl/⌘V` | Paste copied nodes near the pointer, or paste a screenshot, web image, or image URL as an image node |
 
 Shortcuts are suspended while you're typing in a field. Toolbar buttons with
 shortcuts show their keys in the bottom-right corner of each button and in their tooltips.

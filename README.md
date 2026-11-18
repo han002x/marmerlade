@@ -1,61 +1,63 @@
 <div align="center">
   <img src="public/favicon.svg" width="72" height="72" alt="Marmerlade jar logo">
   <h1>marmerlade</h1>
-  <p><strong>Foldable diagrams. Linked wiki pages. Markdown slides.</strong></p>
-  <p>A visual workspace built around Mermaid, with a live canvas for your AI assistant.</p>
+  <p><strong>Diagrams that fold. Docs and slides that stay in sync.</strong></p>
+  <p>Draw your system once, then explain it at any depth: a one-card overview,<br>
+  the full detail, and wiki pages and slides that update with the diagram.</p>
   <p>
-    <a href="#quick-start">Quick start</a> ·
-    <a href="#connect-your-ai-assistant-from-npm">Connect your AI assistant</a> ·
-    <a href="#try-a-complete-workspace">Example workspace</a> ·
-    <a href="docs/mcp.md">MCP setup</a> ·
+    <a href="https://han002x.github.io/marmerlade/"><strong>Open Marmerlade in your browser →</strong></a>
+  </p>
+  <p>
+    <a href="https://www.npmjs.com/package/marmerlade"><img src="https://img.shields.io/npm/v/marmerlade?color=e8833a&label=npm" alt="npm version"></a>
+    <img src="https://img.shields.io/badge/node-%E2%89%A522.12-3c873a" alt="Node.js 22.12 or newer">
+    <img src="https://img.shields.io/badge/MCP-ready-6b4fbb" alt="Works with MCP assistants">
+  </p>
+  <p>
+    <a href="#try-it-now">Try it</a> ·
+    <a href="#let-your-ai-assistant-draw-it">Use with AI</a> ·
     <a href="docs/usage.md">User guide</a> ·
+    <a href="docs/mcp.md">MCP setup</a> ·
     <a href="#contributing">Contribute</a>
   </p>
 </div>
 
-![Exported animated support workflow in Halloween mode with Kiro and GitHub icons](public/04-exported-diagram.gif)
+![Animated support workflow in Halloween mode with Kiro and GitHub icons](public/04-exported-diagram.gif)
 
 <p align="center"><sub>A support workflow in Halloween mode, exported directly from Marmerlade as an animated GIF.</sub></p>
 
-## Start with the overview. Unfold the details.
+## Why Marmerlade?
 
-Marmerlade is a canvas diagramming tool for systems that need more than one level
-of detail. Fold a group into a single card, then unfold it to explore the nodes
-inside. Connections follow the folded cards, so you can trace the system at any
-depth.
+Most architecture diagrams have one of two problems. They are either too simple
+to be useful or too detailed to read. Marmerlade lets you have both.
 
-Edit visually or write Mermaid. Attach Markdown pages and slide decks to the same
-nodes, and embed live diagrams in both. When a diagram changes, its embeds update
-across the canvas, wiki, and slides.
+- **Fold the detail away.** Collapse any group into a single card, then unfold
+  it when someone asks "what's inside?". Connections follow the folded cards, so
+  the overview stays accurate.
+- **Explain it in one place.** Attach wiki pages and slide decks to the nodes
+  they describe. Embedded diagrams update everywhere when you change the canvas.
+- **Speak Mermaid.** Paste Mermaid to start, edit visually or in source, and
+  export Mermaid when you need it somewhere else.
+- **Hand it to your AI assistant.** Connect Claude Code, Codex, Cursor, Kiro, or
+  Antigravity, and watch the canvas update live as it maps your codebase.
 
-| | What you can do |
+## What you can do
+
+| | |
 | --- | --- |
-| **Foldable diagrams** | Nest groups to any depth. Fold a whole level at once, or open one group at a time. |
-| **Mermaid editing** | Edit source beside the canvas. Import flowcharts and export Mermaid for other tools. |
-| **Connected wiki** | Link multiple pages to a node, share pages across nodes, follow wikilinks and backlinks. |
-| **Slides as Markdown** | Write decks with live diagram embeds, speaker notes, and a presenter view. Export Markdown or print to PDF. |
-| **Flow playback** | Animate connections in sequence, step through a flow, or export a loop as a GIF. |
-| **Live MCP canvas** | Let an assistant read and edit a local workspace while the browser follows its changes. |
-| **Paper and ink** | Draw with hand-drawn shapes, icons, and images. Choose paper, dark, blueprint, and other app styles. |
+| 🪗 **Foldable diagrams** | Nest groups to any depth. Fold a whole level at once, or open one group at a time. |
+| 🧜 **Mermaid editing** | Edit source beside the canvas. Import flowcharts and export Mermaid for other tools. |
+| 📖 **Connected wiki** | Link pages to nodes, share a page across nodes, and follow wikilinks and backlinks. |
+| 🎞️ **Markdown slides** | Write decks with live diagram embeds, speaker notes, and a presenter view. Print to PDF. |
+| ▶️ **Flow playback** | Animate connections in sequence, step through a flow, or export the loop as a GIF. |
+| 🤖 **Live AI canvas** | Let an assistant read and edit your workspace while the browser follows along. |
+| ✒️ **Paper and ink** | Hand-drawn shapes, icons, and images, with paper, dark, blueprint, and other styles. |
 
-## Quick start
+## Try it now
 
-Requires **Node.js 22.12 or newer**.
+Open **[han002x.github.io/marmerlade](https://han002x.github.io/marmerlade/)**.
+No sign-up or install. Your work autosaves in your browser.
 
-```bash
-git clone https://github.com/han002x/marmerlade.git marmerlade
-cd marmerlade
-npm install
-npm run dev
-```
-
-Open the URL printed in your terminal, normally **http://localhost:5173**.
-The browser app autosaves to localStorage. Use **More actions → Export file** to
-save a portable `.marmerlade.json` workspace.
-
-### Make your first diagram
-
-Open the **Mermaid** panel with `M` and paste:
+Press `M` to open the Mermaid panel and paste:
 
 ```mermaid
 flowchart LR
@@ -67,179 +69,113 @@ flowchart LR
   answer --> reply[Customer reply]
 ```
 
-Select the **Retrieve knowledge** group and press `F` to fold it. Select a node
-and press `W` to open its wiki page, or `K` to open its slide deck. Press `P` to
-play the flow.
+Then try these keys:
 
-### Try a complete workspace
-
-The [AI support agent example](examples/ai-support-agent/README.md) follows a
-customer question through retrieval, generation, checking, and human handoff.
-It includes nested groups, eight linked wiki pages, and a six-slide deck.
-
-1. Open the [example folder](examples/ai-support-agent).
-2. In Marmerlade, choose **More actions → Import file**.
-3. Select `ai-support-agent.marmerlade.json` for the folded overview, or
-   `ai-support-agent.expanded.marmerlade.json` to see every group open.
-
-Import replaces the current workspace. Export your work first if you want to keep
-it.
-
-## Work with an AI assistant
-
-The local MCP server gives your assistant access to diagrams, wiki pages, and
-slide decks. The browser shows the same workspace as the assistant edits it.
-
-### Connect your AI assistant from npm
-
-Requires **Node.js 22.12 or newer** and an assistant that supports local MCP
-servers. You can connect Marmerlade to your project without cloning this
-repository.
-
-1. Install the published CLI:
-
-   ```bash
-   npm install -g marmerlade
-   ```
-
-2. Choose your assistant's host value:
-
-   | Assistant | Host value | MCP configuration |
-   | --- | --- | --- |
-   | Codex | `codex` | `.codex/config.toml` |
-   | Kiro | `kiro` | `.kiro/settings/mcp.json` |
-   | Claude Code | `claude` | `.mcp.json` |
-   | Cursor | `cursor` | `.cursor/mcp.json` |
-   | Antigravity | `antigravity` | `~/.gemini/antigravity/mcp_config.json` |
-
-   Run setup from the project you want to document. Replace `YOUR_HOST` with
-   the value from the table:
-
-   ```bash
-   cd /path/to/your/project
-   marmerlade setup --project . --host YOUR_HOST --file architecture.marmerlade.json
-   ```
-
-   Setup installs Chromium for previews and exports, registers the local MCP
-   server, installs the bundled skills in your assistant's discovery directory,
-   and verifies the server connection. It preserves unrelated settings and backs
-   up existing configuration before changing it. Configuration is project-local
-   except for Antigravity, which uses the user-level path shown above. Use
-   `--host both` to configure Codex and Kiro together. For other MCP clients,
-   follow the [manual setup instructions](docs/mcp.md#connect-an-assistant).
-
-3. Open the project in your assistant, then reload its MCP connection and skills
-   or restart the assistant. Approve or trust the project if prompted. Confirm
-   that `marmerlade` is connected in the assistant's MCP tools view, then ask it
-   to call `get_workspace` and `diagnose_environment` to verify the workspace
-   and rendering environment.
-
-4. Ask your assistant to create and open your workspace:
-
-   > Use marmerlade-director to explain this project's architecture. Create a
-   > diagram with foldable groups, attach wiki pages to the main components,
-   > and open the live canvas.
-
-   Your assistant edits the workspace through MCP and calls `open_workspace` to
-   open the local browser canvas. Changes save to `architecture.marmerlade.json`
-   in your project. The public website's browser-local workspace is separate
-   from this file.
-
-If setup or connection fails, run this from your project directory:
-
-```bash
-marmerlade doctor --file architecture.marmerlade.json
-```
-
-To update the CLI, run `npm install -g marmerlade@latest`, then restart your
-assistant's MCP connection.
-
-### Set up from a source checkout
-
-Build the app from your checkout:
-
-```bash
-npm run build
-```
-
-For guided setup in a project:
-
-```bash
-node dist/cli.js setup --project /absolute/project --host YOUR_HOST --file architecture.marmerlade.json
-```
-
-Replace `YOUR_HOST` with a host value from the table above. Setup installs the
-rendering browser, project skills, and MCP configuration for your assistant.
-Reload the host's MCP connection and skills, then ask
-`marmerlade-director` to discuss your project and key workflows. The agent can
-arrange diagrams, import generated images, inspect previews, and export animated
-GIFs through MCP. It reuses your agent's existing hosted image-generation tool.
-See [guided local setup](docs/mcp.md#guided-local-setup) for bootstrap scripts
-that can install Node.js, diagnostics, and standalone browser sessions.
-
-To configure a connection manually, register `dist/cli.js` using absolute paths.
-For clients that use `mcpServers` JSON:
-
-```json
-{
-  "mcpServers": {
-    "marmerlade": {
-      "command": "node",
-      "args": [
-        "/absolute/path/to/marmerlade/dist/cli.js",
-        "--file",
-        "/absolute/path/architecture.marmerlade.json"
-      ]
-    }
-  }
-}
-```
-
-Ask your assistant to create a diagram and call `open_workspace` to open the live
-canvas. The server saves edits to the JSON file. This workspace is separate from
-the browser app's localStorage.
-
-Choose your client for configuration file locations and setup steps:
-
-| Client | Setup |
+| Key | What happens |
 | --- | --- |
-| Kiro | [JSON configuration and automatic reconnect](docs/mcp.md#kiro) |
-| Codex | [TOML configuration or CLI registration](docs/mcp.md#codex) |
-| Claude Desktop / Cursor | [JSON configuration](docs/mcp.md#other-clients) |
+| `F` | Select **Retrieve knowledge** and fold it into one card. Press again to unfold. |
+| `W` | Open the selected node's wiki page. |
+| `K` | Open the selected node's slide deck. |
+| `P` | Play the flow from start to finish. |
 
-See [MCP setup](docs/mcp.md) for the tool reference and saving and recovery behavior.
+To keep or share a workspace, choose **More actions → Export file**. You get a
+single `.marmerlade.json` file that anyone can open with **Import file**.
 
-## Keep your work portable
+## Let your AI assistant draw it
+
+Marmerlade includes a local [MCP](https://modelcontextprotocol.io) server. Your
+assistant can create diagrams, write wiki pages, and build slides while you watch
+the canvas update in your browser. Everything stays on your machine and saves to
+a JSON file in your project.
+
+**1. Install the CLI** (requires Node.js 22.12 or newer):
+
+```bash
+npm install -g marmerlade
+```
+
+**2. Run setup in your project.** Pick your assistant:
+
+| Assistant | `--host` value |
+| --- | --- |
+| Claude Code | `claude` |
+| Codex | `codex` |
+| Cursor | `cursor` |
+| Kiro | `kiro` |
+| Antigravity | `antigravity` |
+
+```bash
+cd /path/to/your/project
+marmerlade setup --project . --host claude --file architecture.marmerlade.json
+```
+
+Setup registers the MCP server, installs the Marmerlade skills, installs Chromium
+for previews and exports, and checks the connection. It backs up any existing
+configuration before changing it.
+
+**3. Restart your assistant** (or reload its MCP servers), then ask:
+
+> Use marmerlade-director to explain this project's architecture. Create a
+> diagram with foldable groups, attach wiki pages to the main components,
+> and open the live canvas.
+
+The canvas opens in your browser and fills in as your assistant works. Changes
+save to `architecture.marmerlade.json`, so you can commit them with your code.
+
+<details>
+<summary><strong>Troubleshooting and other setups</strong></summary>
+
+- **Something isn't connecting?** From your project directory, run
+  `marmerlade doctor --file architecture.marmerlade.json`.
+- **Updating:** run `npm install -g marmerlade@latest`, then restart your
+  assistant's MCP connection.
+- **Other MCP clients**, such as Claude Desktop: see
+  [manual configuration](docs/mcp.md#connect-an-assistant).
+- **Running from a source checkout:** see [build from source](docs/mcp.md#build-from-source)
+  and [guided local setup](docs/mcp.md#guided-local-setup).
+- The web app and the CLI keep separate workspaces. The web app saves in your
+  browser. The CLI saves to the file you pass with `--file`.
+
+</details>
+
+## Take your work anywhere
 
 | Format | What it contains |
 | --- | --- |
-| `.marmerlade.json` | The complete workspace, including diagrams, styling, positions, fold state, wiki pages, and slide decks. |
-| Mermaid | Diagram structure and page/deck references. Document content stays in the JSON workspace. |
-| Slide Markdown | A standalone deck with diagram embeds converted to Mermaid fences. Slidev renders those fences; Marp needs a Mermaid plugin. |
-| PDF / GIF | Print a presentation to PDF, or export a flow playback loop as a GIF. |
+| `.marmerlade.json` | Everything: diagrams, styling, positions, fold state, wiki pages, and slide decks. |
+| Mermaid | Diagram structure and page and deck references. |
+| Slide Markdown | A standalone deck with diagrams converted to Mermaid fences, ready for Slidev. Marp needs a Mermaid plugin. |
+| PDF / GIF | Print a presentation to PDF, or export flow playback as an animated GIF. |
 
-Mermaid support covers a [flowchart subset](docs/usage.md#mermaid-support),
+Mermaid import supports a [flowchart subset](docs/usage.md#mermaid-support),
 including subgraphs, classic shapes, labeled edges, and icon metadata.
 
-## Documentation
+## Learn more
 
 | Guide | Read it for |
 | --- | --- |
-| [User guide](docs/usage.md) | Canvas controls, folding, wiki editing, slides, appearance, and keyboard shortcuts. |
-| [MCP and live canvas](docs/mcp.md) | Assistant configuration, tools, workspace files, and conflict recovery. |
-| [Data model](ONTOLOGY.md) | Entities, relationships, Mermaid mapping, and document syntax. Also available in the app under **Docs**. |
-| [Development](docs/development.md) | Build commands, checks, source layout, and packaging. |
-| [Design requirements](DESIGN.md) | The project's UI and architecture principles. |
-
-Built with React, TypeScript, React Flow, Zustand, Dagre, and Tiptap.
+| [User guide](docs/usage.md) | Canvas controls, folding, wiki, slides, appearance, and keyboard shortcuts. |
+| [MCP and live canvas](docs/mcp.md) | Assistant setup, the tool reference, workspace files, and recovery. |
+| [Data model](ONTOLOGY.md) | Entities, relationships, Mermaid mapping, and document syntax. |
+| [Development](docs/development.md) | Building from source, checks, source layout, and packaging. |
+| [Design principles](DESIGN.md) | The UI and architecture principles behind the project. |
 
 ## Contributing
 
-Bug reports, documentation fixes, and pull requests are welcome. For bugs, include
-steps to reproduce and a small Mermaid or JSON example when possible. Discuss
-larger changes in an issue before starting implementation.
+Bug reports, documentation fixes, and pull requests are welcome. For bugs,
+include steps to reproduce and, if you can, a small Mermaid or JSON example.
+Please open an issue to discuss larger changes before you start.
 
-Run the relevant checks before opening a pull request:
+To run Marmerlade locally:
+
+```bash
+git clone https://github.com/han002x/marmerlade.git
+cd marmerlade
+npm install
+npm run dev
+```
+
+Before opening a pull request, run:
 
 ```bash
 npm run lint
@@ -249,4 +185,10 @@ npm run build
 ```
 
 For UI changes, also run the browser tests. See [development](docs/development.md)
-for setup and the full check list.
+for the full checklist.
+
+<sub>Built with React, TypeScript, React Flow, Zustand, Dagre, and Tiptap.</sub>
+
+## License
+
+[MIT](LICENSE)

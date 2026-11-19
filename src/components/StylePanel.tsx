@@ -37,6 +37,8 @@ const FONT_GLYPH: Record<string, string> = {
  */
 export function StylePanel() {
   const STYLE_DEFAULTS = useStyleDefaults();
+  const [recentStroke, setRecentStroke] = useState<string>();
+  const [recentBackground, setRecentBackground] = useState<string>();
   const selectedNodeIds = useDiagram((s) => s.selectedNodeIds);
   const selectedEdgeIds = useDiagram((s) => s.selectedEdgeIds);
   const nodes = useDiagram((s) => s.nodes);
@@ -108,11 +110,20 @@ export function StylePanel() {
               onClick={() => patch({ stroke: c })}
             />
           ))}
+          {recentStroke && (
+            <button
+              className={`mf-swatch${active('stroke', recentStroke) ? ' active' : ''}`}
+              style={{ background: recentStroke }}
+              title={`Recent stroke ${recentStroke}`}
+              aria-label={`Recent stroke ${recentStroke}`}
+              onClick={() => patch({ stroke: recentStroke })}
+            />
+          )}
           <label className="mf-swatch mf-swatch-custom" title="Custom stroke color">
             <input
               type="color"
               value={toHex(val('stroke')) ?? '#2a2723'}
-              onChange={(e) => patch({ stroke: e.target.value })}
+              onChange={(e) => { setRecentStroke(e.target.value); patch({ stroke: e.target.value }); }}
             />
           </label>
         </div>
@@ -134,6 +145,15 @@ export function StylePanel() {
                 onClick={() => patch({ background: c })}
               />
             ))}
+            {recentBackground && (
+              <button
+                className={`mf-swatch${active('background', recentBackground) ? ' active' : ''}`}
+                style={{ background: recentBackground }}
+                title={`Recent background ${recentBackground}`}
+                aria-label={`Recent background ${recentBackground}`}
+                onClick={() => patch({ background: recentBackground })}
+              />
+            )}
             <label
               className="mf-swatch mf-swatch-custom"
               title="Custom background color"
@@ -141,7 +161,7 @@ export function StylePanel() {
               <input
                 type="color"
                 value={toHex(val('background')) ?? '#fffdf8'}
-                onChange={(e) => patch({ background: e.target.value })}
+                onChange={(e) => { setRecentBackground(e.target.value); patch({ background: e.target.value }); }}
               />
             </label>
           </div>

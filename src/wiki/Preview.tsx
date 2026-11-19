@@ -6,6 +6,7 @@ import { toMermaid } from '../mermaid/io';
 import { embedDiagram, embedNode } from '../pages';
 import { openNode, pageHref, parseRoute } from '../route';
 import { renderPage } from './render';
+import { decodeDiagramTarget } from '../diagramEmbed';
 
 const svgCache = new Map<string, string>();
 let seq = 0;
@@ -41,6 +42,7 @@ export default function Preview({
   nodeId,
   onPage = (id) => (window.location.hash = pageHref(id)),
   onNode = openNode,
+  onDiagramWidth,
 }: {
   body: string;
   nodeId?: string;
@@ -48,6 +50,7 @@ export default function Preview({
   onPage?: (pageId: string) => void;
   /** a node in the embedded diagram was clicked */
   onNode?: (nodeId: string) => void;
+  onDiagramWidth?: (width: number) => void;
 }) {
   const nodes = useDiagram((s) => s.nodes);
   const edges = useDiagram((s) => s.edges);
@@ -66,7 +69,8 @@ export default function Preview({
       const fence = host.dataset.mermaid === undefined ? undefined : decodeURIComponent(host.dataset.mermaid);
       let source = fence ?? '';
       if (host.dataset.embed !== undefined) {
-        const id = embedNode(host.dataset.embed, nodes, nodeId);
+        const target = host.dataset.slideDiagram === undefined ? host.dataset.embed : decodeDiagramTarget(host.dataset.slideDiagram);
+        const id = embedNode(target, nodes, nodeId);
         const sub = id ? embedDiagram({ nodes, edges }, id) : null;
         source = sub?.nodes.length ? toMermaid(sub) : '';
       }
@@ -79,15 +83,18 @@ export default function Preview({
           host.innerHTML = svg;
           // drawn width, so a slide can scale the picture with its own size
           const drawn = host.querySelector('svg')?.viewBox.baseVal.width;
-          if (drawn) host.style.setProperty('--embed-w', String(drawn));
+          if (drawn) {
+            host.style.setProperty('--embed-w', String(drawn));
+            onDiagramWidth?.(drawn);
+          }
         }
-        else host.textContent = fence ?? '';
+        else host.textContent = fence ?? (host.dataset.slideDiagram === undefined ? '' : 'Diagram unavailable');
       };
       if (source) void diagramSvg(source, appearance).then(show);
       else show();
     });
     return () => render.abort();
-  }, [html, nodes, edges, nodeId, appearance]);
+  }, [html, nodes, edges, nodeId, appearance, onDiagramWidth]);
 
   const onClick = (e: React.MouseEvent) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || !(e.target instanceof Element)) return;

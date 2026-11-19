@@ -133,6 +133,13 @@ export interface Page {
 /** A slide deck: Markdown with `---` between slides. Linked to nodes like a page. */
 export type Deck = Page;
 
+export interface WikiFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  pageIds: string[];
+}
+
 /** A side of a node where an edge attaches. */
 export type Side = 'top' | 'right' | 'bottom' | 'left';
 
@@ -157,4 +164,5 @@ export interface Diagram {
   pages?: Page[];
   /** slide decks; absent in diagrams saved before slides existed */
   decks?: Deck[];
+  wikiFolders?: WikiFolder[];
 }

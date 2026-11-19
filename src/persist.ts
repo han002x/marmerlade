@@ -4,11 +4,12 @@
 
 import type { Diagram } from './types';
 import { isLiveWorkspace } from './liveWorkspace.ts';
-import { useDiagram } from './store.ts';
+import { useDiagram, workspaceDiagram } from './store.ts';
 import { normalizeDiagram } from './pages.ts';
 
 const KEY = 'marmerlade.diagram';
 const VERSION = 3;
+let applyingRemote = false;
 
 interface Saved {
   version: number;
@@ -38,23 +39,38 @@ export function write(diagram: Diagram) {
 
 /** Flush the debounce before another route or window restores this workspace. */
 export function saveForNavigation() {
-  const { nodes, edges, pages, decks } = useDiagram.getState();
-  write({ nodes, edges, pages, decks });
+  write(workspaceDiagram());
 }
 
 /** Subscribe the store to localStorage with a debounce. Call once at startup. */
 export function startAutosave(debounceMs = 400): () => void {
   if (isLiveWorkspace()) return () => {};
   let timer: number | undefined;
-  return useDiagram.subscribe((state, prev) => {
+  const flush = () => {
+    if (timer === undefined) return;
+    window.clearTimeout(timer);
+    timer = undefined;
+    saveForNavigation();
+  };
+  window.addEventListener('pagehide', flush);
+  const unsubscribe = useDiagram.subscribe((state, prev) => {
     // hover and selection changes are not part of the saved document
+    if (applyingRemote) return;
+    if (state.wikiFolders !== prev.wikiFolders) {
+      window.clearTimeout(timer);
+      timer = undefined;
+      write(workspaceDiagram(state));
+      return;
+    }
     if (state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
     window.clearTimeout(timer);
-    timer = window.setTimeout(
-      () => write({ nodes: state.nodes, edges: state.edges, pages: state.pages, decks: state.decks }),
-      debounceMs,
-    );
+    timer = window.setTimeout(flush, debounceMs);
   });
+  return () => {
+    unsubscribe();
+    window.removeEventListener('pagehide', flush);
+    flush();
+  };
 }
 
 /** Follow the other window's saves. Call once at startup. */
@@ -63,30 +79,18 @@ export function startSync(): () => void {
   const onStorage = (e: StorageEvent) => {
     if (e.key !== KEY) return;
     const saved = readSaved();
-    if (saved) useDiagram.getState().applyRemote(saved);
+    if (!saved) return;
+    applyingRemote = true;
+    try { useDiagram.getState().applyRemote(saved); }
+    finally { applyingRemote = false; }
   };
   window.addEventListener('storage', onStorage);
   return () => window.removeEventListener('storage', onStorage);
 }
 
-/** Restore the saved diagram into the store. Returns true if anything loaded. */
-export function restore(): boolean {
-  if (isLiveWorkspace()) return true;
-  const saved = readSaved();
-  if (!saved || (saved.nodes.length === 0 && !saved.pages?.length && !saved.decks?.length)) return false;
-  useDiagram.getState().load(saved);
-  return true;
-}
-
-export function clearSaved() {
-  if (isLiveWorkspace()) return;
-  localStorage.removeItem(KEY);
-}
-
 /** Download the current diagram as a .marmerlade.json file. */
 export function exportFile() {
-  const { nodes, edges, pages, decks } = useDiagram.getState();
-  const payload: Saved = { version: VERSION, diagram: { nodes, edges, pages, decks } };
+  const payload: Saved = { version: VERSION, diagram: workspaceDiagram() };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: 'application/json',
   });

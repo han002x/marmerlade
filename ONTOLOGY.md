@@ -9,12 +9,15 @@ Source of truth: `src/types.ts`. Everything here is checked against the code.
 Diagram ─┬─ nodes[]  DiagramNode   a box, icon, image, or group
          ├─ edges[]  DiagramEdge   a directed connection between two nodes
          ├─ pages[]  Page          Markdown wiki page
-         └─ decks[]  Deck          = Page; Markdown slide deck
+         ├─ decks[]  Deck          = Page; Markdown slide deck
+         └─ wikiFolders[]          nested folders for wiki pages
 ```
 
 One flat document, saved as `{ version: 3, diagram: { nodes, edges, pages, decks } }`
 (`.marmerlade.json`, and `localStorage["marmerlade.diagram"]`). Import also accepts a
-bare `Diagram`. `pages` and `decks` may be absent; they default to `[]`.
+bare `Diagram`. `pages`, `decks`, and `wikiFolders` may be absent. A wiki folder
+has `id`, `name`, `parentId`, and `pageIds`. A null parent places the folder at
+the top level. Pages outside folders appear at the top level.
 
 ### Relationships
 
@@ -126,15 +129,15 @@ label. The page keeps its own title when the node is renamed.
 | `[[Target]]`, `[[Target\|alias]]` | Link. Resolves to a page whose **title** matches, else a node whose **label** matches (its page is created on first visit). Case-insensitive; first match wins. |
 | `{{diagram}}` | Live sub-diagram of the node the page is opened from. |
 | `{{diagram:Target}}` | Sub-diagram of the node whose **id** or **label** matches. |
+| `{{diagram}}{width=60%}` | A resized embed. The width suffix also works on named embeds. |
 | ```` ```mermaid ```` | A static Mermaid diagram. |
 
 Embed content (`embedDiagram`): a **group** → its whole subtree, without the
 group itself. A **leaf** → the node plus its direct neighbours and the edges
 between them. Page and deck links are dropped from embeds.
 
-The rich-text editor only recognises the bare `{{diagram}}` as an embed block
-(`src/wiki/extensions.ts`); write `{{diagram:Target}}` in Markdown mode.
-Pages with raw HTML always edit as Markdown.
+The rich-text editor supports bare and named embeds as movable blocks.
+Pages with raw HTML open in Markdown mode.
 
 ### Slide deck Markdown
 
@@ -176,13 +179,17 @@ transition: fade             # fade | slide
   <div class="box round hand" style="left:10%;top:20%;width:30%;height:20%">Text</div>
   ```
 
-  Classes: `box` plus one of `rect round ellipse line arrow image` (none = text
+  Classes: `box` plus one of `rect round ellipse line arrow image diagram` (none = text
   box) and optionally a font. Style properties: `left top width height`
   (percent), `background`, `border-color`, `color`, `font-size` (em),
   `transform: rotate(Ndeg)`, `text-align`. An image is
   `<div class="box image" …><img src="…" style="width:100%;height:100%;object-fit:contain"></div>`.
+  A diagram object contains a span with a URI-encoded `data-slide-diagram`
+  target. An empty target uses the deck’s linked node.
 - Export (`toMarkdown`): adds `marp: true`, turns embeds into Mermaid fences,
-  wikilinks into plain text, and inlines object CSS.
+  wikilinks into plain text, and inlines object CSS. Diagram position and
+  size are preserved in Marmerlade and presentation view. Markdown export
+  uses the receiving renderer’s layout for Mermaid fences.
 
 ## Mermaid mapping
 
@@ -217,7 +224,7 @@ links by node id, and `style`/`order` by `source→target` pair. Use
 
 | Hash | Opens |
 | --- | --- |
-| `#/` | canvas |
+| `#/diagrams`, `#/` | diagram canvas |
 | `#/node/<nodeId>` | canvas, unfolds ancestors and frames the node |
 | `#/wiki`, `#/wiki/<pageId>[?node=<nodeId>]` | wiki index / page (`node` picks the diagram embed context) |
 | `#/slides`, `#/slides/<deckId>[?node=<id>&slide=<n>&presenter=1]` | deck index / deck, presenting from slide *n* |

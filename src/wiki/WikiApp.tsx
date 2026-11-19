@@ -1,24 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useDiagram } from '../store';
-import { restore, startAutosave, startSync } from '../persist';
 import { openAppearance } from '../theme';
 import { backlinks, nodesOfPage, pathTo } from '../pages';
 import { openNode, pageHref } from '../route';
 import { Icon } from '../components/Icon';
 import Document, { ModeSwitch, type PageMode } from './Document';
 import Menu from './Menu';
-import Navigation from './Navigation';
+import WikiLibrary from './WikiLibrary';
 import NodeLinks from './NodeLinks';
 import './wiki.css';
 
 export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nodeId?: string }) {
-  // load the saved diagram before the first paint, then follow the canvas window
-  useState(() => restore());
-  useEffect(() => {
-    const stops = [startAutosave(), startSync()];
-    return () => stops.forEach((stop) => stop());
-  }, []);
-
   const nodes = useDiagram((s) => s.nodes);
   const pages = useDiagram((s) => s.pages);
   const page = pages.find((p) => p.id === pageId);
@@ -32,7 +24,7 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
   const where = (id: string) => pathTo(nodes, id).map((n) => n.label || 'Untitled').join(' › ');
 
   useEffect(() => {
-    document.title = page ? `${page.title || 'Untitled'} · marmerlade` : 'Wiki · marmerlade';
+    document.title = page ? `${page.title || 'Untitled'} · Wiki pages · marmerlade` : 'Wiki pages · marmerlade';
   }, [page]);
 
   const targets = useCallback(() => {
@@ -48,8 +40,9 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
     useDiagram.getState().deletePage(page.id);
   };
 
-  const create = () => {
-    window.location.hash = pageHref(useDiagram.getState().createPage(''));
+  const create = (folderId?: string) => {
+    setIndex(null);
+    window.location.hash = pageHref(useDiagram.getState().createPage('', folderId));
   };
 
   const toPage = (id: string) => {
@@ -58,25 +51,35 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
   };
 
   return (
-    <div className={`wk${indexOpen ? ' nav-open' : ''}`}>
-      <aside className="wk-index">
+    <div className={`wk${indexOpen ? ' nav-open' : ''}`} onKeyDown={event => {
+      if (event.key === 'Escape' && indexOpen && !document.querySelector('dialog[open]')) {
+        setIndex(null);
+        event.currentTarget.querySelector<HTMLButtonElement>('.wk-nav-toggle')?.focus();
+      }
+    }}>
+      <aside className="wk-index" id="wiki-sidebar">
         <div className="wk-index-head">
           <a className="wk-brand" href="#/wiki">Wiki</a>
           <button className="wk-icon" onClick={openAppearance} title="Appearance" aria-label="Appearance">
             <Icon name={'shapes'} size={15} />
           </button>
-          <button className="wk-icon" onClick={create} title="New page" aria-label="New page">
+          <button className="wk-icon" onClick={() => create()} title="New page" aria-label="New page">
             <Icon name="plus" size={15} />
           </button>
         </div>
-        <Navigation nodes={nodes} pages={pages} pageId={pageId} nodeId={node?.id} />
+        <WikiLibrary pageId={pageId} onOpen={() => setIndex(null)} onCreate={create}
+          href={id => pageHref(id, id === pageId ? nodeId : undefined)} />
       </aside>
       <button className="wk-scrim" aria-label="Close pages" onClick={() => setIndex(null)} />
 
       <main className="wk-main">
         <header className="wk-bar">
-          <button className="wk-btn wk-nav-toggle" aria-expanded={indexOpen}
-            onClick={() => setIndex(indexOpen ? null : { at: pageId })}>
+          <button className="wk-btn wk-nav-toggle" aria-expanded={indexOpen} aria-controls="wiki-sidebar"
+            onClick={event => {
+              setIndex(indexOpen ? null : { at: pageId });
+              const app = event.currentTarget.closest('.wk');
+              if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>('.wk-brand')?.focus());
+            }}>
             Pages
           </button>
           <nav className="wk-crumbs" aria-label="Linked nodes">
@@ -126,7 +129,7 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
             <div className="wk-list">
               <div className="wk-list-head">
                 <h1>Pages</h1>
-                <button className="wk-btn" onClick={create}>New page</button>
+                <button className="wk-btn" onClick={() => create()}>New page</button>
               </div>
               <ul>
                 {[...pages].sort((a, b) => b.updatedAt - a.updatedAt).map((p) => {

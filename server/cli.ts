@@ -54,7 +54,7 @@ async function main() {
     inputSchema: { revision: z.number().int().nonnegative(), source: z.string(), tidy: z.boolean().default(true) },
   }, ({ revision, source, tidy }) => tool(() => workspace.commit(revision, current => {
     const parsed = parseMermaid(source); if (!parsed.ok) throw new Error(parsed.error);
-    const d = { ...mergeDiagram(parsed.diagram, current), pages: current.pages ?? [], decks: current.decks ?? [] };
+    const d = { ...current, ...mergeDiagram(parsed.diagram, current), pages: current.pages ?? [], decks: current.decks ?? [] };
     for (const [key, list] of [['pageIds', d.pages], ['deckIds', d.decks]] as const) {
       for (const node of d.nodes) for (const id of node[key] ?? []) if (!list.some(doc => doc.id === id)) list.push({ id, title: node.label, body: '', updatedAt: Date.now() });
     }

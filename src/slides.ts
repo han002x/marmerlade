@@ -6,6 +6,7 @@ import type { Appearance } from './appearance';
 import { Marked, type Token } from 'marked';
 import type { Deck, Diagram } from './types';
 import { embedDiagram, embedNode } from './pages.ts';
+import { decodeDiagramTarget, DIAGRAM_LINE } from './diagramEmbed.ts';
 import { toMermaid } from './mermaid/io.ts';
 
 export const FONTS = ['sans', 'serif', 'mono', 'hand'] as const;
@@ -259,9 +260,9 @@ export function setDeckStyle(body: string, key: 'backgroundColor' | 'color' | 'f
   return lines.length ? `---\n${lines.join('\n')}\n---\n\n${rest}` : rest;
 }
 
-export const SHAPES = ['rect', 'round', 'ellipse', 'line', 'arrow', 'image'] as const;
+export const SHAPES = ['rect', 'round', 'ellipse', 'line', 'arrow', 'image', 'diagram'] as const;
 export type BoxShape = (typeof SHAPES)[number];
-/** Shapes that hold words. A line, an arrow and an image do not. */
+/** Shapes that hold editable text. */
 export const hasText = (shape: BoxShape | undefined) => !shape || shape === 'rect' || shape === 'round' || shape === 'ellipse';
 
 /**
@@ -371,11 +372,13 @@ export function addBox(body: string, at: number, shape?: BoxShape, src = ''): { 
     : shape === 'line' ? { shape, left: 30, top: 50, width: 40, height: 0.8 }
     : shape === 'arrow' ? { shape, left: 30, top: 47, width: 40, height: 6 }
     : shape === 'image' ? { shape, left: 30, top: 25, width: 40, height: 50 }
+    : shape === 'diagram' ? { shape, left: 18, top: 20, width: 64, height: 60 }
     : { shape, left: 35, top: 35, width: 30, height: 30 };
   // the picture carries its own fit, so it shows the same in any renderer
   const inside = shape === 'image' ? `<img src="${src.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" alt="" style="width:100%;height:100%;object-fit:contain">`
     : !shape ? 'Text' : hasText(shape) ? 'Shape' : '';
-  parts[i] = `${parts[i].trim()}${parts[i].trim() ? '\n\n' : ''}${openTag(box)}${inside}</div>`;
+  const object = shape === 'diagram' ? diagramObject(box, src) : `${openTag(box)}${inside}</div>`;
+  parts[i] = `${parts[i].trim()}${parts[i].trim() ? '\n\n' : ''}${object}`;
   const out = join(head, parts);
   return { body: out, box: slideBoxes(out, i).length - 1 };
 }
@@ -479,11 +482,43 @@ function standalone(tag: Tag): string {
   return openTag(box, tag.classes, tag.style).replace('style="', `style="${css};`);
 }
 
-const EMBED = /^\{\{diagram(?::([^}\n]+))?\}\}[ \t]*$/gm;
+const POSITIONED_DIAGRAM = /<div class="box diagram(?: [\w-]+)*"(?: style="[^"]*")?><span class="embed" data-embed="" data-slide-diagram="([^"]*)"><\/span><\/div>/g;
+
+function diagramObject(box: Box, target: string): string {
+  return `${openTag(box)}<span class="embed" data-embed="" data-slide-diagram="${encodeURIComponent(target)}"></span></div>`;
+}
+
+function flowDiagrams(body: string) {
+  let offset = 0;
+  return md.lexer(body).flatMap(token => {
+    const matches = token.type === 'paragraph' ? [...token.raw.matchAll(DIAGRAM_LINE)].map(match => ({
+      from: offset + match.index, to: offset + match.index + match[0].length, target: match[1]?.trim() ?? '',
+    })) : [];
+    offset += token.raw.length;
+    return matches;
+  });
+}
+
+/** Turn a Markdown diagram into a slide object at its current visual bounds. */
+export function positionDiagram(body: string, slide: number, index: number, target: string, bounds: Pick<Box, 'left' | 'top' | 'width' | 'height'>) {
+  const { head, parts } = chunks(body);
+  const part = parts[slide];
+  if (part === undefined) return;
+  const match = flowDiagrams(part)[index];
+  if (!match || match.target !== target) return;
+  const from = part.slice(0, match.from).trimEnd();
+  const to = part.slice(match.to).trimStart();
+  parts[slide] = [from, diagramObject({ shape: 'diagram', ...bounds }, target), to].filter(Boolean).join('\n\n');
+  const next = join(head, parts);
+  const box = slideBoxes(from, 0).length;
+  return { body: next, box };
+}
+
 /** A slide with one live diagram can open that stop on the canvas. */
 export function slideDiagramTarget(body: string): string | undefined {
-  const embeds = md.lexer(body).filter((token) => token.type === 'paragraph')
-    .flatMap((token) => Array.from(token.raw.matchAll(EMBED), (match) => match[1]?.trim() ?? ''));
+  const positioned = md.lexer(body).filter(token => token.type === 'html')
+    .flatMap(token => [...token.raw.matchAll(POSITIONED_DIAGRAM)].map(match => decodeDiagramTarget(match[1])));
+  const embeds = [...flowDiagrams(body).map(embed => embed.target), ...positioned];
   return embeds.length === 1 ? embeds[0] : undefined;
 }
 
@@ -501,6 +536,19 @@ export function toMarkdown(deck: Deck, diagram: Diagram, nodeId?: string, appear
       if (key === 'backgroundColor' || key === 'color' || key === 'font' || key === 'headingFont') source = setDeckStyle(source, key, value);
     }
   }
+  const mermaid = (target: string) => {
+    const id = embedNode(target, diagram.nodes, nodeId);
+    const sub = id ? embedDiagram(diagram, id) : { nodes: [], edges: [] };
+    return sub.nodes.length ? `\`\`\`mermaid\n${toMermaid(sub)}\n\`\`\`` : '';
+  };
+  const original = parse(source);
+  const hasPositioned = original.tokens.some(token => token.type === 'html' && token.raw.includes('data-slide-diagram='));
+  if (hasPositioned) {
+    const content = original.tokens.map(token => token.type === 'html'
+      ? token.raw.replace(POSITIONED_DIAGRAM, (_match, target: string) => mermaid(decodeDiagramTarget(target)))
+      : token.raw).join('');
+    source = (original.frontMatter ? `---\n${original.frontMatter}\n---\n` : '') + content;
+  }
   for (const tag of tags(source).reverse()) source = `${source.slice(0, tag.from)}${standalone(tag)}${source.slice(tag.to)}`;
   const { frontMatter, tokens } = parse(source);
   const look = dress({ lead: false, invert: false }, frontMatter, false);
@@ -512,11 +560,7 @@ export function toMarkdown(deck: Deck, diagram: Diagram, nodeId?: string, appear
     .map((t) => {
       if (t.type === 'code') return t.raw;
       return t.raw
-        .replace(EMBED, (_all, target: string | undefined) => {
-          const id = embedNode(target ?? '', diagram.nodes, nodeId);
-          const sub = id ? embedDiagram(diagram, id) : { nodes: [], edges: [] };
-          return sub.nodes.length ? `\`\`\`mermaid\n${toMermaid(sub)}\n\`\`\`` : '';
-        })
+        .replace(DIAGRAM_LINE, (_all, target: string | undefined) => mermaid(target ?? ''))
         .replace(WIKILINK, (_all, target: string, alias: string | undefined) => (alias ?? target).trim());
     })
     .join('')

@@ -11,11 +11,13 @@ import type {
   NodeShape,
   Deck,
   Page,
+  WikiFolder,
 } from './types';
 import { fromMermaid, mergeDiagram, parseMermaid, toMermaid } from './mermaid/io.ts';
 import { layout, layoutShown, nodeSize, type Direction } from './layout.ts';
 import type { NodeClipboard } from './clipboard.ts';
 import { createPageFor, mergePages, newPageId, normalizeDiagram, type LinkKey } from './pages.ts';
+import { folderTrail, placeWikiPage } from './wikiFolders.ts';
 import {
   childrenOf,
   descendants,
@@ -135,6 +137,7 @@ interface State {
   edges: DiagramEdge[];
   /** wiki pages; not part of undo history */
   pages: Page[];
+  wikiFolders: WikiFolder[];
   /** slide decks; not part of undo history */
   decks: Deck[];
 
@@ -181,7 +184,12 @@ interface State {
   openPage: (nodeId: string, pageId?: string) => string | null;
   createPageForNode: (nodeId: string) => string | null;
   /** a free-standing page (no node yet) */
-  createPage: (title: string) => string;
+  createPage: (title: string, folderId?: string) => string;
+  createFolder: (name: string, parentId: string | null) => void;
+  renameFolder: (id: string, name: string) => void;
+  moveFolder: (id: string, parentId: string | null) => void;
+  deleteFolder: (id: string) => void;
+  movePageToFolder: (id: string, folderId: string | null) => void;
   /** drop a page and unlink any node that pointed at it */
   deletePage: (id: string) => void;
   /** Attach an existing page without changing its other links. */
@@ -333,14 +341,18 @@ export const useDiagram = create<State>((set, get) => {
         return id;
       },
       /** a free-standing document (no node yet) */
-      create: (title: string): string => {
+      create: (title: string, folderId?: string): string => {
         const id = newPageId(get()[list], prefix);
-        set((s) => ({ [list]: [...s[list], { id, title, body: '', updatedAt: Date.now() }] }) as Partial<State>);
+        set((s) => ({
+          [list]: [...s[list], { id, title, body: '', updatedAt: Date.now() }],
+          wikiFolders: list === 'pages' && folderId ? placeWikiPage(s.wikiFolders, id, folderId) : s.wikiFolders,
+        }) as Partial<State>);
         return id;
       },
       remove: (id: string) =>
         set((s) => ({
           [list]: s[list].filter((p) => p.id !== id),
+          wikiFolders: list === 'pages' ? placeWikiPage(s.wikiFolders, id, null) : s.wikiFolders,
           nodes: relink(s.nodes, has(id), (old) => old.filter((p) => p !== id)),
           // Undo can restore deleted nodes, but must not revive links to deleted documents.
           history: s.history.map((h) => ({ ...h, nodes: relink(h.nodes, has(id), (old) => old.filter((p) => p !== id)) })),
@@ -368,6 +380,7 @@ export const useDiagram = create<State>((set, get) => {
   nodes: [],
   edges: [],
   pages: [],
+  wikiFolders: [],
   decks: [],
   highlight: null,
   insertion: null,
@@ -586,6 +599,40 @@ export const useDiagram = create<State>((set, get) => {
   openPage: pages.open,
   createPageForNode: pages.createFor,
   createPage: pages.create,
+  createFolder: (name, parentId) => set(state => {
+    const label = name.trim();
+    if (!label || (parentId !== null && !state.wikiFolders.some(folder => folder.id === parentId))) return state;
+    let id: string;
+    do { id = `folder${Math.random().toString(36).slice(2)}`; } while (state.wikiFolders.some(folder => folder.id === id));
+    return { wikiFolders: [...state.wikiFolders, { id, name: label, parentId, pageIds: [] }] };
+  }),
+  renameFolder: (id, name) => set(state => {
+    const label = name.trim();
+    if (!label || !state.wikiFolders.some(folder => folder.id === id && folder.name !== label)) return state;
+    return { wikiFolders: state.wikiFolders.map(folder => folder.id === id ? { ...folder, name: label } : folder) };
+  }),
+  moveFolder: (id, parentId) => set(state => {
+    const byId = new Map(state.wikiFolders.map(folder => [folder.id, folder]));
+    const folder = byId.get(id);
+    if (!folder || folder.parentId === parentId || (parentId !== null && !byId.has(parentId))) return state;
+    if (folderTrail(byId, parentId).some(ancestor => ancestor.id === id)) return state;
+    return { wikiFolders: state.wikiFolders.map(entry => entry.id === id ? { ...entry, parentId } : entry) };
+  }),
+  deleteFolder: id => set(state => {
+    const removed = state.wikiFolders.find(folder => folder.id === id);
+    if (!removed) return state;
+    const wikiFolders = state.wikiFolders.filter(folder => folder.id !== id).map(folder => {
+      if (folder.id === removed.parentId) return { ...folder, pageIds: [...folder.pageIds, ...removed.pageIds] };
+      if (folder.parentId === id) return { ...folder, parentId: removed.parentId };
+      return folder;
+    });
+    return { wikiFolders };
+  }),
+  movePageToFolder: (id, folderId) => set(state => {
+    if (!state.pages.some(page => page.id === id)) return state;
+    const wikiFolders = placeWikiPage(state.wikiFolders, id, folderId);
+    return wikiFolders === state.wikiFolders ? state : { wikiFolders };
+  }),
   deletePage: pages.remove,
   linkPage: pages.link,
   unlinkPage: pages.unlink,
@@ -937,9 +984,11 @@ export const useDiagram = create<State>((set, get) => {
     set((s) => {
       const pages = mergePages(s.pages, d.pages ?? []);
       const decks = mergePages(s.decks, d.decks ?? []);
+      const remoteFolders = d.wikiFolders ?? [];
+      const wikiFolders = JSON.stringify(s.wikiFolders) === JSON.stringify(remoteFolders) ? s.wikiFolders : remoteFolders;
       const same = JSON.stringify([s.nodes, s.edges]) === JSON.stringify([d.nodes, d.edges]);
-      if (same && pages === s.pages && decks === s.decks) return s;
-      return same ? { pages, decks } : { nodes: d.nodes, edges: d.edges, pages, decks };
+      if (same && pages === s.pages && decks === s.decks && wikiFolders === s.wikiFolders) return s;
+      return same ? { pages, decks, wikiFolders } : { nodes: d.nodes, edges: d.edges, pages, decks, wikiFolders };
     });
   },
 
@@ -955,12 +1004,18 @@ export const useDiagram = create<State>((set, get) => {
       edges: d.edges,
       pages: d.pages ?? [],
       decks: d.decks ?? [],
+      wikiFolders: d.wikiFolders ?? [],
       selectedNodeIds: [],
       selectedEdgeIds: [],
     });
   },
   };
 });
+
+export function workspaceDiagram(state: Diagram = useDiagram.getState()): Diagram {
+  const { nodes, edges, pages, decks, wikiFolders } = state;
+  return { nodes, edges, pages, decks, ...(wikiFolders?.length && { wikiFolders }) };
+}
 
 const structuralNodes = structural<DiagramNode>();
 

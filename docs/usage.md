@@ -79,9 +79,9 @@ the links. The first linked page is the default. Selecting a node shows its defa
 to read it beside the diagram. **Add explanation** creates a page titled from
 the node and opens it for editing. Later node renames leave page titles alone.
 ↗ opens the current page in its own window, keeping the node context.
-Pages appear beneath their linked nodes in the canvas tree and the wiki's
-collapsible sidebar. The wiki follows the diagram's group hierarchy and
-lists unlinked pages in a separate section.
+The wiki sidebar lists every page and supports title search. Use **New folder**
+or a folder’s menu to create nested folders. A page’s menu moves it to a folder
+without changing its URL. The canvas tree still lists pages under their linked nodes.
 Both the wiki window and the canvas side panel open a rich-text editor.
 Type `/` for headings, lists, checklists, quotes, code, dividers, tables, and
 diagram embeds. Select text for formatting. **Edit**, **Read**, and
@@ -94,7 +94,9 @@ column; `Tab` moves between cells and
 adds a row at the end, `Shift+Tab` moves back, and `Enter` adds a cell line
 break. Merged cells and resizing are not supported. `[[Node or Page]]` links jump between
 pages (`[[Target|alias]]` supported, `[[` autocompletes), each page lists its
-backlinks, and `{{diagram}}` embeds the node's live sub-diagram. Click a node
+backlinks, and `{{diagram}}` embeds the node's live sub-diagram. In **Edit** mode,
+drag its width handle to resize it. Use the drag grip or the up and down buttons
+to move it between blocks. Click a node
 in it, or **Canvas** in the header, to drill back up: the canvas unfolds
 whatever hides the node and frames it. Both windows share one save, so edits
 and renames show up in the other instantly. The wiki lists a page's linked
@@ -134,14 +136,16 @@ toolbar to open the selected node's deck in the side panel's **Slides** tab
 lists every deck. The tab shows the deck as slides or as its Markdown, and
 its menu switches between a node's decks: **New deck**, **Link existing
 deck**, **Unlink**, **Make default**. ↗ opens the deck in the slides window,
-where the full tools live, and a slide's number presents from that slide; decks appear beneath their nodes in the canvas tree
-and the slides sidebar, and link, unlink and outlive nodes exactly as pages do.
+where the full tools live. The **Slides** sidebar shows numbered thumbnails
+that jump to a slide in the editor. Switch to **Decks** to find and open a deck
+by title. The canvas tree lists decks under their linked nodes.
 A deck is Markdown in the subset [Marp](https://marp.app) and
 [Slidev](https://sli.dev) both read: `---` on its own line starts a new
 slide, an HTML comment (`<!-- … -->`) is a speaker note, and optional front
 matter at the top is kept but not shown. `{{diagram}}` draws the linked
 node's live sub-diagram, `{{diagram:Node}}` draws any node by label or id,
-and ```` ```mermaid ```` fences render as diagrams. `[[wikilinks]]` open the
+and ```` ```mermaid ```` fences render as diagrams. Drag a live diagram on the slide
+canvas to move it. Select it to resize it with the object handles. `[[wikilinks]]` open the
 wiki. The source sits beside its slides, which redraw as you type. The slide
 under the caret is outlined; click a slide to move the caret to its source,
 and its number presents from that slide. Each slide's ⋮ menu adds a slide

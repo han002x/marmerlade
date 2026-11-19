@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { normalizeDiagram } from './pages.ts';
 import type { Diagram } from './types.ts';
+import { wikiFoldersSchema } from './wikiFolders.ts';
 
 const id = z.string().min(1);
 const style = z.object({
@@ -23,7 +24,7 @@ export const nodeSchema = z.object({
 const side = z.enum(['top', 'right', 'bottom', 'left']);
 export const edgeSchema = z.object({ id, source: id, target: id, label: z.string().optional(), sourceSide: side.optional(), targetSide: side.optional(), order: z.number().int().positive().optional(), style: style.optional() });
 export const documentSchema = z.object({ id: id.regex(/^[A-Za-z0-9_-]+$/), title: z.string(), body: z.string(), updatedAt: z.number().nonnegative() });
-export const diagramSchema = z.object({ nodes: z.array(nodeSchema), edges: z.array(edgeSchema), pages: z.array(documentSchema).default([]), decks: z.array(documentSchema).default([]) });
+export const diagramSchema = z.object({ nodes: z.array(nodeSchema), edges: z.array(edgeSchema), pages: z.array(documentSchema).default([]), decks: z.array(documentSchema).default([]), wikiFolders: wikiFoldersSchema.optional() });
 export const snapshotSchema = z.object({ revision: z.number().int().nonnegative(), diagram: diagramSchema });
 export const bootstrapSchema = snapshotSchema.extend({ token: z.string().min(1) });
 export const changeSchema = z.discriminatedUnion('kind', [

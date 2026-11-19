@@ -146,6 +146,7 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
   // clears (re-enabling highlight/gap sync); on a parse error we hold the last
   // good canvas and surface the message inline
   const syncTimer = useRef<number | null>(null);
+  const pendingSource = useRef('');
   const runSync = (src: string) => {
     const res = syncMermaid(src);
     if (res.ok) {
@@ -156,17 +157,28 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
     }
   };
   const scheduleSync = (src: string) => {
+    pendingSource.current = src;
     if (syncTimer.current) window.clearTimeout(syncTimer.current);
     syncTimer.current = window.setTimeout(() => {
       syncTimer.current = null;
       runSync(src);
     }, 400);
   };
+  const flushSource = () => {
+    if (syncTimer.current === null) return;
+    window.clearTimeout(syncTimer.current);
+    syncTimer.current = null;
+    runSync(pendingSource.current);
+  };
   useEffect(
     () => () => {
-      if (syncTimer.current) window.clearTimeout(syncTimer.current);
+      if (syncTimer.current !== null) {
+        window.clearTimeout(syncTimer.current);
+        syncTimer.current = null;
+        syncMermaid(pendingSource.current);
+      }
     },
-    [],
+    [syncMermaid],
   );
 
   const [copied, setCopied] = useState(false);
@@ -414,11 +426,7 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
                 document.getElementById(`mf-tab-${next}`)?.focus();
               }}
               onClick={() => {
-                if (syncTimer.current) {
-                  window.clearTimeout(syncTimer.current);
-                  syncTimer.current = null;
-                  runSync(text);
-                }
+                flushSource();
                 clearHover();
                 setHighlight(null);
                 setInsertion(null);
@@ -489,6 +497,7 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
             value={text}
             spellCheck={false}
             aria-label="Mermaid source"
+            onBlur={flushSource}
             onScroll={syncScroll}
             onMouseMove={hoverFromMouse}
             onMouseLeave={clearHover}

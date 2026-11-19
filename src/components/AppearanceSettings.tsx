@@ -3,7 +3,7 @@ import { COLORS, DOCUMENT_SYMBOLS, FONTS, PRESETS, documentIcon, type Appearance
 import { activeAppearance, saveAppearance, useAppearance } from '../theme';
 import { useDiagram } from '../store';
 import type { Diagram } from '../types';
-import { write } from '../persist';
+import { saveForNavigation } from '../persist';
 import { Icon } from './Icon';
 import './appearance.css';
 
@@ -13,8 +13,8 @@ export function AppearanceSettings() {
   const lastRestyled = useRef<Pick<Diagram, 'nodes' | 'edges' | 'decks'> | null>(null);
   const choose = (selected: string, custom = settings.custom) => {
     useDiagram.getState().restyleAppearance();
-    const { nodes, edges, pages, decks } = useDiagram.getState();
-    write({ nodes, edges, pages, decks });
+    const { nodes, edges, decks } = useDiagram.getState();
+    saveForNavigation();
     lastRestyled.current = { nodes, edges, decks };
     saveAppearance(selected, custom);
   };

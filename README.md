@@ -57,7 +57,12 @@ to be useful or too detailed to read. Marmerlade lets you have both.
 Open **[han002x.github.io/marmerlade](https://han002x.github.io/marmerlade/)**.
 No sign-up or install. Your work autosaves in your browser.
 
-Press `M` to open the Mermaid panel and paste:
+Use the product bar to switch between [Diagrams](https://han002x.github.io/marmerlade/#/diagrams),
+[Wiki pages](https://han002x.github.io/marmerlade/#/wiki), and
+[Slide decks](https://han002x.github.io/marmerlade/#/slides). You can create a page
+or deck directly in its own editor and link it to diagram nodes later.
+
+In Diagrams, press `M` to open the Mermaid panel and paste:
 
 ```mermaid
 flowchart LR

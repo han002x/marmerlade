@@ -36,6 +36,7 @@ type IconName =
   | 'notebook'
   | 'monitor'
   | 'page'
+  | 'folder'
   | 'deck'
   | 'grid'
   | 'expand'
@@ -65,6 +66,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M14 3v4h4M10 12h5M10 16h5" />
     </>
   ),
+  folder: <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
   deck: (
     <>
       <rect x="6" y="3" width="16" height="14" rx="1.5" />

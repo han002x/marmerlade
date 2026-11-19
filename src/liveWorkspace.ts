@@ -1,4 +1,4 @@
-import { useDiagram } from './store.ts';
+import { useDiagram, workspaceDiagram } from './store.ts';
 import type { Diagram } from './types.ts';
 
 export type WorkspaceStatus = { kind: 'saved' | 'saving' | 'offline' | 'conflict' | 'error'; message: string };
@@ -9,7 +9,7 @@ export function subscribeWorkspaceStatus(listener: () => void) { listeners.add(l
 function report(kind: WorkspaceStatus['kind'], message = '') { status = { kind, message }; listeners.forEach(fn => fn()); }
 let live = false;
 export const isLiveWorkspace = () => live;
-const current = (): Diagram => { const { nodes, edges, pages, decks } = useDiagram.getState(); return { nodes, edges, pages, decks }; };
+const current = workspaceDiagram;
 let reload = async () => {};
 export const reloadWorkspace = () => reload();
 export function downloadWorkspaceDraft() {
@@ -45,7 +45,7 @@ export async function initializeWorkspace() {
   }
   function apply(snapshot: Snapshot) {
     applying = true;
-    useDiagram.setState({ ...snapshot.diagram, pages: snapshot.diagram.pages ?? [], decks: snapshot.diagram.decks ?? [], history: [] });
+    useDiagram.setState({ ...snapshot.diagram, pages: snapshot.diagram.pages ?? [], decks: snapshot.diagram.decks ?? [], wikiFolders: snapshot.diagram.wikiFolders ?? [], history: [] });
     revision = snapshot.revision; accepted = JSON.stringify(current()); applying = false; report('saved');
   }
   async function bootstrap(): Promise<Bootstrap> {
@@ -77,7 +77,7 @@ export async function initializeWorkspace() {
   // really differs is decided when the timer fires, not on every drag frame.
   useDiagram.subscribe((state, prev) => {
     if (applying) return;
-    if (state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
+    if (state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks && state.wikiFolders === prev.wikiFolders) return;
     clearTimeout(timer); timer = setTimeout(() => { void save(); }, 400);
   });
   reload = async () => {
@@ -97,7 +97,7 @@ export async function initializeWorkspace() {
     try {
       const next = await bootstrap(); token = next.token;
       // A new process starts its revision counter again. Treat this as a conflict if a draft exists.
-      if (dirty() && (next.revision !== revision || JSON.stringify(next.diagram) !== accepted)) report('conflict', 'The workspace changed. Download your draft before reloading.');
+      if (dirty() && (next.revision !== revision || JSON.stringify(workspaceDiagram(next.diagram)) !== accepted)) report('conflict', 'The workspace changed. Download your draft before reloading.');
       else if (!dirty()) apply(next);
       else { report('saved'); void save(); }
       connect();

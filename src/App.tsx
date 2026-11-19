@@ -55,24 +55,19 @@ import { ImagePicker } from './components/ImagePicker';
 import { CatalogIcon, ShapeOutline } from './components/ShapeOutline';
 import { useTheme, activeAppearance } from './theme';
 import { foldedAncestors, pageOf } from './pages.ts';
-import { deckHref, nameCanvasWindow, nodeHref, openDocs, parseRoute } from './route';
+import { deckHref, nodeHref, openDocs, parseRoute } from './route';
 import { showDeck, showPage, useDock } from './dock';
 import { isTyping, useHotkeys } from './useHotkeys';
 import { copyNodes, imagesFromClipboard, nodesFromClipboard, snapshotClipboard } from './clipboard';
 import {
-  startAutosave,
-  startSync,
-  restore,
   exportFile,
   importFile,
-  clearSaved,
   saveForNavigation,
 } from './persist';
 import { exportGif, exportImage } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
 import type { DiagramNode as DNode, Side } from './types';
-import { SAMPLE } from './sample';
 import { hasOutline, shapeDef } from './shapes';
 import { installRenderBridge } from './renderBridge';
 import './App.css';
@@ -140,7 +135,12 @@ function openAppearancePanel() {
   requestAnimationFrame(() => document.getElementById('mf-tab-appearance')?.focus());
 }
 
-function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () => void; exporting: 'gif' | 'png' | null; setExporting: (format: 'gif' | 'png' | null) => void }) {
+function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
+  onTogglePanel: () => void;
+  exporting: 'gif' | 'png' | null;
+  setExporting: (format: 'gif' | 'png' | null) => void;
+  welcome: boolean;
+}) {
   const nodes = useDiagram((s) => s.nodes);
   const edges = useDiagram((s) => s.edges);
   const addNode = useDiagram((s) => s.addNode);
@@ -217,10 +217,10 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
 
   // a new user's demo diagram is framed below the first-run notes
   useEffect(() => {
-    if (!isFirstRun() || localStorage.getItem('marmerlade.diagram')) return;
+    if (!welcome) return;
     const t = window.setTimeout(() => fitView(FIRST_RUN_FIT), 80);
     return () => window.clearTimeout(t);
-  }, [fitView]);
+  }, [welcome, fitView]);
 
   /** shape awaiting placement, and the live cursor position for its preview */
   const [pending, setPending] = useState<Placement | null>(null);
@@ -290,8 +290,9 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   );
 
   const clearCanvas = useCallback(() => {
-    clearSaved();
-    load({ nodes: [], edges: [] });
+    const { pages, decks, wikiFolders } = useDiagram.getState();
+    load({ nodes: [], edges: [], pages, decks, wikiFolders });
+    saveForNavigation();
     useDock.getState().setOpen(false);
     window.dispatchEvent(new Event(WELCOME_EVENT));
   }, [load]);
@@ -919,7 +920,6 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         closed.length ? 320 : 60,
       );
     };
-    // after App's mount effect has restored the saved diagram
     const first = window.setTimeout(goto, 0);
     window.addEventListener('hashchange', goto);
     return () => {
@@ -1392,7 +1392,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   );
 }
 
-export default function App() {
+export default function App({ showWelcome }: { showWelcome: boolean }) {
   const panelOpen = useDock((s) => s.open);
   const setPanelOpen = useDock((s) => s.setOpen);
   const [panelWidth, setPanelWidth] = useState(360);
@@ -1409,9 +1409,7 @@ export default function App() {
       for (const type of ['keydown', 'keyup', 'copy', 'cut', 'paste']) window.removeEventListener(type, block, true);
     };
   }, [exporting]);
-  const load = useDiagram((s) => s.load);
-
-  const [welcome, setWelcome] = useState(false);
+  const [welcome, setWelcome] = useState(() => showWelcome && isFirstRun());
 
   // Clear canvas returns to the first-run view
   useEffect(() => {
@@ -1420,27 +1418,11 @@ export default function App() {
     return () => window.removeEventListener(WELCOME_EVENT, show);
   }, []);
 
-  // on first mount: restore the saved diagram, or seed the sample (a new user
-  // also gets the panel closed and the first-run notes); then begin
-  // autosaving every change back to localStorage
-  useEffect(() => {
-    if (!window.__marmerladeRender && useDiagram.getState().nodes.length === 0 && !restore()) {
-      load(SAMPLE);
-      if (isFirstRun()) {
-        setPanelOpen(false);
-        setWelcome(true);
-      }
-    }
-    nameCanvasWindow();
-    const stops = [startAutosave(), startSync()];
-    return () => stops.forEach((stop) => stop());
-  }, [load, setPanelOpen]);
-
   return (
     <ReactFlowProvider>
       {welcome && <Welcome onDone={() => setWelcome(false)} />}
       <div className="mf-app" inert={exporting === 'gif'}>
-        <Canvas onTogglePanel={() => setPanelOpen(!useDock.getState().open)} exporting={exporting} setExporting={setExporting} />
+        <Canvas welcome={welcome} onTogglePanel={() => setPanelOpen(!useDock.getState().open)} exporting={exporting} setExporting={setExporting} />
         {panelOpen ? (
           <MermaidPanel
             width={panelWidth}

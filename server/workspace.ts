@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import lockfile from 'proper-lockfile';
 import type { Diagram } from '../src/types.ts';
 import { parseDiagram, type Change } from '../src/workspaceSchema.ts';
+import { placeWikiPage } from '../src/wikiFolders.ts';
 
 export class Conflict extends Error {}
 export async function openWorkspace(filename: string) {
@@ -71,6 +72,7 @@ export function applyChanges(d: Diagram, changes: Change[]): Diagram {
       }
       case 'delete_page':
         d.pages = (d.pages ?? []).filter(p => p.id !== change.id);
+        if (d.wikiFolders) d.wikiFolders = placeWikiPage(d.wikiFolders, change.id, null);
         d.nodes = d.nodes.map(n => ({ ...n, pageIds: n.pageIds?.filter(id => id !== change.id) })); break;
       case 'delete_deck':
         d.decks = (d.decks ?? []).filter(p => p.id !== change.id);

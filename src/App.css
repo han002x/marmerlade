@@ -1983,6 +1983,9 @@ body,
 .mf-panel-body[hidden] { display: none; }
 .mf-panel-tabs { display: flex; flex-wrap: wrap; gap: 2px; }
 .mf-panel-tabs [role='tab'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-color: transparent;
   color: var(--mf-muted);
 }

@@ -47,6 +47,7 @@ type IconName =
   | 'stop'
   | 'step-back'
   | 'step-fwd'
+  | 'tree'
   | 'image';
 
 const PATHS: Record<IconName, React.ReactNode> = {
@@ -121,6 +122,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   moon: <path d="M20 13A8 8 0 1 1 11 4a6 6 0 0 0 9 9Z" />,
+  tree: <path d="M4 5h6M4 12h6M4 19h6M14 5h6M14 12h6M14 19h6M7 5v14" />,
   code: <path d="m8 7-5 5 5 5M16 7l5 5-5 5" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,

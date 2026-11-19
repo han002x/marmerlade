@@ -22,9 +22,10 @@ const MLine = memo(function MLine({ text, active, selected, insertBefore }: {
     </div>
   );
 });
+const icons = { mermaid: 'code', tree: 'tree', page: 'page', slides: 'deck', appearance: 'sun' } as const;
 
 const SlidesPanel = lazy(() => import('./SlidesPanel'));
-const views: View[] = ['mermaid', 'tree', 'page', 'slides', 'appearance'];
+const views: View[] = ['tree', 'mermaid', 'page', 'slides', 'appearance'];
 const titles: Record<View, string> = { mermaid: 'Mermaid', tree: 'Tree', page: 'Page', slides: 'Slides', appearance: 'Appearance' };
 
 export function MermaidPanel({ width, onWidthChange, onClose }: {
@@ -409,6 +410,7 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
         <div className="mf-panel-tabs" role="tablist" aria-label="Diagram views">
           {views.map((view) => (
             <button key={view} id={`mf-tab-${view}`} role="tab"
+              aria-label={titles[view]} title={titles[view]}
               aria-selected={tab === view} aria-controls={`mf-view-${view}`}
               tabIndex={tab === view ? 0 : -1}
               onKeyDown={(event) => {
@@ -433,7 +435,7 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
                 setInsertion(null);
                 setTab(view);
               }}>
-              {titles[view]}
+              <Icon name={icons[view]} size={16} />
             </button>
           ))}
         </div>

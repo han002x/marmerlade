@@ -153,6 +153,11 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const undo = useDiagram((s) => s.undo);
   const { fitView, screenToFlowPosition, getZoom, setViewport } = useReactFlow();
   const flowStore = useStoreApi();
+  const selectionRect = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  const selectingBox = useRef(false);
+  useEffect(() => flowStore.subscribe((state) => {
+    if (state.userSelectionRect) selectionRect.current = state.userSelectionRect;
+  }), [flowStore]);
   // Keep the canvas centered on the same point as the dock opens, resizes, or closes.
   useEffect(() => flowStore.subscribe((state, previous) => {
     if (state.width === previous.width && state.height === previous.height) return;
@@ -740,18 +745,9 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
       let nextSel: string[] | null = null;
-      // A drag-select would also take every edge touching a selected node.
-      // Keep only the edges that lie inside the box (both ends selected).
-      const boxing = flowStore.getState().userSelectionActive;
-      const all = useDiagram.getState().edges;
-      const inside = new Set(useDiagram.getState().selectedNodeIds);
-      const within = (id: string) => {
-        const e = all.find((x) => x.id === id);
-        return !!e && inside.has(e.source) && inside.has(e.target);
-      };
       for (const c of changes) {
         if (c.type === 'select') {
-          if (boxing && c.selected && !within(c.id)) continue;
+          if (selectingBox.current) continue;
           const base: string[] = nextSel ?? useDiagram.getState().selectedEdgeIds;
           nextSel = c.selected
             ? [...new Set([...base, c.id])]
@@ -762,7 +758,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         setSelection(useDiagram.getState().selectedNodeIds, nextSel);
       }
     },
-    [setSelection, flowStore],
+    [setSelection],
   );
 
   const asSide = (h?: string | null): Side | undefined =>
@@ -1215,6 +1211,46 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onSelectionStart={() => {
+          selectingBox.current = true;
+          selectionRect.current = null;
+        }}
+        onSelectionEnd={() => {
+          selectingBox.current = false;
+          const rect = selectionRect.current;
+          const pane = flowStore.getState().domNode;
+          if (!rect || !pane) return;
+          const bounds = pane.getBoundingClientRect();
+          const left = bounds.left + rect.x;
+          const top = bounds.top + rect.y;
+          const right = left + rect.width;
+          const bottom = top + rect.height;
+          const ids: string[] = [];
+          for (const edge of pane.querySelectorAll<SVGGElement>('.react-flow__edge[data-id]')) {
+            const path = edge.querySelector<SVGPathElement>('.react-flow__edge-path');
+            const matrix = path?.getScreenCTM();
+            const id = edge.dataset.id;
+            if (!path || !matrix || !id) continue;
+            const length = path.getTotalLength();
+            const steps = Math.max(1, Math.ceil(length * Math.hypot(matrix.a, matrix.b) / 4));
+            let previous = path.getPointAtLength(0).matrixTransform(matrix);
+            for (let i = 1; i <= steps; i++) {
+              const point = path.getPointAtLength(length * i / steps).matrixTransform(matrix);
+              const dx = point.x - previous.x;
+              const dy = point.y - previous.y;
+              let start = 0;
+              let end = 1;
+              for (const [p, q] of [[-dx, previous.x - left], [dx, right - previous.x], [-dy, previous.y - top], [dy, bottom - previous.y]]) {
+                if (p === 0) { if (q < 0) end = -1; }
+                else if (p < 0) start = Math.max(start, q / p);
+                else end = Math.min(end, q / p);
+              }
+              if (start <= end) { ids.push(id); break; }
+              previous = point;
+            }
+          }
+          setSelection(useDiagram.getState().selectedNodeIds, ids);
+        }}
         onConnect={onConnect}
         connectionMode={ConnectionMode.Loose}
         onConnectStart={(_, p) => {

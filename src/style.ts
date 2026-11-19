@@ -85,6 +85,7 @@ export const STYLE_DEFAULTS: Required<
   background: 'var(--mf-node)',
   strokeWidth: 1,
   strokeStyle: 'solid',
+  arrowheads: 'none',
   sloppiness: 1,
   edges: 'round',
   fontFamily: 'hand',

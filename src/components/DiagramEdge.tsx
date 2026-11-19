@@ -29,7 +29,6 @@ export function DiagramEdge({
   sourcePosition,
   targetPosition,
   label,
-  markerEnd,
   selected,
   data,
 }: EdgeProps) {
@@ -143,6 +142,11 @@ export function DiagramEdge({
     () => ink(path, { sloppiness, seed, continuous, pinEnds: true }),
     [path, sloppiness, seed, continuous],
   );
+  const arrowheads = st?.arrowheads ?? STYLE_DEFAULTS.arrowheads;
+  const startArrow = useMemo(
+    () => arrowHead(sourceX, sourceY, sourcePosition as Side, { sloppiness, seed: seed + 4, size: 6 + strokeWidth * 2 }),
+    [sourceX, sourceY, sourcePosition, sloppiness, seed, strokeWidth],
+  );
   const arrow = useMemo(
     () => arrowHead(targetX, targetY, targetPosition as Side, { sloppiness, seed: seed + 3, size: 6 + strokeWidth * 2 }),
     [targetX, targetY, targetPosition, sloppiness, seed, strokeWidth],
@@ -186,22 +190,21 @@ export function DiagramEdge({
         onPointerEnter={inert ? undefined : () => setHighlight({ kind: 'edge', id })}
         onPointerLeave={inert ? undefined : () => setHighlight(null)}
       />
-      <BaseEdge id={id} path={inkPath} markerEnd={markerEnd} style={edgeStyle} className={edgeAnimCls ?? undefined} />
-      <path
-        className="mf-edge-arrow"
-        d={arrow}
-        style={{
-          stroke: edgeStyle.stroke,
-          strokeWidth: edgeStyle.strokeWidth,
-          opacity: edgeStyle.opacity,
-          filter: edgeStyle.filter,
-          transition: EDGE_STYLE_BASE.transition,
-        }}
-      />
+      <BaseEdge id={id} path={inkPath} style={edgeStyle} className={edgeAnimCls ?? undefined} />
+      {[
+        ...(arrowheads === 'start' || arrowheads === 'both' ? [startArrow] : []),
+        ...(arrowheads === 'end' || arrowheads === 'both' ? [arrow] : []),
+      ].map((d, i) => (
+        <path key={i} className="mf-edge-arrow" d={d} style={{
+          stroke: edgeStyle.stroke, strokeWidth: edgeStyle.strokeWidth,
+          opacity: edgeStyle.opacity, filter: edgeStyle.filter, transition: EDGE_STYLE_BASE.transition,
+        }} />
+      ))}
       {traceD && (
         <>
           <path className="mf-flow-trace" d={traceD} pathLength={1} style={traceStyle} />
-          <path className="mf-flow-arrow" d={arrow} style={traceStyle} />
+          {(arrowheads === 'start' || arrowheads === 'both') && <path className="mf-flow-arrow" d={startArrow} style={traceStyle} />}
+          {(arrowheads === 'end' || arrowheads === 'both') && <path className="mf-flow-arrow" d={arrow} style={traceStyle} />}
         </>
       )}
       <EdgeLabelRenderer>

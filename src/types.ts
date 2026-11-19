@@ -32,6 +32,8 @@ export type Sloppiness = 0 | 1 | 2;
 /** Corner treatment for node outlines. */
 export type EdgeStyle = 'sharp' | 'round';
 
+export type Arrowheads = 'none' | 'start' | 'end' | 'both';
+
 export type FontFamily = 'sans' | 'serif' | 'mono' | 'hand';
 
 /**
@@ -53,6 +55,8 @@ export interface ElementStyle {
   background?: string;
   strokeWidth?: number;
   strokeStyle?: StrokeStyle;
+  /** Arrowhead positions on an edge. */
+  arrowheads?: Arrowheads;
   sloppiness?: Sloppiness;
   /** corner treatment for node outlines */
   edges?: EdgeStyle;

@@ -185,7 +185,7 @@ migrate automatically; new saves use version 3.
 One look throughout: a grained paper desk, card-stock
 panels, crisp kraft sheets for unfolded groups, and diagrams drawn in
 hand-drawn ink (roughjs, seeded per element so the wobble never changes)
-with handwritten Kalam labels and open chevron arrowheads. The style panel's
+with handwritten Kalam labels. Select an edge to choose arrowheads at the start, end, both ends, or neither (the default). The style panel's
 Sloppiness picks **Ink** (clean), **Sketch** (default) or **Scribble**.
 
 ## App appearance

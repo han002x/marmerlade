@@ -1,7 +1,7 @@
 import { useStyleDefaults } from '../useStyleDefaults';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDiagram } from '../store';
-import { DEFAULT_IMAGE_SIZE, type DiagramNode, type ElementStyle } from '../types';
+import { DEFAULT_IMAGE_SIZE, type Arrowheads, type DiagramNode, type ElementStyle } from '../types';
 import { asImageSrc, isDataUri, kb, readImageFile, sizedImage } from '../imageUpload';
 import {
   ANIMATIONS,
@@ -201,6 +201,21 @@ export function StylePanel() {
           ))}
         </div>
       </section>
+
+      {hasEdges && (
+        <section className="mf-style-section">
+          <label className="mf-style-label">Arrowheads</label>
+          <div className="mf-seg" role="group" aria-label="Arrowhead position">
+            {([{ value: 'none', glyph: '—' }, { value: 'start', glyph: '←' },
+              { value: 'end', glyph: '→' }, { value: 'both', glyph: '↔' }] satisfies { value: Arrowheads; glyph: string }[]).map(({ value, glyph }) => {
+              const selected = edges.filter((e) => selectedEdgeIds.includes(e.id));
+              const isActive = selected.every((e) => (e.style?.arrowheads ?? 'none') === value);
+              return <button key={value} className={isActive ? 'active' : ''} aria-label={`Arrowheads ${value}`}
+                aria-pressed={isActive} title={value} onClick={() => updateEdgeStyle(selectedEdgeIds, { arrowheads: value })}>{glyph}</button>;
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="mf-style-section">
         <label className="mf-style-label">Sloppiness</label>

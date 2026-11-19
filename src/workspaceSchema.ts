@@ -5,6 +5,7 @@ import type { Diagram } from './types.ts';
 const id = z.string().min(1);
 const style = z.object({
   stroke: z.string().optional(), background: z.string().optional(), strokeWidth: z.number().nonnegative().optional(),
+  arrowheads: z.enum(['none', 'start', 'end', 'both']).optional(),
   strokeStyle: z.enum(['solid', 'dashed', 'dotted']).optional(), sloppiness: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
   edges: z.enum(['sharp', 'round']).optional(), fontFamily: z.enum(['sans', 'serif', 'mono', 'hand']).optional(),
   fontSize: z.number().positive().optional(), fontColor: z.string().optional(), opacity: z.number().min(0).max(1).optional(),

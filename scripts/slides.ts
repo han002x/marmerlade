@@ -330,7 +330,7 @@ const node = (id: string, label: string, extra: Partial<DiagramNode> = {}): Diag
   const out = toMarkdown(deck, { nodes, edges }, 'a');
   assert.ok(out.startsWith('---\nmarp: true\ntitle: "Launch \\"plan\\""\n---\n\n# The API\n'), out);
   assert.ok(out.includes('```mermaid\nflowchart'), out);
-  assert.ok(out.includes('a["API"]') && out.includes('a --> b'), out);
+  assert.ok(out.includes('a["API"]') && out.includes('a --- b'), out);
   assert.ok(out.includes('c["Cache"]'), out);
   assert.ok(out.includes('```\n{{diagram}} [[x]]\n```'), 'code is left alone');
   assert.ok(out.includes('<!-- note -->'), 'notes travel as comments');

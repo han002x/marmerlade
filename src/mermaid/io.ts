@@ -16,7 +16,7 @@
 // Everything marmerlade emits is checked against the real mermaid parser by
 // scripts/mermaid-compat.ts.
 
-import type { Diagram, DiagramEdge, DiagramNode, NodeImage, NodeShape } from '../types';
+import type { Arrowheads, Diagram, DiagramEdge, DiagramNode, NodeImage, NodeShape } from '../types';
 import { SHAPES, SHAPE_ALIAS, iconForm, shapeDef, shapeForForm } from '../shapes.ts';
 import { parsePageIds } from '../pages.ts';
 
@@ -125,7 +125,7 @@ function parseNodeToken(
   return null;
 }
 
-const ARROW_RE = /^(?:-->|---|-\.->|==>)(?:[ \t]*\|([^|]+)\|)?/;
+const ARROW_RE = /^(<-->|<---|-->|---|-\.->|==>)(?:[ \t]*\|([^|]+)\|)?/;
 const OPENERS = '[({';
 const CLOSERS = '])}';
 
@@ -166,18 +166,20 @@ function splitTop(text: string, match: (i: number) => number): { parts: string[]
  * every node of the next. Returns null when the line holds no arrow or a node
  * is missing.
  */
-function splitChain(line: string): { steps: string[][]; labels: (string | undefined)[] } | null {
+function splitChain(line: string): { steps: string[][]; labels: (string | undefined)[]; arrowheads: Arrowheads[] } | null {
   const labels: (string | undefined)[] = [];
+  const arrowheads: Arrowheads[] = [];
   const { parts } = splitTop(line, (i) => {
-    if (line[i] !== '-' && line[i] !== '=') return 0;
+    if (line[i] !== '-' && line[i] !== '=' && line[i] !== '<') return 0;
     const arrow = ARROW_RE.exec(line.slice(i));
     if (!arrow) return 0;
-    labels.push(arrow[1] ? stripQuotes(arrow[1]) : undefined);
+    labels.push(arrow[2] ? stripQuotes(arrow[2]) : undefined);
+    arrowheads.push(arrow[1] === '---' ? 'none' : arrow[1] === '<---' ? 'start' : arrow[1] === '<-->' ? 'both' : 'end');
     return arrow[0].length;
   });
   if (labels.length === 0) return null;
   const steps = parts.map((p) => splitTop(p, (i) => (p[i] === '&' ? 1 : 0)).parts);
-  return steps.every((s) => s.every(Boolean)) ? { steps, labels } : null;
+  return steps.every((s) => s.every(Boolean)) ? { steps, labels, arrowheads } : null;
 }
 
 /** A line that the parser could not make sense of, for `parseMermaid`. */
@@ -311,7 +313,7 @@ function parseCore(src: string): CoreResult {
         chain.labels.forEach((label, i) => {
           for (const from of found[i])
             for (const to of found[i + 1])
-              edges.push({ id: `e${edgeSeq++}`, source: from.id, target: to.id, label });
+              edges.push({ id: `e${edgeSeq++}`, source: from.id, target: to.id, label, style: { arrowheads: chain.arrowheads[i] } });
         });
       } else {
         issues.push({ line: idx, text: line, reason: 'malformed edge endpoint' });
@@ -423,7 +425,7 @@ export function mergeDiagram(parsed: Diagram, current: Diagram): Diagram {
     if (!prev) return p;
     return {
       ...p,
-      style: prev.style,
+      style: { ...prev.style, arrowheads: p.style?.arrowheads },
       ...(prev.order != null && { order: prev.order }),
       ...(prev.sourceSide && { sourceSide: prev.sourceSide }),
       ...(prev.targetSide && { targetSide: prev.targetSide }),
@@ -507,7 +509,8 @@ export function toMermaidWithMap(diagram: Diagram): MermaidResult {
   emit(null, 0);
 
   for (const e of edges) {
-    const arrow = e.label ? `-->|${e.label}|` : '-->';
+    const symbol = { none: '---', start: '<---', end: '-->', both: '<-->' }[e.style?.arrowheads ?? 'none'];
+    const arrow = e.label ? `${symbol}|${e.label}|` : symbol;
     lineRefs.set(out.length, { kind: 'edge', id: e.id });
     out.push(`  ${e.source} ${arrow} ${e.target}`);
   }

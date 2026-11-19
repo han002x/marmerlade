@@ -6,6 +6,7 @@
 
 import Dagre from '@dagrejs/dagre';
 import { DIAMOND_SIZE } from './shapes.ts';
+import { childrenOf, descendants, foldEdges, groupOrigin, hiddenIds } from './fold.ts';
 import { DEFAULT_IMAGE_SIZE, type DiagramEdge, type DiagramNode, type NodeImage, type NodeShape } from './types.ts';
 
 export type Direction = 'TB' | 'LR';
@@ -68,6 +69,45 @@ export function layout(
     // dagre's compound mode is stricter; never let a layout failure block Tidy
     return run(nodes, edges, direction, false, sizes);
   }
+}
+
+/**
+ * Lay out what is on screen and return the updated nodes. Folded subtrees stay
+ * hidden, but the folded card takes the creased edges of its contents, so it
+ * is ranked like a connected node. A folded card is always drawn at the
+ * top-left of its tucked-away contents (its stored position is unused), so
+ * those contents move with it, keeping the card where the layout put it and
+ * the subtree beside it for when it unfolds.
+ */
+export function layoutShown(
+  nodes: DiagramNode[],
+  edges: DiagramEdge[],
+  direction: Direction = 'TB',
+  sizes: Record<string, { width: number; height: number }> = {},
+): DiagramNode[] {
+  const hidden = hiddenIds(nodes);
+  const visible = nodes.filter((n) => !hidden.has(n.id));
+  if (visible.length === 0) return nodes;
+  const { direct, folded } = foldEdges(nodes, edges, hidden);
+  const shownEdges = [...direct, ...folded.map(({ id, source, target }) => ({ id, source, target }))];
+  const positions = layout(visible, shownEdges, direction, sizes);
+
+  const kids = childrenOf(nodes);
+  const shift = new Map<string, { x: number; y: number }>();
+  for (const n of visible) {
+    const to = positions[n.id];
+    if (!to || !n.collapsed || !kids.has(n.id)) continue;
+    const from = groupOrigin(n.id, nodes, kids);
+    if (!from) continue;
+    const by = { x: to.x - from.x, y: to.y - from.y };
+    for (const id of descendants(n.id, kids)) shift.set(id, by);
+  }
+  return nodes.map((n) => {
+    const at = positions[n.id];
+    if (at) return { ...n, position: at };
+    const by = shift.get(n.id);
+    return by ? { ...n, position: { x: n.position.x + by.x, y: n.position.y + by.y } } : n;
+  });
 }
 
 const sheetId = (groupId: string) => `__sheet__${groupId}`;

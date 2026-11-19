@@ -46,7 +46,6 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const autoLayout = useDiagram((s) => s.autoLayout);
   const syncMermaid = useDiagram((s) => s.syncMermaid);
   const nodes = useStructure();
   const edges = useDiagram((s) => s.edges);
@@ -169,16 +168,6 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
     },
     [],
   );
-
-  // Tidy: flush any pending edit, then auto-layout the live diagram
-  const tidy = () => {
-    if (syncTimer.current) {
-      window.clearTimeout(syncTimer.current);
-      syncTimer.current = null;
-      runSync(text);
-    }
-    autoLayout('TB');
-  };
 
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -518,9 +507,6 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
 
         {err && <div className="mf-err">{err}</div>}
         <div className="mf-panel-actions">
-          <button onClick={tidy}>
-            Tidy
-          </button>
           <button onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
           <input
             className="mf-base"

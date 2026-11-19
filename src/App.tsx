@@ -41,7 +41,7 @@ import {
   nextUnfoldLevel,
   sheets,
 } from './fold';
-import { useFoldMotion } from './foldMotion';
+import { setFoldSizes, useFoldMotion } from './foldMotion';
 import { GHOST_SIZE, IMAGE_LABEL_SPACE, nodeSize, sizeFor } from './layout';
 import { DiagramEdge } from './components/DiagramEdge';
 import { JoinPreview } from './components/JoinPreview';
@@ -225,26 +225,6 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const menuRef = useRef<HTMLDivElement>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
-  /** the tidy / fold dropdown */
-  const [arrangeOpen, setArrangeOpen] = useState(false);
-  const arrangeRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!arrangeOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (arrangeRef.current && !arrangeRef.current.contains(e.target as globalThis.Node)) {
-        setArrangeOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setArrangeOpen(false);
-    };
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [arrangeOpen]);
   const [exportWidth, setExportWidth] = useState(900);
   const canvasWidth = useStore((state) => state.width);
   const canvasHeight = useStore((state) => state.height);
@@ -442,6 +422,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
     return (n: DNode) => n.size ?? measured.get(n.id) ?? nodeSize(n);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sizesVersion]);
+  useEffect(() => setFoldSizes(sizeOf), [sizeOf]);
 
   const positionOf = useMemo(() => {
     const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -476,7 +457,6 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const sheetCache = useRef(new Map<string, Node<SheetData>>());
   const edgeCache = useRef(new Map<string, Edge>());
   const rfNodes: Node<NodeData>[] = useMemo(() => {
-    const kids = childrenOf(nodes);
     const motionClass =
       foldPhase === 'folding' ? 'mf-folding' : foldPhase === 'unfold-start' ? 'mf-unfold-start' : 'mf-unfolding';
     const cards = new Set(foldAnchor.values());
@@ -506,7 +486,6 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
           image: n.image,
           isGroup: isGroup(n.id),
           collapsed: n.collapsed,
-          childCount: descendants(n.id, kids).length,
           style: n.style,
           sized: !!size,
           flowAt: flow.nodeAt.get(n.id),
@@ -1040,30 +1019,6 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
           </ToolButton>
           <ShapePicker open={pickerOpen} onOpenChange={setPickerOpen} onPick={arm} />
           <ImagePicker open={imageOpen} onOpenChange={setImageOpen} onPick={arm} />
-        </div>
-        <span className="mf-sep" />
-        <div className="mf-group-btns">
-        <div className="mf-menu-wrap" ref={arrangeRef}>
-          <ToolButton label="Tidy and fold" onClick={() => setArrangeOpen((v) => !v)}>
-            <Icon name="layout" />
-          </ToolButton>
-          {arrangeOpen && (
-            <div className="mf-menu mf-flow-menu" role="toolbar" aria-label="Tidy and fold">
-              <ToolButton label="Tidy down" hotkey="L" onClick={() => (setArrangeOpen(false), tidy('TB'))}>
-                <Icon name="tidy-down" />
-              </ToolButton>
-              <ToolButton label="Tidy right" hotkey="⇧L" onClick={() => (setArrangeOpen(false), tidy('LR'))}>
-                <Icon name="tidy-right" />
-              </ToolButton>
-              <ToolButton label="Fold a level" hotkey="[" onClick={() => foldLevel('fold')}>
-                <Icon name="fold" />
-              </ToolButton>
-              <ToolButton label="Unfold a level" hotkey="]" onClick={() => foldLevel('unfold')}>
-                <Icon name="unfold" />
-              </ToolButton>
-            </div>
-          )}
-        </div>
         </div>
         <span className="mf-sep" />
         <div className="mf-group-btns">

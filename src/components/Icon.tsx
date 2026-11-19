@@ -14,9 +14,7 @@ type IconName =
   | 'round'
   | 'diamond'
   | 'circle'
-  | 'tidy-down'
   | 'tidy-right'
-  | 'layout'
   | 'sun'
   | 'palette'
   | 'moon'
@@ -27,9 +25,7 @@ type IconName =
   | 'import'
   | 'film'
   | 'trash'
-  | 'fold'
   | 'group'
-  | 'unfold'
   | 'more'
   | 'shapes'
   | 'pumpkin'
@@ -88,25 +84,10 @@ const PATHS: Record<IconName, React.ReactNode> = {
   round: <rect x="3" y="6" width="18" height="12" rx="6" />,
   diamond: <path d="M12 3 21 12 12 21 3 12Z" />,
   circle: <circle cx="12" cy="12" r="8" />,
-  'tidy-down': (
-    <>
-      <path d="M12 4v16" />
-      <path d="m6 14 6 6 6-6" />
-    </>
-  ),
   'tidy-right': (
     <>
       <path d="M4 12h16" />
       <path d="m14 6 6 6-6 6" />
-    </>
-  ),
-  // Lucide layout-dashboard
-  layout: (
-    <>
-      <rect x="3" y="3" width="7" height="9" rx="1" />
-      <rect x="14" y="3" width="7" height="5" rx="1" />
-      <rect x="14" y="12" width="7" height="9" rx="1" />
-      <rect x="3" y="16" width="7" height="5" rx="1" />
     </>
   ),
   palette: (
@@ -169,20 +150,6 @@ const PATHS: Record<IconName, React.ReactNode> = {
   // arrow pointer
   cursor: (
     <path d="M5 3l14 7.5-6.2 1.7L10 18.5z" />
-  ),
-  // a page with its corner folded in
-  fold: (
-    <>
-      <path d="M6 3h8l4 4v14H6z" />
-      <path d="M14 3v4h4" />
-    </>
-  ),
-  // a sheet opened flat, creases showing
-  unfold: (
-    <>
-      <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" />
-      <path d="M9 4v14M15 6v14" />
-    </>
   ),
   trash: (
     <>

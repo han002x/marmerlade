@@ -13,12 +13,13 @@ import type {
   Page,
 } from './types';
 import { fromMermaid, mergeDiagram, parseMermaid, toMermaid } from './mermaid/io.ts';
-import { layout, nodeSize, type Direction } from './layout.ts';
+import { layout, layoutShown, nodeSize, type Direction } from './layout.ts';
 import type { NodeClipboard } from './clipboard.ts';
 import { createPageFor, mergePages, newPageId, normalizeDiagram, type LinkKey } from './pages.ts';
 import {
   childrenOf,
   descendants,
+  foldWithRoom,
   groupOrigin,
   groupPlan,
   ungroupTarget,
@@ -219,9 +220,13 @@ interface State {
   connect: (source: string, target: string, sourceSide?: Side, targetSide?: Side) => void;
   updateEdgeLabel: (id: string, label: string) => void;
   removeEdge: (id: string) => void;
-  toggleCollapse: (id: string) => void;
   /** fold (true) or unfold (false) several groups as one undo step */
-  setCollapsed: (ids: string[], collapsed: boolean) => void;
+  setCollapsed: (
+    ids: string[],
+    collapsed: boolean,
+    /** drawn size of a node, so neighbours make exactly enough room */
+    sizeOf?: (n: DiagramNode) => { width: number; height: number },
+  ) => void;
   nestInto: (childId: string, groupId: string | null) => void;
   /** wrap the given nodes in a new untitled group (a sheet, no card of its own),
    *  or move them into the one group already among them; returns its id */
@@ -774,24 +779,15 @@ export const useDiagram = create<State>((set, get) => {
   removeEdge: (id) =>
     set((s) => ({ ...snapshot(), edges: s.edges.filter((e) => e.id !== id) })),
 
-  toggleCollapse: (id) =>
-    set((s) => ({
-      ...snapshot(),
-      nodes: s.nodes.map((n) =>
-        n.id === id ? { ...n, collapsed: !n.collapsed } : n,
-      ),
-    })),
-
-  setCollapsed: (ids, collapsed) =>
+  setCollapsed: (ids, collapsed, sizeOf = nodeSize) =>
     set((s) => {
       const target = new Set(ids);
       if (!s.nodes.some((n) => target.has(n.id) && n.collapsed !== collapsed)) return s;
-      return {
-        ...snapshot(),
-        nodes: s.nodes.map((n) =>
-          target.has(n.id) && n.collapsed !== collapsed ? { ...n, collapsed } : n,
-        ),
-      };
+      // the neighbours slide to fit the card or sheet, in the same undo step
+      const nodes = foldWithRoom(s.nodes, ids, collapsed, sizeOf).map((n) =>
+        target.has(n.id) && n.collapsed !== collapsed ? { ...n, collapsed } : n,
+      );
+      return { ...snapshot(), nodes };
     }),
 
   nestInto: (childId, groupId) =>
@@ -861,17 +857,10 @@ export const useDiagram = create<State>((set, get) => {
 
   autoLayout: (direction = 'TB') =>
     set((s) => {
-      // only lay out what's currently on screen; hidden nodes keep positions
-      const hidden = computeHidden(s.nodes);
-      const visible = s.nodes.filter((n) => !hidden.has(n.id));
-      if (visible.length === 0) return s;
-      const positions = layout(visible, s.edges, direction);
-      return {
-        ...snapshot(),
-        nodes: s.nodes.map((n) =>
-          positions[n.id] ? { ...n, position: positions[n.id] } : n,
-        ),
-      };
+      // only lay out what's on screen; folded contents travel with their card
+      const nodes = layoutShown(s.nodes, s.edges, direction);
+      if (nodes === s.nodes) return s;
+      return { ...snapshot(), nodes };
     }),
 
   loadMermaid: (src) => {

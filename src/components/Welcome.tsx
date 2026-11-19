@@ -132,7 +132,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
         <span className="mf-brand">marmerlade</span>
       </div>
       <p className="mf-welcome-note" style={{ left: left.x, top: left.y }}>
-        Shapes, tidy, fold, play
+        Shapes, play, export
       </p>
       <p className="mf-welcome-note is-right" style={{ right: vw - right.x, top: right.y }}>
         Mermaid, tree, pages, slides

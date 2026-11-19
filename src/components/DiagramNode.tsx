@@ -4,7 +4,6 @@ import { useConnection, type Node, type NodeProps } from '@xyflow/react';
 import { DEFAULT_IMAGE_SIZE, type ElementStyle, type NodeImage, type NodeShape } from '../types';
 import { useDiagram } from '../store';
 import { SideHandles } from './SideHandles';
-import { useFoldMotion } from '../foldMotion';
 import { animationClass, flowDash, fontFamilyCss, inkOn } from '../style';
 import { CatalogIcon, ShapeOutline } from './ShapeOutline';
 import { PageButton } from './PageButton';
@@ -22,7 +21,6 @@ export interface NodeData {
   isGroup: boolean;
   collapsed: boolean;
   /** how many nodes are folded inside this card */
-  childCount: number;
   style?: ElementStyle;
   sized?: boolean;
   /** flow clock reading at which the sequence reaches this node */
@@ -68,7 +66,6 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(d.label);
   const updateLabel = useDiagram((s) => s.updateLabel);
-  const toggleFold = useFoldMotion((s) => s.toggle);
   const setHighlight = useDiagram((s) => s.setHighlight);
   // highlighted when the mermaid editor (or another surface) points at this node
   const highlighted = useDiagram(
@@ -196,19 +193,6 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
           <span className={`mf-node-label ${d.isGroup && !d.label ? 'is-empty' : ''}`} style={{ color: st?.fontColor }}>
             {d.isGroup && !d.label ? 'Untitled' : d.label}
           </span>
-        )}
-        {d.isGroup && d.collapsed && (
-          <button
-            className="mf-unfold nodrag"
-            aria-label={`Unfold ${d.childCount}`}
-            title="Unfold  ·  F"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFold(id);
-            }}
-          >
-            {d.childCount}
-          </button>
         )}
       </div>
       <PageButton nodeId={id} />

@@ -5,7 +5,7 @@ import { captureGif } from './gif.ts';
 import { cycleSeconds, frameCount, fitScale } from './gifMath.ts';
 import { flowCycle, flowSeconds, FLOW_LEAD } from './flow.ts';
 import { seek, usePlayer } from './flowPlayer.ts';
-import { layout, type Direction } from './layout.ts';
+import { layoutShown, type Direction } from './layout.ts';
 import type { RenderGifOptions, RenderBridge } from './renderContract.ts';
 
 const diagram = () => {
@@ -31,8 +31,7 @@ function createBridge(fit: () => Promise<void>) {
       const viewport = document.querySelector<HTMLElement>('.react-flow__viewport');
       const scale = viewport ? new DOMMatrix(getComputedStyle(viewport).transform).a : 1;
       for (const size of Object.values(sizes)) { size.width /= scale; size.height /= scale; }
-      const positions = layout(current.nodes, current.edges, direction, sizes);
-      return { ...current, nodes: current.nodes.map(node => ({ ...node, position: positions[node.id] ?? node.position })) };
+      return { ...current, nodes: layoutShown(current.nodes, current.edges, direction, sizes) };
     },
     async importImage(base64: string, name: string, mime: string) {
       const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));

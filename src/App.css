@@ -553,28 +553,6 @@ body,
   background: var(--mf-seal);
 }
 
-.mf-unfold {
-  min-width: 22px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--mf-seal) 50%, transparent);
-  background: color-mix(in srgb, var(--mf-seal) 14%, transparent);
-  color: var(--mf-seal);
-  font: 600 11.5px/1 var(--mf-ui-font, var(--mf-sans));
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition:
-    background 130ms ease,
-    transform 130ms ease;
-}
-.mf-unfold:hover {
-  background: color-mix(in srgb, var(--mf-seal) 26%, transparent);
-}
-.mf-unfold:active {
-  transform: scale(0.92);
-}
-
 /* mermaid panel */
 .mf-panel {
   position: relative;
@@ -1376,34 +1354,6 @@ body,
   outline: none;
 }
 
-/* lifting the corner hints at the fold */
-.mf-sheet:has(.mf-dogear:hover) {
-  --ear: 26px;
-}
-
-.mf-dogear {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: var(--ear);
-  height: var(--ear);
-  padding: 0;
-  border: 0;
-  pointer-events: all;
-  cursor: pointer;
-  background: linear-gradient(
-    225deg,
-    transparent 50%,
-    color-mix(in srgb, var(--mf-text) 14%, var(--mf-panel)) 50%,
-    var(--mf-panel)
-  );
-  filter: drop-shadow(-1px 1px 1px color-mix(in srgb, var(--mf-shadow) 80%, transparent));
-  border-bottom-left-radius: 4px;
-  transition:
-    width 160ms ease,
-    height 160ms ease;
-}
-
 /* fold: the subtree slides onto its card (node transform transition) while
    creasing flat; unfold: it springs back up, like a pop-up card opening */
 .react-flow__node.mf-folding,
@@ -1477,8 +1427,7 @@ body,
 
 @media (prefers-reduced-motion: reduce) {
   .mf-sheet,
-  .mf-sheet-paper,
-  .mf-dogear {
+  .mf-sheet-paper {
     transition: none;
   }
   .react-flow__node.mf-folding .mf-node,

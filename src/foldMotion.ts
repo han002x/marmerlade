@@ -8,7 +8,8 @@
 
 import { create } from 'zustand';
 import { useDiagram } from './store';
-import { hiddenIds } from './fold';
+import { hiddenIds, type Size } from './fold';
+import type { DiagramNode } from './types';
 
 export type FoldPhase = 'folding' | 'unfold-start' | 'unfolding';
 
@@ -18,7 +19,6 @@ interface Motion {
   anchor: Map<string, string>;
   fold: (ids: string[]) => void;
   unfold: (ids: string[]) => void;
-  toggle: (id: string) => void;
 }
 
 const FOLD_MS = 260;
@@ -28,6 +28,12 @@ const reducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+/** drawn node sizes, supplied by the canvas so folds make exactly enough room */
+let sizeOf: ((n: DiagramNode) => Size) | undefined;
+export function setFoldSizes(fn: (n: DiagramNode) => Size) {
+  sizeOf = fn;
+}
+
 let timer: ReturnType<typeof setTimeout> | undefined;
 /** a fold waiting for its animation to end before it is committed */
 let pendingFold: string[] | null = null;
@@ -35,7 +41,7 @@ let pendingFold: string[] | null = null;
 /** Jump any in-flight animation to its end state. */
 function settle() {
   clearTimeout(timer);
-  if (pendingFold) useDiagram.getState().setCollapsed(pendingFold, true);
+  if (pendingFold) useDiagram.getState().setCollapsed(pendingFold, true, sizeOf);
   pendingFold = null;
   useFoldMotion.setState({ phase: null, anchor: new Map() });
 }
@@ -51,7 +57,7 @@ export const useFoldMotion = create<Motion>((set, get) => ({
       ids.filter((id) => nodes.some((n) => n.id === id && !n.collapsed)),
     );
     if (targets.size === 0) return;
-    if (reducedMotion()) return setCollapsed([...targets], true);
+    if (reducedMotion()) return setCollapsed([...targets], true, sizeOf);
 
     // each visible node tucks into its OUTERMOST folding ancestor
     const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -65,7 +71,7 @@ export const useFoldMotion = create<Motion>((set, get) => ({
       }
       if (into) anchor.set(n.id, into);
     }
-    if (anchor.size === 0) return setCollapsed([...targets], true);
+    if (anchor.size === 0) return setCollapsed([...targets], true, sizeOf);
 
     pendingFold = [...targets];
     set({ phase: 'folding', anchor });
@@ -76,7 +82,7 @@ export const useFoldMotion = create<Motion>((set, get) => ({
     settle();
     const { setCollapsed } = useDiagram.getState();
     const before = hiddenIds(useDiagram.getState().nodes);
-    setCollapsed(ids, false);
+    setCollapsed(ids, false, sizeOf);
     if (reducedMotion()) return;
 
     const nodes = useDiagram.getState().nodes;
@@ -101,12 +107,5 @@ export const useFoldMotion = create<Motion>((set, get) => ({
         timer = setTimeout(settle, UNFOLD_MS);
       }),
     );
-  },
-
-  toggle: (id) => {
-    const n = useDiagram.getState().nodes.find((x) => x.id === id);
-    if (!n) return;
-    if (n.collapsed) get().unfold([id]);
-    else get().fold([id]);
   },
 }));

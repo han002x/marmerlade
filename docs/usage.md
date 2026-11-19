@@ -10,10 +10,10 @@ between handles. Built on [React Flow](https://reactflow.dev) (`@xyflow/react`).
 ## Origami folding
 
 Any node that has children is a *group*, and an
-unfolded group lies on a sheet of paper wrapping its subtree. Click the
-sheet's dog-eared corner (or select it and press `F`) to fold: the subtree
-slides into the group card and creases flat, leaving a card with its pages
-stacked beneath and a count tab; click the tab to pop it back open. Edges into
+unfolded group lies on a sheet of paper wrapping its subtree. Select the
+sheet (or a node on it) and press `F` to fold: the subtree slides into the
+group card and creases flat, leaving a card with its pages stacked beneath;
+select the card and press `F` again to pop it back open. Edges into
 a folded card crease onto the card (dashed, merged as `×n`) so folding never
 loses connections. `[` / `]` fold or unfold the whole diagram one level at a
 time. Nesting is arbitrary depth.
@@ -28,9 +28,9 @@ canvas and Mermaid source. **Copy** exports the source for other renderers.
 
 ## Auto-layout (dagre)
 
-**Tidy ↓** / **Tidy →** re-flow the diagram top-down
-or left-right. Only visible nodes are laid out, so collapsing a group re-flows
-the rest. Mermaid imports are tidied automatically.
+`L` / `⇧L` tidy the diagram top-down or left-right. Only visible nodes are
+laid out, so tidying with a group folded re-flows the rest around its card.
+Mermaid imports are tidied automatically.
 
 ## Motion
 

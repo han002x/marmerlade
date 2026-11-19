@@ -1,6 +1,5 @@
 import { memo, useState } from 'react';
 import { type NodeProps } from '@xyflow/react';
-import { useFoldMotion } from '../foldMotion';
 import { useDiagram } from '../store';
 import { SideHandles } from './SideHandles';
 import { PageButton } from './PageButton';
@@ -19,12 +18,11 @@ export interface SheetData {
 /**
  * The paper an unfolded group's subtree sits on, standing in for the group:
  * it carries the group's title (double-click to rename) and the edges that
- * point at the group. Dragging the sheet moves the group, and the dog-eared
- * corner folds it into a card.
+ * point at the group. Dragging the sheet moves the group; F folds it into a
+ * card.
  */
 function SheetNodeInner({ data }: NodeProps) {
   const d = data as SheetData;
-  const toggle = useFoldMotion((s) => s.toggle);
   const updateLabel = useDiagram((s) => s.updateLabel);
   const setHighlight = useDiagram((s) => s.setHighlight);
   // the group's `subgraph` line is hovered in the Mermaid editor
@@ -84,15 +82,6 @@ function SheetNodeInner({ data }: NodeProps) {
         )}
       <PageButton nodeId={d.groupId} />
       <DeckButton nodeId={d.groupId} />
-      <button
-        className="mf-dogear nodrag nopan"
-        aria-label="Fold"
-        title="Fold  ·  F"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggle(d.groupId);
-        }}
-      />
     </div>
   );
 }

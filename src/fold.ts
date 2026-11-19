@@ -302,3 +302,130 @@ export function groupPlan(nodes: DiagramNode[], ids: string[]): GroupPlan | null
   }
   return { kind: 'new', members, parentId: common[0] ?? null };
 }
+
+/** Where a node is drawn: a group's card sits at the top-left of its contents. */
+function drawnAt(
+  n: DiagramNode,
+  nodes: DiagramNode[],
+  kids: Map<string | null, DiagramNode[]>,
+): { x: number; y: number } {
+  return kids.has(n.id) ? groupOrigin(n.id, nodes, kids) ?? n.position : n.position;
+}
+
+/** Each on-screen group's sheet rect in `nodes`. */
+function sheetRects(nodes: DiagramNode[], sizeOf: (n: DiagramNode) => Size): Map<string, Rect> {
+  const kids = childrenOf(nodes);
+  return new Map(
+    sheets(nodes, hiddenIds(nodes), (n) => drawnAt(n, nodes, kids), sizeOf).map((s) => [s.groupId, s.rect]),
+  );
+}
+
+/** clearance kept between a reopened sheet and its neighbours */
+const ROOM_GAP = 8;
+
+const overlaps = (a: Rect, b: Rect) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+/**
+ * `groupId` grew from `from` to `to`: if that runs into any of its siblings,
+ * slide the ones below it down by the growth in height and the ones beside it
+ * (in the sheet's rows) right by the growth in width, each with its subtree,
+ * so the arrangement around the group is kept rather than crushed.
+ */
+function makeRoom(
+  nodes: DiagramNode[],
+  groupId: string,
+  from: Rect,
+  to: Rect,
+  sizeOf: (n: DiagramNode) => Size,
+): DiagramNode[] {
+  const kids = childrenOf(nodes);
+  const g = nodes.find((n) => n.id === groupId);
+  if (!g) return nodes;
+  const dx = Math.max(0, to.x + to.width - (from.x + from.width));
+  const dy = Math.max(0, to.y + to.height - (from.y + from.height));
+  if (dx === 0 && dy === 0) return nodes;
+  const hidden = hiddenIds(nodes);
+  const sheetOf = sheetRects(nodes, sizeOf);
+  const zone = pad(to, ROOM_GAP);
+  const moves: { id: string; by: { x: number; y: number } }[] = [];
+  let collides = false;
+  for (const s of kids.get(g.parentId) ?? []) {
+    if (s.id === groupId || hidden.has(s.id)) continue;
+    const box = sheetOf.get(s.id) ?? { ...drawnAt(s, nodes, kids), ...sizeOf(s) };
+    let by: { x: number; y: number } | null = null;
+    if (box.y >= from.y + from.height - 0.5) by = { x: 0, y: dy };
+    else if (box.x >= from.x + from.width - 0.5 && box.y < to.y + to.height && box.y + box.height > to.y) {
+      by = { x: dx, y: 0 };
+    }
+    if (!by || (by.x === 0 && by.y === 0)) continue;
+    moves.push({ id: s.id, by });
+    collides ||= overlaps(box, zone);
+  }
+  // the old spot still fits: leave the neighbours exactly where they are
+  if (!collides) return nodes;
+  const shift = new Map<string, { x: number; y: number }>();
+  for (const { id, by } of moves) {
+    shift.set(id, by);
+    for (const d of descendants(id, kids)) shift.set(d, by);
+  }
+  return nodes.map((n) => {
+    const by = shift.get(n.id);
+    return by ? { ...n, position: { x: n.position.x + by.x, y: n.position.y + by.y } } : n;
+  });
+}
+
+/**
+ * Fold (`collapsed` true) or unfold groups. Folding leaves everything in
+ * place, so unfolding into an unchanged diagram is an exact undo. If an
+ * unfolded sheet would land on something (say the diagram was tidied while
+ * the group was folded), its neighbours slide out of the way: those below by
+ * the growth in height, those beside it by the growth in width. Each enclosing
+ * sheet that grows as a result makes room among its own neighbours in turn.
+ */
+export function foldWithRoom(
+  nodes: DiagramNode[],
+  ids: string[],
+  collapsed: boolean,
+  sizeOf: (n: DiagramNode) => Size,
+): DiagramNode[] {
+  const target = new Set(ids);
+  const flip = (ns: DiagramNode[], which: Set<string>) =>
+    ns.map((n) => (which.has(n.id) && n.collapsed !== collapsed ? { ...n, collapsed } : n));
+  if (collapsed) return flip(nodes, target);
+
+  const kids = childrenOf(nodes);
+  const parentOf = new Map(nodes.map((n) => [n.id, n.parentId]));
+  const depth = (id: string) => {
+    let d = 0;
+    for (let p = parentOf.get(id); p; p = parentOf.get(p)) d++;
+    return d;
+  };
+  // outermost first, so each step measures the sheets it will really sit in
+  const order = [...target].filter((id) => kids.has(id)).sort((a, b) => depth(a) - depth(b));
+
+  let cur = flip(nodes, new Set([...target].filter((id) => !kids.has(id))));
+  for (const id of order) {
+    const g = cur.find((n) => n.id === id);
+    if (!g?.collapsed) continue;
+    const before = cur;
+    let next = flip(cur, new Set([id]));
+    if (hiddenIds(next).has(id)) {
+      cur = next; // inside a folded card: nothing on screen changes size
+      continue;
+    }
+    const card = { ...drawnAt(g, before, kids), ...sizeOf(g) };
+    const sheet = sheetRects(next, sizeOf).get(id);
+    if (sheet) next = makeRoom(next, id, card, sheet, sizeOf);
+    // the sheets around it may have grown too
+    const old = sheetRects(before, sizeOf);
+    for (let p = g.parentId; p; p = parentOf.get(p) ?? null) {
+      const was = old.get(p);
+      const now = sheetRects(next, sizeOf).get(p);
+      if (!was || !now) break;
+      next = makeRoom(next, p, was, now, sizeOf);
+    }
+    cur = next;
+  }
+  return cur;
+}

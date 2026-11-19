@@ -1,8 +1,9 @@
 // Fold logic check: creases reroute edges onto folded cards, fold levels step
 // from the leaves inward, and sheets wrap their unfolded subtrees.
 // Run with: node --experimental-strip-types scripts/fold.ts
-import { SHEET_PAD, SHEET_TITLE, foldEdges, groupOrigin, groupPlan, hiddenIds, nextFoldLevel, nextUnfoldLevel, sheets } from '../src/fold.ts';
+import { SHEET_PAD, SHEET_TITLE, foldEdges, foldWithRoom, groupOrigin, groupPlan, hiddenIds, nextFoldLevel, nextUnfoldLevel, sheets } from '../src/fold.ts';
 import { fromMermaid, toMermaid } from '../src/mermaid/io.ts';
+import { layoutShown } from '../src/layout.ts';
 import type { DiagramEdge, DiagramNode } from '../src/types.ts';
 
 const N = (id: string, parentId: string | null, collapsed = false, x = 0, y = 0): DiagramNode => ({
@@ -96,6 +97,46 @@ const edges = [E('1', 'A', 'x', 'calls'), E('2', 'A', 'y'), E('3', 'y', 'B', 'wr
   check('untitled group exports a blank title', mm.includes('subgraph F [" "]'), mm);
   const back = fromMermaid(mm).nodes.find((n) => n.id === 'F');
   check('blank subgraph title imports as an untitled group', back?.label === '', back);
+}
+
+{
+  // G holds x (0..100 x 0..50) and y (y 200..250); R sits beside it, B below
+  const size = () => ({ width: 100, height: 50 });
+  const open = [N('A', null, false, 0, -150), N('G', null, false), N('x', 'G', false, 0, 0), N('y', 'G', false, 0, 200),
+    N('R', null, false, 200, 0), N('B', null, false, 0, 400), N('K', null, false), N('k1', 'K', false, 200, 100), N('k2', 'K', false, 400, 100)];
+  const at = (ns: DiagramNode[], id: string) => ns.find((n) => n.id === id)!.position;
+  const folded = foldWithRoom(open, ['G'], true, size);
+  check('folding marks the group folded', folded.find((n) => n.id === 'G')?.collapsed === true);
+  check('folding moves nothing', folded.every((n, i) => n.position === open[i].position));
+  const back = foldWithRoom(folded, ['G'], false, size);
+  check('unfolding into the same space moves nothing', JSON.stringify(back) === JSON.stringify(open), back);
+
+  // tidied while folded: R crowds the card from the right, B from below
+  const tight = folded.map((n) => n.id === 'R' ? { ...n, position: { x: 140, y: 0 } } : n.id === 'B' ? { ...n, position: { x: 0, y: 140 } } : n);
+  const roomy = foldWithRoom(tight, ['G'], false, size);
+  // sheet: x -22..122, y -44..272; card: 0..100 x 0..50
+  check('unfold pushes the neighbour below down by the growth in height', at(roomy, 'B').y === 140 + (250 + SHEET_PAD - 50), at(roomy, 'B'));
+  check('unfold pushes the neighbour beside it right by the growth in width', at(roomy, 'R').x === 140 + SHEET_PAD, at(roomy, 'R'));
+  check('things above stay put', at(roomy, 'A').y === -150);
+  check('a neighbouring group moves as one unit', at(roomy, 'k1').x - at(tight, 'k1').x === at(roomy, 'k2').x - at(tight, 'k2').x && at(roomy, 'k1').y - at(tight, 'k1').y === at(roomy, 'k2').y - at(tight, 'k2').y);
+  check('the unfolded contents never move', at(roomy, 'x').x === 0 && at(roomy, 'y').y === 200);
+
+  // nested: the inner sheet pushes its siblings, then the outer sheet its own
+  const nest = [N('O', null), N('I', 'O', true), N('i1', 'I', false, 0, 0), N('i2', 'I', false, 0, 300), N('s', 'O', false, 0, 100), N('t', null, false, 0, 200)];
+  const opened = foldWithRoom(nest, ['I'], false, size);
+  const grow = 350 + SHEET_PAD - 50;
+  check('unfolding inside a sheet pushes its siblings down', at(opened, 's').y === 100 + grow, at(opened, 's'));
+  check('and the grown outer sheet pushes what lies below it', at(opened, 't').y > at(opened, 's').y + 50 + SHEET_PAD, at(opened, 't'));
+}
+{
+  // Tidy with G folded: the card is ranked by its creases, and its contents follow it
+  const nodes = tree(true);
+  const laid = layoutShown(nodes, edges, 'TB');
+  const g = groupOrigin('G', laid);
+  const a = laid.find((n) => n.id === 'A')!.position;
+  const b = laid.find((n) => n.id === 'B')!.position;
+  check('the folded card lands where layout put it', !!g && Math.abs(g.x - laid.find((n) => n.id === 'G')!.position.x) < 1e-6 && Math.abs(g.y - laid.find((n) => n.id === 'G')!.position.y) < 1e-6, { g, laid });
+  check('creases rank the card between A and B', !!g && a.y < g.y && g.y < b.y, { a, g, b });
 }
 
 if (failed) process.exit(1);

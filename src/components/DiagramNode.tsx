@@ -1,5 +1,5 @@
 import { useStyleDefaults } from '../useStyleDefaults';
-import { memo, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useConnection, type Node, type NodeProps } from '@xyflow/react';
 import { DEFAULT_IMAGE_SIZE, type ElementStyle, type NodeImage, type NodeShape } from '../types';
 import { useDiagram } from '../store';
@@ -8,7 +8,7 @@ import { animationClass, flowDash, fontFamilyCss, inkOn } from '../style';
 import { CatalogIcon, ShapeOutline } from './ShapeOutline';
 import { PageButton } from './PageButton';
 import { DeckButton } from './DeckButton';
-import { iconTileCss, shapeCss } from '../shapes';
+import { iconTileCss, shapeCss, shapeDef } from '../shapes';
 import { seedOf } from '../rough';
 
 export interface NodeData {
@@ -84,6 +84,42 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
     setEditing(false);
   };
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const growNode = useDiagram((s) => s.growNode);
+
+  // Size the editor to its text, then make the node roomy enough for it.
+  // Auto-sized nodes grow by themselves; resized and fixed-square shapes
+  // (circle, diamond) need their stored size raised.
+  const fit = useCallback(() => {
+    const ta = inputRef.current;
+    const root = rootRef.current;
+    if (!ta || !root) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${ta.scrollHeight}px`;
+    const square = !d.icon && !d.image && !!shapeDef(d.shape).square;
+    if (!d.sized && !square) return;
+    const cs = getComputedStyle(root);
+    const room = root.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const need = ta.scrollHeight - room;
+    if (need <= 1) return;
+    const w = root.offsetWidth;
+    const h = root.offsetHeight;
+    growNode(id, square ? { width: w + Math.ceil(need), height: h + Math.ceil(need) } : { width: w, height: h + Math.ceil(need) });
+  }, [d.shape, d.icon, d.image, d.sized, growNode, id]);
+
+  useLayoutEffect(() => {
+    if (editing) fit();
+  }, [editing, draft, fit]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!editing || !root || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(fit);
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [editing, fit]);
+
   const image = d.image;
   // an image wins over an icon; both draw as a tile whose shape picks corners
   const icon = image ? undefined : d.icon;
@@ -148,6 +184,7 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
 
   return (
     <div
+      ref={rootRef}
       className={cls}
       style={styleCss}
       onPointerEnter={() => setHighlight({ kind: 'node', id })}
@@ -172,17 +209,18 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
       <div className="mf-node-body">
         {editing ? (
           <textarea
+            ref={inputRef}
             autoFocus
+            onFocus={(e) => e.currentTarget.select()}
             className="mf-node-input nodrag nopan"
             aria-label="Edit node text"
-            title="Shift+Enter for a new line · Enter to save"
-            rows={Math.max(2, draft.split('\n').length)}
+            rows={1}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => {
               e.stopPropagation();
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 commit();
               }

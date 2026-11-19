@@ -495,15 +495,45 @@ body,
   letter-spacing: -0.01em;
 }
 
+/* long labels wrap instead of stretching the node */
+.mf-node:not(.is-sized, .is-icon, .is-image) .mf-node-label {
+  max-width: 240px;
+  overflow-wrap: anywhere;
+}
+/* fixed-footprint shapes wrap inside their box */
+.mf-node:is(.mf-shape-circle, .mf-shape-dbl-circle, .mf-shape-diamond) > .mf-node-body {
+  max-width: 100%;
+  min-width: 0;
+}
+.mf-node:is(.mf-shape-circle, .mf-shape-dbl-circle, .mf-shape-diamond) .mf-node-label {
+  overflow-wrap: anywhere;
+}
+
+/* the editor reads as the label itself, in place */
 .mf-node-input {
-  background: var(--mf-input);
-  color: var(--mf-text);
-  border: 1px solid var(--mf-accent);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 13px;
-  width: 120px;
-  resize: vertical;
+  display: block;
+  box-sizing: content-box;
+  width: auto;
+  field-sizing: content;
+  min-width: 8ch;
+  max-width: min(240px, 100%);
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: center;
+  line-height: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  resize: none;
+  caret-color: var(--mf-accent);
 }
 
 .mf-transforms {

@@ -216,6 +216,8 @@ interface State {
   setEdgeOrder: (ids: string[], order: number | undefined) => void;
   moveNode: (id: string, position: { x: number; y: number }) => void;
   resizeNodes: (before: DiagramNode[], rects: ReadonlyMap<string, Rect>) => void;
+  /** Enlarge a node so its text fits; never shrinks and records no history. */
+  growNode: (id: string, size: { width?: number; height?: number }) => void;
   removeNode: (id: string) => void;
   connect: (source: string, target: string, sourceSide?: Side, targetSide?: Side) => void;
   updateEdgeLabel: (id: string, label: string) => void;
@@ -721,6 +723,17 @@ export const useDiagram = create<State>((set, get) => {
           return position ? { ...node, position } : node;
         }),
       };
+    }),
+
+  growNode: (id, size) =>
+    set((s) => {
+      const node = s.nodes.find((n) => n.id === id);
+      if (!node) return s;
+      const width = Math.max(size.width ?? 0, node.size?.width ?? 0);
+      const height = Math.max(size.height ?? 0, node.size?.height ?? 0);
+      if (!width || !height) return s;
+      if (node.size && width === node.size.width && height === node.size.height) return s;
+      return { nodes: s.nodes.map((n) => (n.id === id ? { ...n, size: { width, height } } : n)) };
     }),
 
   removeNode: (id) =>

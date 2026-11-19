@@ -43,6 +43,17 @@ Other useful commands:
 | `npm pack --dry-run` | Inspect the npm package contents. The prepack hook builds the app. |
 | `npm pack` | Build and create the npm tarball. |
 
+## Canvas performance
+
+`npm run perf` drives a 42-node diagram through drag, pan and zoom, select and
+hover, and prints frame times. Against the dev server it also counts React
+commits and render time. `PERF_PROD=1 npm run perf` builds and measures the
+production bundle (frame times only). It is not part of `npm test`.
+
+Keep the objects handed to React Flow referentially stable (`src/stable.ts`),
+and read nodes through `useStructure` in anything that ignores position, so a
+drag does not re-render the panels.
+
 ## Architecture
 
 | File | Role |

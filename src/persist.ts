@@ -40,7 +40,9 @@ export function write(diagram: Diagram) {
 export function startAutosave(debounceMs = 400): () => void {
   if (isLiveWorkspace()) return () => {};
   let timer: number | undefined;
-  return useDiagram.subscribe((state) => {
+  return useDiagram.subscribe((state, prev) => {
+    // hover and selection changes are not part of the saved document
+    if (state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
     window.clearTimeout(timer);
     timer = window.setTimeout(
       () => write({ nodes: state.nodes, edges: state.edges, pages: state.pages, decks: state.decks }),

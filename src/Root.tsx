@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Profiler, Suspense } from 'react'
 import App from './App.tsx'
 import WorkspaceStatus from './components/WorkspaceStatus.tsx'
 import AppearanceDialog from './components/AppearanceDialog'
@@ -30,7 +30,11 @@ function Route() {
         <SlidesApp deckId={route.id} nodeId={route.nodeId} slide={route.slide} presenter={route.presenter} />
       </Suspense>
     )
-  return <App />
+  return import.meta.env.DEV && location.search.includes('perf') ? (
+    <Profiler id="app" onRender={(_, __, ms) => { const p = ((window as any).__perf ??= { commits: 0, ms: 0 }); p.commits++; p.ms += ms }}>
+      <App />
+    </Profiler>
+  ) : <App />
 }
 
 export default function Root() { return <><Route /><AppearanceDialog /><WorkspaceStatus /></>; }

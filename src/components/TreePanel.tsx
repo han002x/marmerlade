@@ -1,7 +1,10 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
-import { useDiagram } from '../store';
+import { useDiagram, useStructure } from '../store';
 import { useFoldMotion } from '../foldMotion';
+import { useDock } from '../dock';
+
+const NONE: string[] = [];
 import type { DiagramNode } from '../types';
 import { Icon } from './Icon';
 import { showDeck, showPage } from '../dock';
@@ -53,14 +56,16 @@ function EditableLabel({ label, fallback, onSave }: {
   );
 }
 
-export function TreePanel() {
-  const nodes = useDiagram((s) => s.nodes);
+function TreePanelInner() {
+  const nodes = useStructure();
   const edges = useDiagram((s) => s.edges);
   const pages = useDiagram((s) => s.pages);
   const decks = useDiagram((s) => s.decks);
-  const selectedNodeIds = useDiagram((s) => s.selectedNodeIds);
-  const selectedEdgeIds = useDiagram((s) => s.selectedEdgeIds);
-  const highlight = useDiagram((s) => s.highlight);
+  // hidden while another tab shows: hover and selection must not re-render it
+  const shown = useDock((s) => s.view === 'tree');
+  const selectedNodeIds = useDiagram((s) => (shown ? s.selectedNodeIds : NONE));
+  const selectedEdgeIds = useDiagram((s) => (shown ? s.selectedEdgeIds : NONE));
+  const highlight = useDiagram((s) => (shown ? s.highlight : null));
   const setHighlight = useDiagram((s) => s.setHighlight);
   const setSelection = useDiagram((s) => s.setSelection);
   const updateLabel = useDiagram((s) => s.updateLabel);
@@ -204,3 +209,5 @@ export function TreePanel() {
     </nav>
   );
 }
+
+export const TreePanel = memo(TreePanelInner);

@@ -73,8 +73,11 @@ export async function initializeWorkspace() {
     }
   }
   const initial = await bootstrap(); token = initial.token; apply(initial);
-  useDiagram.subscribe(() => {
-    if (applying || !dirty()) return;
+  // Only a change to the saved document schedules a save. Whether anything
+  // really differs is decided when the timer fires, not on every drag frame.
+  useDiagram.subscribe((state, prev) => {
+    if (applying) return;
+    if (state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
     clearTimeout(timer); timer = setTimeout(() => { void save(); }, 400);
   });
   reload = async () => {

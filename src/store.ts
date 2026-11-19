@@ -1,5 +1,6 @@
 import { restyleDeck } from './slides.ts';
 import { create } from 'zustand';
+import { structural } from './stable.ts';
 import type {
   Diagram,
   DiagramEdge,
@@ -943,3 +944,8 @@ export const useDiagram = create<State>((set, get) => {
   },
   };
 });
+
+const structuralNodes = structural<DiagramNode>();
+
+/** The nodes, for readers that ignore position: unchanged while nodes only move. */
+export const useStructure = () => useDiagram((s) => structuralNodes(s.nodes));

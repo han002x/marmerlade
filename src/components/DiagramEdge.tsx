@@ -1,5 +1,5 @@
 import { useStyleDefaults } from '../useStyleDefaults';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -16,9 +16,11 @@ const EDGE_STYLE_BASE: React.CSSProperties = {
   transition: 'stroke 160ms ease, stroke-width 160ms ease',
 };
 
+export const DiagramEdge = memo(DiagramEdgeInner);
+
 // Custom edge: renders the bezier path plus an editable label. Double-click the
 // label (or the pill shown when empty) to rename inline, matching node rename.
-export function DiagramEdge({
+function DiagramEdgeInner({
   id,
   source,
   target,

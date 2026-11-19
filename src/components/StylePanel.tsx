@@ -1,6 +1,6 @@
 import { useStyleDefaults } from '../useStyleDefaults';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useDiagram } from '../store';
+import { useDiagram, useStructure } from '../store';
 import { DEFAULT_IMAGE_SIZE, type Arrowheads, type DiagramNode, type ElementStyle } from '../types';
 import { asImageSrc, isDataUri, kb, readImageFile, sizedImage } from '../imageUpload';
 import {
@@ -40,7 +40,7 @@ export function StylePanel() {
   const [recentColor, setRecentColor] = useState<string>();
   const selectedNodeIds = useDiagram((s) => s.selectedNodeIds);
   const selectedEdgeIds = useDiagram((s) => s.selectedEdgeIds);
-  const nodes = useDiagram((s) => s.nodes);
+  const nodes = useStructure();
   const edges = useDiagram((s) => s.edges);
   const updateNodeStyle = useDiagram((s) => s.updateNodeStyle);
   const updateEdgeStyle = useDiagram((s) => s.updateEdgeStyle);

@@ -23,6 +23,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { splitEdgeFor, useDiagram } from './store';
+import { reuse } from './stable';
 import { DiagramNode, NodeImg, type NodeData } from './components/DiagramNode';
 import { GhostNode, type GhostData } from './components/GhostNode';
 import { SheetNode, type SheetData } from './components/SheetNode';
@@ -439,6 +440,9 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
     .map((n) => [n.id, { ...positionOf(n), ...sizeOf(n) }])), [nodes, offscreen, positionOf, sizeOf]);
   const previewRects = resizePreview?.rects;
 
+  const nodeCache = useRef(new Map<string, Node<NodeData>>());
+  const sheetCache = useRef(new Map<string, Node<SheetData>>());
+  const edgeCache = useRef(new Map<string, Edge>());
   const rfNodes: Node<NodeData>[] = useMemo(() => {
     const kids = childrenOf(nodes);
     const motionClass =
@@ -448,7 +452,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
     // when code selects a node (e.g. one just inserted), so a pane click still
     // deselects it
     const sel = new Set(selected);
-    return nodes.filter((n) => !offscreen.has(n.id)).map((n) => {
+    const list = nodes.filter((n) => !offscreen.has(n.id)).map((n) => {
       const preview = previewRects?.get(n.id);
       const size = preview ? { width: preview.width, height: preview.height } : n.size;
       return {
@@ -477,13 +481,14 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         },
       };
     });
+    return reuse(nodeCache.current, list);
   }, [nodes, offscreen, isGroup, positionOf, foldPhase, foldAnchor, selected, flow, previewRects]);
 
   // a sheet of paper behind every unfolded group, under edges and nodes
   const sheetNodes: Node<SheetData>[] = useMemo(() => {
     const moving = new Set([...foldAnchor.keys(), ...foldAnchor.values()]);
     const byId = new Map(nodes.map((n) => [n.id, n]));
-    return sheets(nodes, hidden, (n) => previewRects?.get(n.id) ?? positionOf(n),
+    const list = sheets(nodes, hidden, (n) => previewRects?.get(n.id) ?? positionOf(n),
       (n) => previewRects?.get(n.id) ?? sizeOf(n)).map((sh) => ({
       id: SHEET_PREFIX + sh.groupId,
       type: 'sheet',
@@ -509,6 +514,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         title: byId.get(sh.groupId)?.label ?? '',
       },
     }));
+    return reuse(sheetCache.current, list);
   }, [nodes, hidden, positionOf, sizeOf, foldPhase, foldAnchor, previewRects, selected]);
 
   // folding a group hides its subtree: drop it from the selection so a later
@@ -621,7 +627,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
           data: { style: splitting.style, preview: true },
         }))
       : [];
-    return [
+    return reuse(edgeCache.current, [
       ...previewLegs,
       // the split edge stays mounted (faded) so its label and insert button
       // keep the pointer, otherwise the preview would end the hover it came from
@@ -651,7 +657,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         deletable: false,
         data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id) },
       })),
-    ];
+    ]);
   }, [shown, flow, edges, ghostNode, insertion, selectedEdges]);
 
   const onNodesChange = useCallback(

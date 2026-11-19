@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useDiagram } from '../store';
+import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useDiagram, useStructure } from '../store';
 import { toMermaidWithMap } from '../mermaid/io';
 import { Icon } from './Icon';
 import { TreePanel } from './TreePanel';
@@ -7,6 +7,20 @@ import { useDock, type View } from '../dock';
 import { usePageBase } from '../pageBase';
 
 const PagePanel = lazy(() => import('./PagePanel'));
+
+/** One line of the highlight overlay; re-renders only when its own state changes. */
+const MLine = memo(function MLine({ text, active, selected, insertBefore }: {
+  text: string;
+  active: boolean;
+  selected: boolean;
+  insertBefore: boolean;
+}) {
+  return (
+    <div className={`mf-mline${active ? ' active' : ''}${selected ? ' selected' : ''}${insertBefore ? ' insert-before' : ''}`}>
+      {text === '' ? '\u200b' : text}
+    </div>
+  );
+});
 
 const SlidesPanel = lazy(() => import('./SlidesPanel'));
 const views: View[] = ['mermaid', 'tree', 'page', 'slides'];
@@ -32,7 +46,7 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
 
   const autoLayout = useDiagram((s) => s.autoLayout);
   const syncMermaid = useDiagram((s) => s.syncMermaid);
-  const nodes = useDiagram((s) => s.nodes);
+  const nodes = useStructure();
   const edges = useDiagram((s) => s.edges);
   const highlight = useDiagram((s) => s.highlight);
   const setHighlight = useDiagram((s) => s.setHighlight);
@@ -122,6 +136,8 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
     }
     return s;
   }, [edited, selectedNodeIds, selectedEdgeIds, refToLines]);
+
+  const activeSet = useMemo(() => new Set(activeLines), [activeLines]);
 
   const lines = useMemo(() => text.split('\n'), [text]);
 
@@ -450,14 +466,13 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
           {/* highlight + hover overlay, scroll-synced behind/over the textarea */}
           <div className="mf-mermaid-overlay" ref={scrollRef} aria-hidden>
             {lines.map((line, i) => (
-              <div
+              <MLine
                 key={i}
-                className={`mf-mline${activeLines.includes(i) ? ' active' : ''}${
-                  selectedLines.has(i) ? ' selected' : ''
-                }${i === gapLine ? ' insert-before' : ''}`}
-              >
-                {line === '' ? '\u200b' : line}
-              </div>
+                text={line}
+                active={activeSet.has(i)}
+                selected={selectedLines.has(i)}
+                insertBefore={i === gapLine}
+              />
             ))}
             {/* caret below the last line when inserting at the very end */}
             {gapLine === lines.length && (

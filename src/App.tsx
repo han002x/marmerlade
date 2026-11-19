@@ -223,6 +223,8 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   /** the overflow (3-dot) menu: open state and its anchor for click-outside */
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
   /** the tidy / fold dropdown */
   const [arrangeOpen, setArrangeOpen] = useState(false);
   const arrangeRef = useRef<HTMLDivElement>(null);
@@ -244,16 +246,25 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
     };
   }, [arrangeOpen]);
   const [exportWidth, setExportWidth] = useState(900);
+  const canvasWidth = useStore((state) => state.width);
+  const canvasHeight = useStore((state) => state.height);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !exportOpen) return;
     const onDown = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as globalThis.Node)) {
         setMenuOpen(false);
       }
+      if (exportRef.current && !exportRef.current.contains(e.target as globalThis.Node)) {
+        setExportOpen(false);
+      }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === 'Escape') {
+        if (exportOpen) exportRef.current?.querySelector('button')?.focus();
+        setMenuOpen(false);
+        setExportOpen(false);
+      }
     };
     window.addEventListener('mousedown', onDown);
     window.addEventListener('keydown', onKey);
@@ -261,7 +272,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('keydown', onKey);
     };
-  }, [menuOpen]);
+  }, [menuOpen, exportOpen]);
 
   const onPickFile = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1103,33 +1114,35 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
           </div>
         </div>
         <span className="mf-sep" />
-        <div className="mf-menu-wrap" ref={menuRef}>
-          <ToolButton label="More actions" onClick={() => setMenuOpen((v) => !v)}>
-            <Icon name="more" />
+        <div className="mf-menu-wrap" ref={exportRef}>
+          <ToolButton label="Export" active={exportOpen} onClick={() => setExportOpen((v) => !v)}>
+            <Icon name="export" />
           </ToolButton>
-          {menuOpen && (
-            <div className="mf-menu" role="menu">
+          {exportOpen && (
+            <div className="mf-menu mf-export-menu" role="group" aria-label="Export">
               <button
                 className="mf-menu-item"
-                role="menuitem"
                 onClick={() => {
-                  setMenuOpen(false);
+                  setExportOpen(false);
                   exportFile();
                 }}
               >
                 <Icon name="export" />
-                <span>Export file</span>
+                <span>Workspace file <small>JSON</small></span>
               </button>
-              <label className="mf-export-resolution" role="none">
-                <span>Export width</span>
-                <select aria-label="Export width" value={exportWidth} onChange={(event) => setExportWidth(Number(event.target.value))}>
-                  <option value={900}>900 px</option>
-                  <option value={1440}>1440 px</option>
-                  <option value={1920}>1920 px</option>
+              <span className="mf-menu-sep" />
+              <label className="mf-export-resolution">
+                <span>Resolution</span>
+                <select value={exportWidth} onChange={(event) => setExportWidth(Number(event.target.value))}>
+                  {[900, 1440, 1920].map((width) => (
+                    <option key={width} value={width}>
+                      {width} × {canvasWidth ? Math.max(1, Math.round(Math.round(canvasHeight) * width / Math.round(canvasWidth))) : '—'} px
+                    </option>
+                  ))}
                 </select>
               </label>
-              <button className="mf-menu-item" role="menuitem" disabled={exporting !== null} onClick={() => {
-                setMenuOpen(false);
+              <button className="mf-menu-item" disabled={exporting !== null} onClick={() => {
+                setExportOpen(false);
                 void saveExport('png');
               }}>
                 <Icon name="export" />
@@ -1137,16 +1150,24 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
               </button>
               <button
                 className="mf-menu-item"
-                role="menuitem"
                 disabled={exporting !== null}
                 onClick={() => {
-                  setMenuOpen(false);
+                  setExportOpen(false);
                   void saveExport('gif');
                 }}
               >
                 <Icon name="film" />
                 <span>{exporting ? 'Exporting GIF…' : 'Export GIF'}</span>
               </button>
+            </div>
+          )}
+        </div>
+        <div className="mf-menu-wrap" ref={menuRef}>
+          <ToolButton label="More actions" onClick={() => setMenuOpen((v) => !v)}>
+            <Icon name="more" />
+          </ToolButton>
+          {menuOpen && (
+            <div className="mf-menu" role="menu">
               <button
                 className="mf-menu-item"
                 role="menuitem"

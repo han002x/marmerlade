@@ -78,7 +78,7 @@ Then try these keys:
 | `K` | Open the selected node's slide deck. |
 | `P` | Play the flow from start to finish. |
 
-To keep or share a workspace, choose **More actions → Export file**. You get a
+To keep or share a workspace, choose **Export → Workspace file**. You get a
 single `.marmerlade.json` file that anyone can open with **Import file**.
 
 ## Let your AI assistant draw it

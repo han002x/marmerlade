@@ -18,6 +18,7 @@ type IconName =
   | 'tidy-right'
   | 'layout'
   | 'sun'
+  | 'palette'
   | 'moon'
   | 'code'
   | 'close'
@@ -106,6 +107,15 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <rect x="14" y="3" width="7" height="5" rx="1" />
       <rect x="14" y="12" width="7" height="9" rx="1" />
       <rect x="3" y="16" width="7" height="5" rx="1" />
+    </>
+  ),
+  palette: (
+    <>
+      <path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 1.4-3.4 2 2 0 0 1 1.4-3.4H18a3 3 0 0 0 3-3C21 6.7 17 3 12 3Z" />
+      <circle cx="7.5" cy="11" r=".7" fill="currentColor" />
+      <circle cx="10" cy="7.5" r=".7" fill="currentColor" />
+      <circle cx="14" cy="7.5" r=".7" fill="currentColor" />
+      <circle cx="17" cy="10.5" r=".7" fill="currentColor" />
     </>
   ),
   sun: (

@@ -284,6 +284,12 @@ body,
 .mf-menu-item .mf-svg {
   flex: none;
 }
+.mf-export-menu { min-width: 200px; }
+.mf-export-menu small {
+  color: var(--mf-muted);
+  font-size: 11px;
+  margin-left: 4px;
+}
 
 .mf-export-resolution {
   display: flex;
@@ -583,6 +589,9 @@ body,
 }
 
 @media (max-width: 540px) {
+  .mf-toolbar { gap: 2px; padding: 3px; }
+  .mf-toolbar .mf-tool { width: 30px; }
+  .mf-toolbar .mf-sep { margin: 4px 1px; }
   .mf-app { flex-direction: column; height: 100dvh; }
   .mf-panel { min-width: 100%; height: 50%; border-left: 0; border-top: 1px solid var(--mf-border); }
   .mf-panel .mf-panel-resize { display: none; }
@@ -1999,16 +2008,16 @@ body,
 .mf-tree { flex: 1; overflow: auto; min-height: 0; }
 .mf-tree-list { list-style: none; margin: 0; padding: 0; }
 .mf-tree-list .mf-tree-list {
-  padding-left: 10px;
-  margin-left: 13px;
+  padding-left: 6px;
+  margin-left: 11px;
   border-left: 1px solid var(--mf-border);
 }
 .mf-tree-row {
   display: flex;
   align-items: center;
-  min-height: 30px;
+  min-height: 24px;
   gap: 2px;
-  border-radius: 7px;
+  border-radius: 5px;
   padding: 0 8px 0 3px;
   transition: background 120ms ease;
 }
@@ -2027,7 +2036,7 @@ body,
   display: grid;
   place-items: center;
   flex: 0 0 20px;
-  height: 26px;
+  height: 22px;
   padding: 0;
   border-color: transparent;
   background: transparent;
@@ -2044,7 +2053,7 @@ body,
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 13px;
-  line-height: 30px;
+  line-height: 24px;
 }
 /* the Mermaid id only matters for the row in hand */
 .mf-tree-id { color: var(--mf-muted); font: 10px var(--mf-mono); opacity: 0; }
@@ -2055,9 +2064,9 @@ body,
   gap: 7px;
   width: 100%;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 3px 8px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 5px;
   background: transparent;
   color: var(--mf-muted);
   font: 12px var(--mf-ui-font, var(--mf-sans));
@@ -2081,8 +2090,8 @@ body,
   font: 13px var(--mf-ui-font, var(--mf-sans));
 }
 .mf-tree-heading {
-  margin: 14px 0 0;
-  padding: 14px 8px 6px;
+  margin: 8px 0 0;
+  padding: 8px 8px 4px;
   border-top: 1px solid var(--mf-border);
   color: var(--mf-muted);
   font-size: 11px;

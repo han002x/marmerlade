@@ -22,7 +22,7 @@ const MLine = memo(function MLine({ text, active, selected, insertBefore }: {
     </div>
   );
 });
-const icons = { mermaid: 'code', tree: 'tree', page: 'page', slides: 'deck', appearance: 'sun' } as const;
+const icons = { mermaid: 'code', tree: 'tree', page: 'page', slides: 'deck', appearance: 'palette' } as const;
 
 const SlidesPanel = lazy(() => import('./SlidesPanel'));
 const views: View[] = ['tree', 'mermaid', 'page', 'slides', 'appearance'];

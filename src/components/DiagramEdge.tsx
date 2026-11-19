@@ -214,7 +214,7 @@ export function DiagramEdge({
                 ...labelFont,
               }}
             >
-              <span className="mf-edge-text">{text}</span>
+              <span className="mf-edge-text" style={{ color: st?.fontColor }}>{text}</span>
             </div>
           )
         ) : (
@@ -245,7 +245,7 @@ export function DiagramEdge({
               }}
             />
           ) : text ? (
-            <span className="mf-edge-text">{text}</span>
+            <span className="mf-edge-text" style={{ color: st?.fontColor }}>{text}</span>
           ) : (
             <span className="mf-edge-add" title="Double-click to label">
               +

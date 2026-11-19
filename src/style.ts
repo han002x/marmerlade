@@ -79,7 +79,7 @@ export const ANIM_SPEEDS: { value: number; label: string }[] = [
 
 /** Defaults applied when an element has no explicit value for a property. */
 export const STYLE_DEFAULTS: Required<
-  Omit<ElementStyle, 'stroke' | 'background'>
+  Omit<ElementStyle, 'stroke' | 'background' | 'fontColor'>
 > & { stroke: string; background: string } = {
   stroke: 'var(--mf-ink)',
   background: 'var(--mf-node)',

@@ -39,6 +39,7 @@ export function StylePanel() {
   const STYLE_DEFAULTS = useStyleDefaults();
   const [recentStroke, setRecentStroke] = useState<string>();
   const [recentBackground, setRecentBackground] = useState<string>();
+  const [recentFontColor, setRecentFontColor] = useState<string>();
   const selectedNodeIds = useDiagram((s) => s.selectedNodeIds);
   const selectedEdgeIds = useDiagram((s) => s.selectedEdgeIds);
   const nodes = useDiagram((s) => s.nodes);
@@ -240,6 +241,25 @@ export function StylePanel() {
           </div>
         </section>
       )}
+
+      <section className="mf-style-section">
+        <label className="mf-style-label">Font color</label>
+        <div className="mf-swatch-row">
+          <button className={`mf-swatch is-transparent${selStyles.every((s) => !s.fontColor) ? ' active' : ''}`}
+            title="Automatic font color" aria-label="Automatic font color" onClick={() => patch({ fontColor: undefined })} />
+          {STROKE_COLORS.filter((c) => c !== 'transparent' && c !== 'var(--mf-ink)').map((c) => (
+            <button key={c} className={`mf-swatch${val('fontColor') === c ? ' active' : ''}`}
+              style={{ background: c }} title={c} aria-label={`Font color ${c}`} onClick={() => patch({ fontColor: c })} />
+          ))}
+          {recentFontColor && <button className={`mf-swatch${val('fontColor') === recentFontColor ? ' active' : ''}`}
+            style={{ background: recentFontColor }} title={`Recent font color ${recentFontColor}`}
+            aria-label={`Recent font color ${recentFontColor}`} onClick={() => patch({ fontColor: recentFontColor })} />}
+          <label className="mf-swatch mf-swatch-custom" title="Custom font color">
+            <input type="color" aria-label="Custom font color" value={toHex(val('fontColor')) ?? '#2a2723'}
+              onChange={(e) => { setRecentFontColor(e.target.value); patch({ fontColor: e.target.value }); }} />
+          </label>
+        </div>
+      </section>
 
       <section className="mf-style-section">
         <label className="mf-style-label">Font family</label>

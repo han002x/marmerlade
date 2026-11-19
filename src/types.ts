@@ -58,6 +58,7 @@ export interface ElementStyle {
   edges?: EdgeStyle;
   fontFamily?: FontFamily;
   fontSize?: number;
+  fontColor?: string;
   /** 0..1 */
   opacity?: number;
   /** motion preset applied to the element (missing => 'none') */

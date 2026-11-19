@@ -192,7 +192,7 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
             }}
           />
         ) : (
-          <span className={`mf-node-label ${d.isGroup && !d.label ? 'is-empty' : ''}`}>
+          <span className={`mf-node-label ${d.isGroup && !d.label ? 'is-empty' : ''}`} style={{ color: st?.fontColor }}>
             {d.isGroup && !d.label ? 'Untitled' : d.label}
           </span>
         )}

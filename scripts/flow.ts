@@ -7,7 +7,7 @@ import { mergeDiagram, toMermaid } from '../src/mermaid/io.ts';
 import { foldEdges, hiddenIds } from '../src/fold.ts';
 import type { DiagramEdge, DiagramNode } from '../src/types.ts';
 
-const E = (id: string, source: string, target: string, order?: number) => ({ id, source, target, order });
+const E = (id: string, source: string, target: string, order?: number) => ({ id, source, target, order, style: { arrowheads: 'end' as const } });
 const steps = (s: ReturnType<typeof flowSchedule>) => Object.fromEntries(s.edgeStep);
 const at = (s: ReturnType<typeof flowSchedule>) => Object.fromEntries(s.nodeAt);
 
@@ -74,8 +74,8 @@ assert.notEqual(
   });
   const nodes = [N('a'), N('g', null, true), N('b', 'g'), N('c')];
   const edges: DiagramEdge[] = [
-    { id: 'e1', source: 'a', target: 'b' },
-    { id: 'e2', source: 'b', target: 'c' },
+    { id: 'e1', source: 'a', target: 'b', style: { arrowheads: 'end' } },
+    { id: 'e2', source: 'b', target: 'c', style: { arrowheads: 'end' } },
   ];
   const { direct, folded } = foldEdges(nodes, edges, hiddenIds(nodes));
   const s = flowSchedule([...direct, ...folded]);
@@ -83,6 +83,18 @@ assert.notEqual(
   assert.equal(s.edgeStep.get('fold:a->g'), 0);
   assert.equal(s.edgeStep.get('fold:g->c'), 1);
   assert.equal(s.nodeAt.get('g'), 1);
+}
+
+// Direction follows arrowheads; undirected edges do not participate.
+{
+  const s = flowSchedule([
+    { id: '1', source: 'b', target: 'a', style: { arrowheads: 'start' } },
+    { id: '2', source: 'b', target: 'c', style: { arrowheads: 'both' } },
+    { id: '3', source: 'c', target: 'd', style: { arrowheads: 'none' } },
+  ]);
+  assert.deepEqual(steps(s), { 1: 0, 2: 1 });
+  assert.deepEqual(at(s), { a: 0, b: 1, c: 2 });
+  assert.equal(flowSchedule([{ id: 'x', source: 'a', target: 'b' }]).steps, 0);
 }
 
 // loop length: lit hold + clear lead on top of the steps, scaled by speed

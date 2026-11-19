@@ -646,7 +646,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         selectable: false,
         focusable: false,
         deletable: false,
-        data: { folded: true, count: f.count, flowStep: flow.edgeStep.get(f.id) },
+        data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id) },
       })),
     ];
   }, [shown, flow, edges, ghostNode, insertion, selectedEdges]);

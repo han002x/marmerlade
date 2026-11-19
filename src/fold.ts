@@ -95,6 +95,7 @@ export interface FoldedEdge {
   /** the real edges this crease stands for */
   count: number;
   label?: string;
+  style?: Pick<DiagramEdge['style'] & {}, 'arrowheads'>;
 }
 
 /**
@@ -123,12 +124,18 @@ export function foldEdges(
     if (m) {
       m.count++;
       if (e.label) m.labels.add(e.label);
+      const old = m.style?.arrowheads ?? 'none';
+      const next = e.style?.arrowheads ?? 'none';
+      const start = old === 'start' || old === 'both' || next === 'start' || next === 'both';
+      const end = old === 'end' || old === 'both' || next === 'end' || next === 'both';
+      m.style = { arrowheads: start && end ? 'both' : start ? 'start' : end ? 'end' : 'none' };
     } else {
       merged.set(key, {
         id: `fold:${s}->${t}`,
         source: s,
         target: t,
         count: 1,
+        style: { arrowheads: e.style?.arrowheads ?? 'none' },
         labels: new Set(e.label ? [e.label] : []),
       });
     }

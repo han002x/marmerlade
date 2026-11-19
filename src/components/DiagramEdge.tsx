@@ -202,7 +202,8 @@ export function DiagramEdge({
       ))}
       {traceD && (
         <>
-          <path className="mf-flow-trace" d={traceD} pathLength={1} style={traceStyle} />
+          {(arrowheads === 'end' || arrowheads === 'both') && <path className="mf-flow-trace" d={traceD} pathLength={1} style={traceStyle} />}
+          {(arrowheads === 'start' || arrowheads === 'both') && <path className="mf-flow-trace mf-flow-reverse" d={traceD} pathLength={1} style={traceStyle} />}
           {(arrowheads === 'start' || arrowheads === 'both') && <path className="mf-flow-arrow" d={startArrow} style={traceStyle} />}
           {(arrowheads === 'end' || arrowheads === 'both') && <path className="mf-flow-arrow" d={arrow} style={traceStyle} />}
         </>

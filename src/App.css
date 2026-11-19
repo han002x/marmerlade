@@ -2112,6 +2112,9 @@ body,
   stroke-dasharray: 1 2;
   stroke-dashoffset: calc(1 - clamp(0, var(--mf-flow-t, -1) - var(--mf-flow-s), 1));
 }
+.mf-flow-trace.mf-flow-reverse {
+  stroke-dashoffset: calc(-1 + clamp(0, var(--mf-flow-t, -1) - var(--mf-flow-s), 1));
+}
 .mf-flow-arrow {
   stroke-linecap: round;
   opacity: clamp(0, (var(--mf-flow-t, -1) - var(--mf-flow-s) - 0.85) * 8, 1);

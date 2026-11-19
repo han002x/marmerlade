@@ -4,12 +4,15 @@
 // steps: step k plays while the clock reads k..k+1, so an edge's progress is
 // clamp(t - step, 0, 1) and a node lights once the clock passes its arrival.
 
+import type { ElementStyle } from './types';
+
 export interface FlowEdge {
   id: string;
   source: string;
   target: string;
   /** 1-based manual position; set, it overrides the traversal order */
   order?: number;
+  style?: Pick<ElementStyle, 'arrowheads'>;
 }
 
 export interface FlowSchedule {
@@ -44,7 +47,15 @@ export const flowSeconds = (steps: number, speed: number) =>
  * its first edge's source. Each edge plays once, so cycles terminate.
  */
 export function flowSchedule(edges: FlowEdge[]): FlowSchedule {
-  const out = new Map<string, FlowEdge[]>();
+  const active = edges.filter((edge) => (edge.style?.arrowheads ?? 'none') !== 'none');
+  const arcs = active.flatMap((edge) => {
+    const direction = edge.style?.arrowheads;
+    return [
+      ...(direction === 'end' || direction === 'both' ? [{ edge, from: edge.source, to: edge.target }] : []),
+      ...(direction === 'start' || direction === 'both' ? [{ edge, from: edge.target, to: edge.source }] : []),
+    ];
+  });
+  const out = new Map<string, typeof arcs>();
   const incoming = new Set<string>();
   const ids: string[] = [];
   const see = (id: string) => {
@@ -53,11 +64,11 @@ export function flowSchedule(edges: FlowEdge[]): FlowSchedule {
       ids.push(id);
     }
   };
-  for (const e of edges) {
-    see(e.source);
-    see(e.target);
-    out.get(e.source)!.push(e);
-    incoming.add(e.target);
+  for (const arc of arcs) {
+    see(arc.from);
+    see(arc.to);
+    out.get(arc.from)!.push(arc);
+    incoming.add(arc.to);
   }
 
   // breadth-first from the start nodes; leftovers (cycles) seed from the first
@@ -72,7 +83,7 @@ export function flowSchedule(edges: FlowEdge[]): FlowSchedule {
   const drain = () => {
     for (let i = 0; i < queue.length; i++) {
       const id = queue[i];
-      for (const e of out.get(id) ?? []) reach(e.target, depth.get(id)! + 1);
+      for (const arc of out.get(id) ?? []) reach(arc.to, depth.get(id)! + 1);
     }
     queue.length = 0;
   };
@@ -86,21 +97,22 @@ export function flowSchedule(edges: FlowEdge[]): FlowSchedule {
   }
 
   const edgeStep = new Map<string, number>();
-  for (const e of edges) {
+  for (const e of active) {
     const manual = e.order != null && Number.isFinite(e.order) ? Math.max(1, Math.floor(e.order)) - 1 : null;
-    edgeStep.set(e.id, manual ?? depth.get(e.source)!);
+    const origins = arcs.filter((arc) => arc.edge === e).map((arc) => depth.get(arc.from)!);
+    edgeStep.set(e.id, manual ?? Math.min(...origins));
   }
 
   // a node lights when the first edge into it lands; start nodes light at once
   const nodeAt = new Map<string, number>();
-  for (const e of edges) {
-    const at = edgeStep.get(e.id)! + 1;
-    nodeAt.set(e.target, Math.min(nodeAt.get(e.target) ?? Infinity, at));
+  for (const arc of arcs) {
+    const at = edgeStep.get(arc.edge.id)! + 1;
+    nodeAt.set(arc.to, Math.min(nodeAt.get(arc.to) ?? Infinity, at));
   }
-  for (const id of ids) if (!incoming.has(id)) nodeAt.set(id, 0);
+  for (const id of ids) if (depth.get(id) === 0) nodeAt.set(id, 0);
 
   let steps = 0;
   for (const s of edgeStep.values()) steps = Math.max(steps, s + 1);
-  const sig = `${steps}|${edges.map((e) => `${e.id}:${edgeStep.get(e.id)}`).join(',')}`;
+  const sig = `${steps}|${active.map((e) => `${e.id}:${e.source}:${e.target}:${e.style?.arrowheads}:${edgeStep.get(e.id)}`).join(',')}`;
   return { edgeStep, nodeAt, steps, sig };
 }

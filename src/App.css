@@ -362,6 +362,17 @@ body,
    React Flow positions each node via transform on .react-flow__node. Easing
    that transform animates layout moves (Tidy) and drag-end snaps. We turn the
    easing OFF mid-drag so the node tracks the cursor 1:1, then back on. */
+.react-flow__pane.selection {
+  cursor: default;
+}
+.react-flow__pane.dragging {
+  cursor: grabbing;
+}
+.react-flow__node.draggable,
+.react-flow__node.draggable.dragging,
+.react-flow__nodesselection-rect {
+  cursor: move;
+}
 .react-flow__node {
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -413,7 +424,7 @@ body,
 .mf-node.dragging {
   box-shadow: 0 12px 28px var(--mf-shadow);
   filter: brightness(1.08);
-  cursor: grabbing;
+  cursor: move;
 }
 
 /* ---- join previews ---- */
@@ -1331,7 +1342,7 @@ body,
   height: auto;
   white-space: pre-wrap;
   text-overflow: ellipsis;
-  cursor: grab;
+  cursor: move;
 }
 .mf-sheet-title:hover {
   background: color-mix(in srgb, var(--mf-text) 7%, transparent);

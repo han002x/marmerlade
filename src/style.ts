@@ -11,7 +11,10 @@ import type {
 
 /** Preset ink colors shown as swatches in the panel. */
 export const STROKE_COLORS = [
+  'transparent',
   'var(--mf-ink)', // theme ink: sumi on paper, chalk on night paper
+  '#000000',
+  '#ffffff',
   '#c8442b', // vermilion
   '#4f7a3a', // moss
   '#3b5b9a', // indigo
@@ -22,6 +25,8 @@ export const STROKE_COLORS = [
 /** Preset paper fills (washi tints). 'transparent' is first so it's the obvious default. */
 export const BACKGROUND_COLORS = [
   'transparent',
+  '#000000',
+  '#ffffff',
   '#f6d6cf', // sakura
   '#dbe7c9', // matcha
   '#d4e2f0', // sky

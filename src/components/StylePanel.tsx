@@ -101,8 +101,8 @@ export function StylePanel() {
           {STROKE_COLORS.map((c) => (
             <button
               key={c}
-              className={`mf-swatch${active('stroke', c) ? ' active' : ''}`}
-              style={{ background: c }}
+              className={`mf-swatch${active('stroke', c) ? ' active' : ''}${c === 'transparent' ? ' is-transparent' : ''}`}
+              style={c === 'transparent' ? undefined : { background: c }}
               title={c}
               aria-label={`Stroke ${c}`}
               onClick={() => patch({ stroke: c })}

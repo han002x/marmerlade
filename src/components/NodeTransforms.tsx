@@ -112,7 +112,7 @@ export function NodeTransforms({ nodes, selected, preview, moveGuides, onPreview
                 if (!bounds || gesture.current) return;
                 const step = (e.shiftKey ? 24 : 8) / zoom;
                 const dx = handle.x && (e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0);
-                const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+                const dy = handle.y && (e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0);
                 if (!dx && !dy) return;
                 e.preventDefault();
                 e.stopPropagation();

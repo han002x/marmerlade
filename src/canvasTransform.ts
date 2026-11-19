@@ -7,14 +7,16 @@ export type Guide = { axis: Axis; at: number; from: number; to: number };
 export type ResizeHandle = {
   label: string;
   x: -1 | 0 | 1;
-  y: -1 | 1;
-  cursor: 'nwse-resize' | 'ns-resize' | 'nesw-resize';
+  y: -1 | 0 | 1;
+  cursor: 'nwse-resize' | 'ns-resize' | 'nesw-resize' | 'ew-resize';
 };
 
 export const resizeHandles: readonly ResizeHandle[] = [
   { label: 'top left', x: -1, y: -1, cursor: 'nwse-resize' },
   { label: 'top', x: 0, y: -1, cursor: 'ns-resize' },
   { label: 'top right', x: 1, y: -1, cursor: 'nesw-resize' },
+  { label: 'left', x: -1, y: 0, cursor: 'ew-resize' },
+  { label: 'right', x: 1, y: 0, cursor: 'ew-resize' },
   { label: 'bottom left', x: -1, y: 1, cursor: 'nesw-resize' },
   { label: 'bottom', x: 0, y: 1, cursor: 'ns-resize' },
   { label: 'bottom right', x: 1, y: 1, cursor: 'nwse-resize' },
@@ -76,11 +78,11 @@ export function resizeSelection({ bounds, selected, others, handle, delta, zoom 
 }) {
   const rects = new Map<string, Rect>();
   const guides: Guide[] = [];
-  if ((!handle.x || !delta.x) && !delta.y) return { rects, guides };
+  if ((!handle.x || !delta.x) && (!handle.y || !delta.y)) return { rects, guides };
 
   let minScale = 0;
   for (const node of selected.values()) {
-    minScale = Math.max(minScale, Math.min(1, 32 / node.height));
+    if (handle.y) minScale = Math.max(minScale, Math.min(1, 32 / node.height));
     if (handle.x) minScale = Math.max(minScale, Math.min(1, 48 / node.width));
   }
 
@@ -88,24 +90,25 @@ export function resizeSelection({ bounds, selected, others, handle, delta, zoom 
   const anchorY = bounds.y + (handle.y < 0 ? bounds.height : 0);
   const dx = handle.x * bounds.width;
   const dy = handle.y * bounds.height;
-  // Project onto the diagonal for corners. Edge handles change height only.
+  // Project onto the diagonal for corners and onto one axis for edge handles.
   const length = Math.hypot(dx, dy);
   let scale = Math.max(minScale, 1 + (delta.x * dx + delta.y * dy) / (length * length));
   const distance = snapDistance / zoom;
   const snapX = dx ? nearestSnap('x', [anchorX + dx * scale], others, distance * Math.abs(dx) / length,
     (at) => (at - anchorX) / dx >= minScale) : undefined;
-  const snapY = nearestSnap('y', [anchorY + dy * scale], others, distance * Math.abs(dy) / length,
-    (at) => (at - anchorY) / dy >= minScale);
+  const snapY = dy ? nearestSnap('y', [anchorY + dy * scale], others, distance * Math.abs(dy) / length,
+    (at) => (at - anchorY) / dy >= minScale) : undefined;
 
   if (snapX && (!snapY || Math.abs(snapX.shift / dx) <= Math.abs(snapY.shift / dy))) scale = (snapX.at - anchorX) / dx;
   else if (snapY) scale = (snapY.at - anchorY) / dy;
 
   const widthScale = handle.x ? scale : 1;
+  const heightScale = handle.y ? scale : 1;
   const transform = (rect: Rect): Rect => ({
-    x: anchorX + (rect.x - anchorX) * widthScale,
-    y: anchorY + (rect.y - anchorY) * scale,
+    x: rect.x + (rect.x - anchorX) * (widthScale - 1),
+    y: rect.y + (rect.y - anchorY) * (heightScale - 1),
     width: rect.width * widthScale,
-    height: rect.height * scale,
+    height: rect.height * heightScale,
   });
   const resized = transform(bounds);
   const epsilon = 0.001;

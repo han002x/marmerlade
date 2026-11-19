@@ -2,6 +2,7 @@ import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'reac
 import { useDiagram, useStructure } from '../store';
 import { toMermaidWithMap } from '../mermaid/io';
 import { Icon } from './Icon';
+import { AppearanceSettings } from './AppearanceSettings';
 import { TreePanel } from './TreePanel';
 import { useDock, type View } from '../dock';
 import { usePageBase } from '../pageBase';
@@ -23,8 +24,8 @@ const MLine = memo(function MLine({ text, active, selected, insertBefore }: {
 });
 
 const SlidesPanel = lazy(() => import('./SlidesPanel'));
-const views: View[] = ['mermaid', 'tree', 'page', 'slides'];
-const titles: Record<View, string> = { mermaid: 'Mermaid', tree: 'Tree', page: 'Page', slides: 'Slides' };
+const views: View[] = ['mermaid', 'tree', 'page', 'slides', 'appearance'];
+const titles: Record<View, string> = { mermaid: 'Mermaid', tree: 'Tree', page: 'Page', slides: 'Slides', appearance: 'Appearance' };
 
 export function MermaidPanel({ width, onWidthChange, onClose }: {
   width: number;
@@ -354,7 +355,13 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
   };
 
   return (
-    <aside className="mf-panel" id="mf-right-panel" style={{ width: panelWidth }}>
+    <aside className="mf-panel" id="mf-right-panel" style={{ width: panelWidth }} onKeyDown={(event) => {
+      if (tab === 'appearance' && event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+        requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[aria-label="More actions"]')?.focus());
+      }
+    }}>
       <div
         className="mf-panel-resize"
         role="separator"
@@ -440,6 +447,10 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
         </button>
       </div>
 
+      <div className="mf-panel-body mf-appearance mf-appearance-docked" role="tabpanel" id="mf-view-appearance"
+        aria-labelledby="mf-tab-appearance" hidden={tab !== 'appearance'}>
+        {tab === 'appearance' && <AppearanceSettings />}
+      </div>
       <div className="mf-panel-body" role="tabpanel" id="mf-view-page"
         aria-labelledby="mf-tab-page" hidden={tab !== 'page'}>
         {tab === 'page' && (

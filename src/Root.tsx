@@ -10,8 +10,7 @@ const WikiApp = lazy(() => import('./wiki/WikiApp.tsx'))
 const SlidesApp = lazy(() => import('./slides/SlidesApp.tsx'))
 const DocsApp = lazy(() => import('./docs/DocsApp.tsx'))
 
-function Route() {
-  const route = parseRoute(useHash())
+function Route({ route }: { route: ReturnType<typeof parseRoute> }) {
   if (route.kind === 'docs')
     return (
       <Suspense fallback={null}>
@@ -37,4 +36,7 @@ function Route() {
   ) : <App />
 }
 
-export default function Root() { return <><Route /><AppearanceDialog /><WorkspaceStatus /></>; }
+export default function Root() {
+  const route = parseRoute(useHash())
+  return <><Route route={route} />{route.kind !== 'canvas' && route.kind !== 'node' && <AppearanceDialog />}<WorkspaceStatus /></>
+}

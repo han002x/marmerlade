@@ -52,7 +52,7 @@ import { Welcome, WELCOME_EVENT, FIRST_RUN_FIT, isFirstRun } from './components/
 import { ShapePicker, type Placement } from './components/ShapePicker';
 import { ImagePicker } from './components/ImagePicker';
 import { CatalogIcon, ShapeOutline } from './components/ShapeOutline';
-import { openAppearance, useTheme, activeAppearance } from './theme';
+import { useTheme, activeAppearance } from './theme';
 import { foldedAncestors } from './pages.ts';
 import { nameCanvasWindow, openDocs, parseRoute } from './route';
 import { showDeck, showPage, useDock } from './dock';
@@ -133,6 +133,11 @@ function ToolButton({
   );
 }
 
+function openAppearancePanel() {
+  useDock.setState({ open: true, view: 'appearance' });
+  requestAnimationFrame(() => document.getElementById('mf-tab-appearance')?.focus());
+}
+
 function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () => void; exporting: 'gif' | 'png' | null; setExporting: (format: 'gif' | 'png' | null) => void }) {
   const nodes = useDiagram((s) => s.nodes);
   const edges = useDiagram((s) => s.edges);
@@ -146,8 +151,19 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const insertion = useDiagram((s) => s.insertion);
   const autoLayout = useDiagram((s) => s.autoLayout);
   const undo = useDiagram((s) => s.undo);
-  const { fitView, screenToFlowPosition, getZoom } = useReactFlow();
+  const { fitView, screenToFlowPosition, getZoom, setViewport } = useReactFlow();
   const flowStore = useStoreApi();
+  // Keep the canvas centered on the same point as the dock opens, resizes, or closes.
+  useEffect(() => flowStore.subscribe((state, previous) => {
+    if (state.width === previous.width && state.height === previous.height) return;
+    if (!previous.width || !previous.height || !state.width || !state.height) return;
+    const [x, y, zoom] = state.transform;
+    void setViewport({
+      x: x + (state.width - previous.width) / 2,
+      y: y + (state.height - previous.height) / 2,
+      zoom,
+    });
+  }), [flowStore, setViewport]);
   useEffect(() => installRenderBridge(async () => {
     await document.fonts.ready;
     if (!useDiagram.getState().nodes.length) return;
@@ -912,7 +928,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         { key: 'i', run: () => (setPickerOpen(false), setImageOpen((v) => !v)) },
         { key: 'l', run: () => tidy('TB') },
         { key: 'l', shift: true, run: () => tidy('LR') },
-        { key: 't', run: () => openAppearance() },
+        { key: 't', run: openAppearancePanel },
         { key: 'f', run: foldSelection },
         { key: 'w', run: openSelectedPage },
         { key: 'k', run: openSelectedDeck },
@@ -1152,7 +1168,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
                 onClick={() => {
                   setMenuOpen(false);
                   menuRef.current?.querySelector('button')?.focus();
-                  openAppearance();
+                  openAppearancePanel();
                 }}
               >
                 <Icon name={'shapes'} />

@@ -192,8 +192,8 @@ Sloppiness picks **Ink** (clean), **Sketch** (default) or **Scribble**.
 ## App appearance
 
 Choose Paper, Night Paper, Clean, Blueprint, Terminal,
-Sepia, Classic (black and white), Halloween, or one editable Custom style from **More actions → Appearance** or
-press `T`. Wiki and slides headers also have an Appearance button. Custom
+Sepia, Classic (black and white), Halloween, or one editable Custom style in the right panel’s **Appearance** tab. Open it from **More actions → Appearance** or
+press `T`. Color changes appear on the canvas as you adjust them. Wiki and slides headers also have an Appearance button. Custom
 controls colors, fonts, wiki/slides icon symbols and colors, sketchiness, corners, texture, and shadows, with
 changes saved automatically across windows. Selecting a style resets existing
 diagram and slide styling; individual styling controls work afterward and

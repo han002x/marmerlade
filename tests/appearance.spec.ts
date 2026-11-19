@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 async function open(page: Page) {
   await page.getByRole('button', { name: 'More actions', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Appearance', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Appearance' })).toBeVisible();
+  await expect(page.getByRole('tabpanel', { name: 'Appearance' })).toBeVisible();
 }
 async function seed(page: Page) {
   await page.addInitScript(() => {
@@ -25,7 +25,7 @@ test('presets restyle existing content, local overrides work and survive reload'
     await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true');
   }
   await page.getByRole('button', { name: 'Clean', exact: true }).click();
-  await page.getByRole('button', { name: 'Close appearance' }).click();
+  await page.getByRole('button', { name: 'Close panel' }).click();
   const node = page.locator('.mf-node').first();
   await expect(node).toHaveCSS('font-family', /Inter/);
   await node.click();
@@ -36,7 +36,7 @@ test('presets restyle existing content, local overrides work and survive reload'
   await expect(page.locator('.mf-outline-ink').first()).toHaveCSS('stroke', 'rgb(200, 68, 43)');
   await open(page);
   await page.getByRole('button', { name: 'Terminal', exact: true }).click();
-  await page.getByRole('button', { name: 'Close appearance' }).click();
+  await page.getByRole('button', { name: 'Close panel' }).click();
   await expect(page.locator('.mf-outline-ink').first()).toHaveCSS('stroke', 'rgb(159, 214, 173)');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('marmerlade.diagram') ?? '{}').diagram);
   expect(saved.nodes[0].style.strokeWidth).toBe(4);
@@ -87,20 +87,20 @@ test('custom edits persist across presets and synchronize to wiki and slides', a
   await expect(slides.locator('.sl-slide .wk-preview').first()).toHaveCSS('font-family', /Georgia/);
 });
 
-test('legacy preference migration, narrow dialog and keyboard focus', async ({ page }) => {
+test('legacy preference migration, narrow panel and keyboard focus', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('marmerlade.theme', 'dark'));
   await seed(page);
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'night-paper');
   await page.setViewportSize({ width: 375, height: 700 });
   await open(page);
-  const dialog = page.getByRole('dialog');
-  const rect = await dialog.boundingBox();
+  const panel = page.getByRole('tabpanel', { name: 'Appearance' });
+  const rect = await panel.boundingBox();
   expect(rect && rect.x >= 0 && rect.x + rect.width <= 375).toBeTruthy();
   await page.getByRole('button', { name: 'Custom', exact: true }).click();
   await page.getByLabel('Texture', { exact: true }).selectOption('grid');
   await page.keyboard.press('Escape');
-  await expect(dialog).not.toBeVisible();
+  await expect(panel).not.toBeVisible();
   await expect(page.getByRole('button', { name: 'More actions', exact: true })).toBeFocused();
   await page.keyboard.press('t');
-  await expect(dialog).toBeVisible();
+  await expect(panel).toBeVisible();
 });

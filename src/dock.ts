@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { useDiagram } from './store.ts';
 
-export type View = 'mermaid' | 'tree' | 'page' | 'slides';
+export type View = 'mermaid' | 'tree' | 'page' | 'slides' | 'appearance';
 
 interface Dock {
   open: boolean;

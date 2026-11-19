@@ -37,9 +37,7 @@ const FONT_GLYPH: Record<string, string> = {
  */
 export function StylePanel() {
   const STYLE_DEFAULTS = useStyleDefaults();
-  const [recentStroke, setRecentStroke] = useState<string>();
-  const [recentBackground, setRecentBackground] = useState<string>();
-  const [recentFontColor, setRecentFontColor] = useState<string>();
+  const [recentColor, setRecentColor] = useState<string>();
   const selectedNodeIds = useDiagram((s) => s.selectedNodeIds);
   const selectedEdgeIds = useDiagram((s) => s.selectedEdgeIds);
   const nodes = useDiagram((s) => s.nodes);
@@ -111,20 +109,20 @@ export function StylePanel() {
               onClick={() => patch({ stroke: c })}
             />
           ))}
-          {recentStroke && (
+          {recentColor && (
             <button
-              className={`mf-swatch${active('stroke', recentStroke) ? ' active' : ''}`}
-              style={{ background: recentStroke }}
-              title={`Recent stroke ${recentStroke}`}
-              aria-label={`Recent stroke ${recentStroke}`}
-              onClick={() => patch({ stroke: recentStroke })}
+              className={`mf-swatch${active('stroke', recentColor) ? ' active' : ''}`}
+              style={{ background: recentColor }}
+              title={`Recent stroke ${recentColor}`}
+              aria-label={`Recent stroke ${recentColor}`}
+              onClick={() => patch({ stroke: recentColor })}
             />
           )}
           <label className="mf-swatch mf-swatch-custom" title="Custom stroke color">
             <input
               type="color"
               value={toHex(val('stroke')) ?? '#2a2723'}
-              onChange={(e) => { setRecentStroke(e.target.value); patch({ stroke: e.target.value }); }}
+              onChange={(e) => { setRecentColor(e.target.value); patch({ stroke: e.target.value }); }}
             />
           </label>
         </div>
@@ -146,13 +144,13 @@ export function StylePanel() {
                 onClick={() => patch({ background: c })}
               />
             ))}
-            {recentBackground && (
+            {recentColor && (
               <button
-                className={`mf-swatch${active('background', recentBackground) ? ' active' : ''}`}
-                style={{ background: recentBackground }}
-                title={`Recent background ${recentBackground}`}
-                aria-label={`Recent background ${recentBackground}`}
-                onClick={() => patch({ background: recentBackground })}
+                className={`mf-swatch${active('background', recentColor) ? ' active' : ''}`}
+                style={{ background: recentColor }}
+                title={`Recent background ${recentColor}`}
+                aria-label={`Recent background ${recentColor}`}
+                onClick={() => patch({ background: recentColor })}
               />
             )}
             <label
@@ -162,7 +160,7 @@ export function StylePanel() {
               <input
                 type="color"
                 value={toHex(val('background')) ?? '#fffdf8'}
-                onChange={(e) => { setRecentBackground(e.target.value); patch({ background: e.target.value }); }}
+                onChange={(e) => { setRecentColor(e.target.value); patch({ background: e.target.value }); }}
               />
             </label>
           </div>
@@ -251,12 +249,12 @@ export function StylePanel() {
             <button key={c} className={`mf-swatch${val('fontColor') === c ? ' active' : ''}`}
               style={{ background: c }} title={c} aria-label={`Font color ${c}`} onClick={() => patch({ fontColor: c })} />
           ))}
-          {recentFontColor && <button className={`mf-swatch${val('fontColor') === recentFontColor ? ' active' : ''}`}
-            style={{ background: recentFontColor }} title={`Recent font color ${recentFontColor}`}
-            aria-label={`Recent font color ${recentFontColor}`} onClick={() => patch({ fontColor: recentFontColor })} />}
+          {recentColor && <button className={`mf-swatch${val('fontColor') === recentColor ? ' active' : ''}`}
+            style={{ background: recentColor }} title={`Recent font color ${recentColor}`}
+            aria-label={`Recent font color ${recentColor}`} onClick={() => patch({ fontColor: recentColor })} />}
           <label className="mf-swatch mf-swatch-custom" title="Custom font color">
             <input type="color" aria-label="Custom font color" value={toHex(val('fontColor')) ?? '#2a2723'}
-              onChange={(e) => { setRecentFontColor(e.target.value); patch({ fontColor: e.target.value }); }} />
+              onChange={(e) => { setRecentColor(e.target.value); patch({ fontColor: e.target.value }); }} />
           </label>
         </div>
       </section>

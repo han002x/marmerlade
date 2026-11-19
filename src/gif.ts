@@ -36,6 +36,7 @@ export interface GifOptions {
   maxWidth: number;
   quality: number;
   stillSeconds: number;
+  upscale: boolean;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -59,7 +60,7 @@ export async function captureGif(
   const srcH = Math.max(1, Math.round(rect.height));
   if (srcW < 2 || srcH < 2) throw new Error('The diagram has no capture area');
 
-  const scale = fitScale(srcW, maxWidth);
+  const scale = opts.upscale ? maxWidth / srcW : fitScale(srcW, maxWidth);
   const outW = Math.max(1, Math.round(srcW * scale));
   const outH = Math.max(1, Math.round(srcH * scale));
 
@@ -84,7 +85,58 @@ export async function captureGif(
     workerScript: workerUrl,
   });
 
-  const captureOpts = {
+  const captureOpts = captureOptions(srcW, srcH, outW, outH, bg);
+  const paletteCanvas = document.createElement('canvas');
+  paletteCanvas.width = 256;
+  paletteCanvas.height = 256;
+  const paletteContext = paletteCanvas.getContext('2d');
+  if (!paletteContext) throw new Error('Cannot create the GIF palette canvas');
+  paletteContext.fillStyle = bg;
+  paletteContext.fillRect(0, 0, 256, 256);
+  const samples = Math.min(frames, 16);
+
+  await document.fonts.ready;
+  const restoreTexture = await preparePaperTexture(element);
+  try {
+    for (let i = 0; i < frames; i++) {
+      flow?.frame((i / frames) * seconds);
+      const restoreStyles = prepareSvgStyles(element);
+      try {
+        const canvas = await toCanvas(element, captureOpts);
+        gif.addFrame(canvas, { delay, copy: true });
+        const sample = Math.floor(i * samples / frames);
+        if (i === Math.ceil(sample * frames / samples)) {
+          paletteContext.drawImage(canvas, (sample % 4) * 64, Math.floor(sample / 4) * 64, 64, 64);
+        }
+      } finally {
+        restoreStyles();
+      }
+      progress?.(i + 1, frames);
+      if (i < frames - 1) await sleep((seconds * 1000) / frames);
+    }
+  } finally {
+    restoreTexture();
+  }
+
+  const paletteEncoder = new GIF({ workers: 1, quality, width: 256, height: 256, workerScript: workerUrl, globalPalette: true });
+  paletteEncoder.addFrame(paletteCanvas, { copy: true });
+  await new Promise<void>((resolve) => {
+    paletteEncoder.on('finished', () => resolve());
+    paletteEncoder.render();
+  });
+  const palette = paletteEncoder.options.globalPalette;
+  if (!Array.isArray(palette)) throw new Error('Could not create the GIF color palette');
+  gif.setOption('globalPalette', palette);
+
+  return new Promise((resolve) => {
+    gif.on('finished', resolve);
+    gif.render();
+  });
+}
+
+
+function captureOptions(srcW: number, srcH: number, outW: number, outH: number, bg: string) {
+  return {
     width: srcW,
     height: srcH,
     canvasWidth: outW,
@@ -104,30 +156,34 @@ export async function captureGif(
       );
     },
   };
+}
 
+export async function exportImage(element: HTMLElement, width: number): Promise<void> {
+  const rect = element.getBoundingClientRect();
+  const srcW = Math.round(rect.width);
+  const srcH = Math.round(rect.height);
+  if (srcW < 2 || srcH < 2) throw new Error('The diagram has no capture area');
+  const bg = getComputedStyle(element).getPropertyValue('--mf-bg').trim() || '#ffffff';
   await document.fonts.ready;
   const restoreTexture = await preparePaperTexture(element);
+  const restoreStyles = prepareSvgStyles(element);
   try {
-    for (let i = 0; i < frames; i++) {
-      flow?.frame((i / frames) * seconds);
-      const restoreStyles = prepareSvgStyles(element);
-      try {
-        const canvas = await toCanvas(element, captureOpts);
-        gif.addFrame(canvas, { delay, copy: true });
-      } finally {
-        restoreStyles();
-      }
-      progress?.(i + 1, frames);
-      if (i < frames - 1) await sleep((seconds * 1000) / frames);
-    }
+    const canvas = await toCanvas(element, captureOptions(srcW, srcH, width, Math.max(1, Math.round(srcH * width / srcW)), bg));
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Could not encode PNG')), 'image/png'));
+    download(blob, 'diagram.png');
   } finally {
+    restoreStyles();
     restoreTexture();
   }
+}
 
-  return new Promise((resolve) => {
-    gif.on('finished', resolve);
-    gif.render();
-  });
+function download(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function exportGif(
@@ -137,10 +193,5 @@ export async function exportGif(
   flow?: FlowCapture,
 ): Promise<void> {
   const blob = await captureGif(element, diagram, opts, flow);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = gifFileName();
-  a.click();
-  URL.revokeObjectURL(url);
+  download(blob, gifFileName());
 }

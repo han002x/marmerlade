@@ -65,7 +65,7 @@ import {
   importFile,
   clearSaved,
 } from './persist';
-import { exportGif } from './gif';
+import { exportGif, exportImage } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
 import type { DiagramNode as DNode, Side } from './types';
@@ -132,7 +132,7 @@ function ToolButton({
   );
 }
 
-function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
+function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () => void; exporting: 'gif' | 'png' | null; setExporting: (format: 'gif' | 'png' | null) => void }) {
   const nodes = useDiagram((s) => s.nodes);
   const edges = useDiagram((s) => s.edges);
   const addNode = useDiagram((s) => s.addNode);
@@ -221,8 +221,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
       window.removeEventListener('keydown', onKey);
     };
   }, [arrangeOpen]);
-  /** true while a GIF is being captured + encoded (disables re-entry) */
-  const [exporting, setExporting] = useState(false);
+  const [exportWidth, setExportWidth] = useState(900);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -277,16 +276,20 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
 
   // Export an animated GIF of the whole diagram: frame it, drop the live
   // selection so no outline bleeds into the capture, then record the viewport.
-  const saveGif = useCallback(async () => {
+  const saveExport = useCallback(async (format: 'gif' | 'png') => {
     if (exporting) return;
     const el = document.querySelector<HTMLElement>('.react-flow');
     if (!el) return;
-    setExporting(true);
+    setExporting(format);
     setSelection([], []);
     fitView({ padding: 0.2, duration: 0 });
     // wait a frame for the fit + deselect to paint before capturing
     await new Promise((r) => window.requestAnimationFrame(() => r(null)));
     try {
+      if (format === 'png') {
+        await exportImage(el, exportWidth);
+        return;
+      }
       const { nodes: ns, edges: es } = useDiagram.getState();
       // a sequence that is playing or stepped into is recorded as one loop,
       // each frame taken at a fixed clock reading
@@ -299,7 +302,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         await exportGif(
           el,
           { nodes: ns, edges: es },
-          {},
+          { maxWidth: exportWidth, upscale: true },
           recordFlow
             ? {
                 seconds: loop,
@@ -313,12 +316,12 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
           if (wasPlaying) usePlayer.getState().toggle();
         }
       }
-    } catch {
-      // capture/encoding is best-effort; never crash the canvas
+    } catch (error) {
+      flash(`Couldn't export ${format.toUpperCase()}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setExporting(false);
+      setExporting(null);
     }
-  }, [exporting, fitView, setSelection]);
+  }, [exporting, exportWidth, fitView, setSelection, flash, setExporting]);
 
   const hidden = useMemo(() => hiddenNodeIds(), [hiddenNodeIds, nodes]);
   // not drawn as a node: folded away, or an unfolded group (just a sheet)
@@ -1099,13 +1102,28 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
                 <Icon name="export" />
                 <span>Export file</span>
               </button>
+              <label className="mf-export-resolution" role="none">
+                <span>Export width</span>
+                <select aria-label="Export width" value={exportWidth} onChange={(event) => setExportWidth(Number(event.target.value))}>
+                  <option value={900}>900 px</option>
+                  <option value={1440}>1440 px</option>
+                  <option value={1920}>1920 px</option>
+                </select>
+              </label>
+              <button className="mf-menu-item" role="menuitem" disabled={exporting !== null} onClick={() => {
+                setMenuOpen(false);
+                void saveExport('png');
+              }}>
+                <Icon name="export" />
+                <span>Export PNG</span>
+              </button>
               <button
                 className="mf-menu-item"
                 role="menuitem"
-                disabled={exporting}
+                disabled={exporting !== null}
                 onClick={() => {
                   setMenuOpen(false);
-                  saveGif();
+                  void saveExport('gif');
                 }}
               >
                 <Icon name="film" />
@@ -1262,6 +1280,19 @@ export default function App() {
   const panelOpen = useDock((s) => s.open);
   const setPanelOpen = useDock((s) => s.setOpen);
   const [panelWidth, setPanelWidth] = useState(360);
+  const [exporting, setExporting] = useState<'gif' | 'png' | null>(null);
+
+  useEffect(() => {
+    if (exporting !== 'gif') return;
+    const block = (event: Event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    for (const type of ['keydown', 'keyup', 'copy', 'cut', 'paste']) window.addEventListener(type, block, true);
+    return () => {
+      for (const type of ['keydown', 'keyup', 'copy', 'cut', 'paste']) window.removeEventListener(type, block, true);
+    };
+  }, [exporting]);
   const load = useDiagram((s) => s.load);
 
   const [welcome, setWelcome] = useState(false);
@@ -1292,8 +1323,8 @@ export default function App() {
   return (
     <ReactFlowProvider>
       {welcome && <Welcome onDone={() => setWelcome(false)} />}
-      <div className="mf-app">
-        <Canvas onTogglePanel={() => setPanelOpen(!useDock.getState().open)} />
+      <div className="mf-app" inert={exporting === 'gif'}>
+        <Canvas onTogglePanel={() => setPanelOpen(!useDock.getState().open)} exporting={exporting} setExporting={setExporting} />
         {panelOpen ? (
           <MermaidPanel
             width={panelWidth}
@@ -1311,6 +1342,11 @@ export default function App() {
           </button>
         )}
       </div>
+      {exporting === 'gif' && (
+        <div className="mf-export-overlay" role="status" aria-live="polite">
+          <span>Exporting GIF…</span>
+        </div>
+      )}
     </ReactFlowProvider>
   );
 }

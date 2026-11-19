@@ -48,7 +48,8 @@ pulse lands. `,` / `.` step back and forward, and the speed button cycles
 ½× / 1× / 2×. Select a connection and set its **Flow step** to override the
 order (saved in `.marmerlade.json`, not in Mermaid). Folded cards take the pulse
 on their crease edges. **Export GIF** records one loop of a running or
-stepped sequence.
+stepped sequence. Under **More actions**, choose an export width (900, 1440,
+or 1920 pixels), then export a GIF or PNG. The canvas aspect ratio is preserved.
 
 ## Shapes
 

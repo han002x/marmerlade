@@ -11,6 +11,7 @@ declare module 'gif.js' {
     transparent?: string | null;
     dither?: boolean | string;
     workerScript?: string;
+    globalPalette?: boolean | number[];
   }
   interface FrameOptions {
     delay?: number;
@@ -18,6 +19,8 @@ declare module 'gif.js' {
   }
   export default class GIF {
     constructor(options?: GifOptions);
+    options: GifOptions;
+    setOption(key: string, value: number[]): void;
     addFrame(
       image: CanvasImageSource | CanvasRenderingContext2D,
       options?: FrameOptions,

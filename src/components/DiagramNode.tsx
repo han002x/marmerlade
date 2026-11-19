@@ -1,6 +1,6 @@
 import { useStyleDefaults } from '../useStyleDefaults';
 import { memo, useMemo, useState } from 'react';
-import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useConnection, type Node, type NodeProps } from '@xyflow/react';
 import { DEFAULT_IMAGE_SIZE, type ElementStyle, type NodeImage, type NodeShape } from '../types';
 import { useDiagram } from '../store';
 import { useFoldMotion } from '../foldMotion';
@@ -23,6 +23,7 @@ export interface NodeData {
   /** how many nodes are folded inside this card */
   childCount: number;
   style?: ElementStyle;
+  sized?: boolean;
   /** flow clock reading at which the sequence reaches this node */
   flowAt?: number;
   [key: string]: unknown;
@@ -61,9 +62,8 @@ export function NodeImg({ image }: { image: NodeImage }) {
   );
 }
 
-function DiagramNodeInner({ id, data, selected, dragging }: NodeProps) {
+function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<NodeData>>) {
   const STYLE_DEFAULTS = useStyleDefaults();
-  const d = data as NodeData;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(d.label);
   const updateLabel = useDiagram((s) => s.updateLabel);
@@ -90,7 +90,6 @@ function DiagramNodeInner({ id, data, selected, dragging }: NodeProps) {
   // an image wins over an icon; both draw as a tile whose shape picks corners
   const icon = image ? undefined : d.icon;
   const tile = !!(icon || image);
-  const diamond = !tile && d.shape === 'diamond';
   const seed = useMemo(() => seedOf(id), [id]);
 
   const st = d.style;
@@ -98,6 +97,12 @@ function DiagramNodeInner({ id, data, selected, dragging }: NodeProps) {
   // (fill, stroke, width, dash, sloppiness all land on its paths).
   const rounded = (st?.edges ?? STYLE_DEFAULTS.edges) === 'round';
   const styleCss: React.CSSProperties = tile ? iconTileCss(d.shape, rounded) : shapeCss(d.shape, rounded);
+  if (d.sized) {
+    styleCss.width = '100%';
+    styleCss.height = '100%';
+    styleCss.minWidth = 0;
+    styleCss.minHeight = 0;
+  }
   // labels stay legible on a light fill; icons take the stroke color, like the ink
   const labelInk = inkOn(st?.background);
   if (labelInk) styleCss.color = labelInk;
@@ -126,6 +131,7 @@ function DiagramNodeInner({ id, data, selected, dragging }: NodeProps) {
     'mf-node',
     `mf-shape-${d.shape}`,
     'is-outline',
+    d.sized ? 'is-sized' : '',
     icon ? 'is-icon' : '',
     image ? 'is-image' : '',
     image?.pos === 't' ? 'is-label-top' : '',
@@ -165,7 +171,7 @@ function DiagramNodeInner({ id, data, selected, dragging }: NodeProps) {
       />
       {icon && <CatalogIcon id={icon} />}
       {image && <NodeImg image={image} />}
-      <div className="mf-node-body" style={diamond ? { transform: 'rotate(-45deg)' } : undefined}>
+      <div className="mf-node-body">
         {editing ? (
           <textarea
             autoFocus

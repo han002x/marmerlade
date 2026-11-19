@@ -17,7 +17,7 @@ export interface ShapeDef {
   aliases: string[];
   /**
    * outline in a 100x100 box, stretched to the node. Missing => the shape is
-   * drawn with CSS borders (rect, round, stadium, circle, diamond)
+   * described by the standard box and ellipse paths
    */
   outline?: string;
   /** stroke-only inner lines drawn over the outline (same 100x100 box) */
@@ -25,6 +25,8 @@ export interface ShapeDef {
   /** fixed square footprint (circles, diamonds) instead of a label-sized box */
   square?: number;
 }
+
+export const DIAMOND_SIZE = 126;
 
 export const SHAPES: ShapeDef[] = [
   { shape: 'rect', name: 'Rectangle', open: '[', close: ']', aliases: ['rect', 'rectangle', 'process', 'proc'] },
@@ -59,7 +61,7 @@ export const SHAPES: ShapeDef[] = [
     detail: 'M7 50A43 43 0 1 0 93 50A43 43 0 1 0 7 50Z',
     square: 90,
   },
-  { shape: 'diamond', name: 'Diamond', open: '{', close: '}', aliases: ['diam', 'diamond', 'decision', 'question'], square: 90 },
+  { shape: 'diamond', name: 'Diamond', open: '{', close: '}', aliases: ['diam', 'diamond', 'decision', 'question'], outline: 'M50 0L100 50L50 100L0 50Z', square: DIAMOND_SIZE },
   {
     shape: 'hexagon',
     name: 'Hexagon',
@@ -144,8 +146,6 @@ export function shapeCss(shape: NodeShape, rounded: boolean): CSSProperties {
       return { borderRadius: 999 };
     case 'circle':
       return { ...box, borderRadius: '50%' };
-    case 'diamond':
-      return { ...box, transform: 'rotate(45deg)' };
     default:
       return box;
   }

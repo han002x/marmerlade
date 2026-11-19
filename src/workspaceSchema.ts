@@ -14,6 +14,7 @@ export const nodeSchema = z.object({
   id: id.regex(/^[A-Za-z0-9_]+$/), label: z.string(),
   shape: z.enum(['rect', 'round', 'stadium', 'subroutine', 'cylinder', 'circle', 'dbl-circle', 'diamond', 'hexagon', 'lean-r', 'lean-l', 'trap-b', 'trap-t', 'flag']),
   parentId: id.nullable(), collapsed: z.boolean(), position: z.object({ x: z.number(), y: z.number() }),
+  size: z.object({ width: z.number().positive(), height: z.number().positive() }).optional(),
   icon: z.string().optional(), pageIds: z.array(id).optional(), deckIds: z.array(id).optional(), pageId: id.optional(),
   image: z.object({ src: z.string(), pos: z.enum(['t', 'b']).optional(), w: z.number().positive().optional(), h: z.number().positive().optional(), constraint: z.boolean().optional() }).optional(),
   style: style.optional(),

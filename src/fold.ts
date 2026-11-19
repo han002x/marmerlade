@@ -201,7 +201,7 @@ export function sheets(
     // an open group has no card: its sheet wraps its children, plus a title band
     const index = out.length;
     out.push({ groupId: g.id, rect: rectOf(g), depth }); // placeholder, keeps outer sheets first
-    const box = children.map((c) => build(c, depth + 1)).reduce(union);
+    const box = children.map((c) => build(c, depth + 1)).reduce(unionRects);
     const padded = pad(box, SHEET_PAD);
     const titleHeight = SHEET_TITLE * g.label.split('\n').length;
     const rect = { ...padded, y: padded.y - titleHeight, height: padded.height + titleHeight };
@@ -213,7 +213,7 @@ export function sheets(
   return out;
 }
 
-function union(a: Rect, b: Rect): Rect {
+export function unionRects(a: Rect, b: Rect): Rect {
   const x = Math.min(a.x, b.x);
   const y = Math.min(a.y, b.y);
   return {

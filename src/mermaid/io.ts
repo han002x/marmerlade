@@ -392,7 +392,7 @@ export function parseMermaid(src: string): ParseResult {
 /**
  * Merge a freshly parsed diagram with the current one, preserving canvas state
  * for elements that still exist. Nodes are matched by id: a surviving node
- * keeps its `position`, `style`, and `collapsed`, and takes `label`/`shape`/
+ * keeps its `position`, `size`, `style`, and `collapsed`, and takes `label`/`shape`/
  * `parentId` from the parsed text. Edges are matched by `source->target` to
  * carry over `style`. Elements absent from `parsed` are dropped; genuinely new
  * nodes keep the parsed (grid) position for the caller to lay out.
@@ -406,6 +406,7 @@ export function mergeDiagram(parsed: Diagram, current: Diagram): Diagram {
     return {
       ...p,
       position: prev.position,
+      ...(prev.size && { size: prev.size }),
       collapsed: prev.collapsed,
       style: prev.style,
       ...((p.pageIds ?? prev.pageIds) !== undefined && { pageIds: p.pageIds ?? prev.pageIds }),

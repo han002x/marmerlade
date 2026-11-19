@@ -24,6 +24,8 @@ import { splitEdgeFor, useDiagram } from './store';
 import { DiagramNode, NodeImg, type NodeData } from './components/DiagramNode';
 import { GhostNode, type GhostData } from './components/GhostNode';
 import { SheetNode, type SheetData } from './components/SheetNode';
+import { NodeTransforms, type ResizePreview } from './components/NodeTransforms';
+import { boundsOf, snapMove, type Guide } from './canvasTransform';
 import {
   childrenOf,
   descendants,
@@ -37,7 +39,7 @@ import {
   sheets,
 } from './fold';
 import { useFoldMotion } from './foldMotion';
-import { GHOST_SIZE, IMAGE_LABEL_SPACE, sizeFor } from './layout';
+import { GHOST_SIZE, IMAGE_LABEL_SPACE, nodeSize, sizeFor } from './layout';
 import { DiagramEdge } from './components/DiagramEdge';
 import { JoinPreview } from './components/JoinPreview';
 import { MermaidPanel } from './components/MermaidPanel';
@@ -76,10 +78,10 @@ const nodeTypes: NodeTypes = { diagram: DiagramNode, ghost: GhostNode, sheet: Sh
 const SHEET_PREFIX = '__sheet__';
 
 /** Measured node sizes as one string, so the canvas re-renders only on change. */
-const sizeKeySelector = (s: { nodeLookup: Map<string, { type?: string; measured: { width?: number; height?: number } }> }) => {
+const sizeKeySelector = (s: { nodeLookup: Map<string, { type?: string; width?: number; measured: { width?: number; height?: number } }> }) => {
   let key = '';
   for (const [id, n] of s.nodeLookup) {
-    if (n.type === 'diagram' && n.measured.width) key += `${id}|${n.measured.width}|${n.measured.height}\n`;
+    if (n.type === 'diagram' && n.width === undefined && n.measured.width) key += `${id}|${n.measured.width}|${n.measured.height}\n`;
   }
   return key;
 };
@@ -92,7 +94,8 @@ function placeHalf({ shape, icon, image }: Placement): { x: number; y: number } 
     return { x: width / 2, y: (height - IMAGE_LABEL_SPACE) / 2 + 8 };
   }
   if (icon) return shape === 'circle' ? { x: 45, y: 45 } : { x: 48, y: 42 };
-  return shapeDef(shape).square ? { x: 45, y: 45 } : { x: 60, y: 24 };
+  const side = shapeDef(shape).square;
+  return side ? { x: side / 2, y: side / 2 } : { x: 60, y: 24 };
 }
 
 /** A toolbar button with its keyboard shortcut in the bottom-right corner. */
@@ -140,7 +143,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   const insertion = useDiagram((s) => s.insertion);
   const autoLayout = useDiagram((s) => s.autoLayout);
   const undo = useDiagram((s) => s.undo);
-  const { fitView, screenToFlowPosition } = useReactFlow();
+  const { fitView, screenToFlowPosition, getZoom } = useReactFlow();
   useEffect(() => installRenderBridge(async () => {
     await document.fonts.ready;
     if (!useDiagram.getState().nodes.length) return;
@@ -376,6 +379,10 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   const foldAnchor = useFoldMotion((s) => s.anchor);
   const fold = useFoldMotion((s) => s.fold);
   const unfold = useFoldMotion((s) => s.unfold);
+  const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null);
+  const commitResize = useCallback((rects: ResizePreview['rects']) => useDiagram.getState().resizeNodes(nodes, rects), [nodes]);
+  const [moveGuides, setMoveGuides] = useState<Guide[] | null>(null);
+  const draggingNodes = useRef(false);
 
   // Measured node sizes, kept across renders. The canvas is controlled, so
   // React Flow only remembers a size if we hand it back on the node; without
@@ -393,7 +400,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   }, [sizeKey]);
   const sizeOf = useMemo(() => {
     const measured = new Map(sizeCache.current);
-    return (n: DNode) => measured.get(n.id) ?? sizeFor(n.shape, n.icon, n.image);
+    return (n: DNode) => n.size ?? measured.get(n.id) ?? nodeSize(n);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sizesVersion]);
 
@@ -422,6 +429,10 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
     };
   }, [nodes, foldPhase, foldAnchor, sizeOf]);
 
+  const nodeRects = useMemo(() => new Map(nodes.filter((n) => !offscreen.has(n.id))
+    .map((n) => [n.id, { ...positionOf(n), ...sizeOf(n) }])), [nodes, offscreen, positionOf, sizeOf]);
+  const previewRects = resizePreview?.rects;
+
   const rfNodes: Node<NodeData>[] = useMemo(() => {
     const kids = childrenOf(nodes);
     const motionClass =
@@ -431,14 +442,16 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
     // when code selects a node (e.g. one just inserted), so a pane click still
     // deselects it
     const sel = new Set(selected);
-    return nodes
-      .filter((n) => !offscreen.has(n.id))
-      .map((n) => ({
+    return nodes.filter((n) => !offscreen.has(n.id)).map((n) => {
+      const preview = previewRects?.get(n.id);
+      const size = preview ? { width: preview.width, height: preview.height } : n.size;
+      return {
         id: n.id,
         selected: sel.has(n.id),
         type: 'diagram',
-        position: positionOf(n),
-        measured: sizeCache.current.get(n.id),
+        position: preview ? { x: preview.x, y: preview.y } : positionOf(n),
+        ...size,
+        measured: size ?? sizeCache.current.get(n.id),
         className: foldAnchor.has(n.id)
           ? motionClass
           : foldPhase && cards.has(n.id)
@@ -453,16 +466,19 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
           collapsed: n.collapsed,
           childCount: descendants(n.id, kids).length,
           style: n.style,
+          sized: !!size,
           flowAt: flow.nodeAt.get(n.id),
         },
-      }));
-  }, [nodes, offscreen, isGroup, positionOf, foldPhase, foldAnchor, selected, flow]);
+      };
+    });
+  }, [nodes, offscreen, isGroup, positionOf, foldPhase, foldAnchor, selected, flow, previewRects]);
 
   // a sheet of paper behind every unfolded group, under edges and nodes
   const sheetNodes: Node<SheetData>[] = useMemo(() => {
     const moving = new Set([...foldAnchor.keys(), ...foldAnchor.values()]);
     const byId = new Map(nodes.map((n) => [n.id, n]));
-    return sheets(nodes, hidden, positionOf, sizeOf).map((sh) => ({
+    return sheets(nodes, hidden, (n) => previewRects?.get(n.id) ?? positionOf(n),
+      (n) => previewRects?.get(n.id) ?? sizeOf(n)).map((sh) => ({
       id: SHEET_PREFIX + sh.groupId,
       type: 'sheet',
       position: { x: sh.rect.x, y: sh.rect.y },
@@ -484,7 +500,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         title: byId.get(sh.groupId)?.label ?? '',
       },
     }));
-  }, [nodes, hidden, positionOf, sizeOf, foldPhase, foldAnchor]);
+  }, [nodes, hidden, positionOf, sizeOf, foldPhase, foldAnchor, previewRects]);
 
   // folding a group hides its subtree: drop it from the selection so a later
   // delete never removes something the user can no longer see
@@ -626,6 +642,24 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       let nextSel: string[] | null = null;
+      const dragging = changes.some((c) => c.type === 'position' && c.dragging && nodeRects.has(c.id));
+      let snap: ReturnType<typeof snapMove> | undefined;
+      if (!foldPhase && (dragging || draggingNodes.current)) {
+        const positions = new Map(changes.flatMap((c) => c.type === 'position' && c.position ? [[c.id, c.position]] : []));
+        const moving = [];
+        const others = [];
+        for (const [id, rect] of nodeRects) {
+          const position = positions.get(id);
+          if (position) moving.push({ ...rect, ...position });
+          else others.push(rect);
+        }
+        const bounds = boundsOf(moving);
+        if (bounds) {
+          snap = snapMove(bounds, others, getZoom());
+          draggingNodes.current = dragging;
+          setMoveGuides(dragging ? snap.guides : null);
+        }
+      }
       for (const c of changes) {
         if ('id' in c && c.id === GHOST_ID) continue;
         if ('id' in c && c.id.startsWith(SHEET_PREFIX)) {
@@ -644,7 +678,8 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
           continue;
         }
         if (c.type === 'position' && c.position) {
-          moveNode(c.id, c.position);
+          const offset = nodeRects.has(c.id) ? snap?.offset : undefined;
+          moveNode(c.id, offset ? { x: c.position.x + offset.x, y: c.position.y + offset.y } : c.position);
         } else if (c.type === 'select') {
           const base: string[] = nextSel ?? useDiagram.getState().selectedNodeIds;
           nextSel = c.selected
@@ -656,7 +691,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         setSelection(nextSel, useDiagram.getState().selectedEdgeIds);
       }
     },
-    [moveNode, setSelection, sheetNodes],
+    [moveNode, setSelection, sheetNodes, nodeRects, foldPhase, getZoom],
   );
 
   const onEdgesChange = useCallback(
@@ -905,7 +940,12 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
 
   return (
     <div
-      className={`mf-canvas ${connecting ? 'is-connecting' : ''} ${pending ? 'is-placing' : ''}`}
+      className={`mf-canvas ${connecting ? 'is-connecting' : ''} ${pending ? 'is-placing' : ''}${resizePreview || moveGuides ? ' is-transforming' : ''}`}
+      onPointerDownCapture={() => {
+        if (!draggingNodes.current) return;
+        draggingNodes.current = false;
+        setMoveGuides(null);
+      }}
       onPointerMove={(e) => {
         pointer.current = { x: e.clientX, y: e.clientY };
       }}
@@ -1111,7 +1151,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
           nodeId={selected}
           isVisible={groupAction !== null}
           position={Position.Top}
-          offset={12}
+          offset={30}
         >
           <div className="mf-selbar">
             <button
@@ -1129,6 +1169,10 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         <Controls />
         <MiniMap pannable zoomable />
       </ReactFlow>
+
+      <NodeTransforms nodes={nodeRects} selected={selected} preview={resizePreview} moveGuides={moveGuides ?? []}
+        disabled={Boolean(pending || connecting || foldPhase || moveGuides)} onPreview={setResizePreview}
+        onCommit={commitResize} />
 
       {pending && (
         <div

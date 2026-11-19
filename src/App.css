@@ -89,7 +89,7 @@ body,
 
 .mf-toolbar {
   position: absolute;
-  z-index: 5;
+  z-index: 7;
   top: 14px;
   left: 50%;
   transform: translateX(-50%);
@@ -332,6 +332,9 @@ body,
 .react-flow__node.dragging {
   transition: none;
 }
+.mf-canvas.is-transforming .react-flow__node:is(.selected, .react-flow__node-sheet) {
+  transition: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .react-flow__node {
@@ -448,6 +451,53 @@ body,
   font-size: 13px;
   width: 120px;
   resize: vertical;
+}
+
+.mf-transforms {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+}
+.mf-transform-box {
+  position: absolute;
+}
+.mf-transform-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  outline: 1px solid var(--mf-accent);
+}
+.mf-transform-point {
+  position: absolute;
+  z-index: 6;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  touch-action: none;
+}
+.mf-transform-point::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--mf-accent);
+  border-radius: 1px;
+  background: var(--mf-node);
+}
+.mf-transform-point:is(:hover, :active)::after {
+  background: var(--mf-accent);
+}
+.mf-snap-guide {
+  position: absolute;
+  z-index: 4;
+  min-width: 1px;
+  min-height: 1px;
+  background: var(--mf-seal);
 }
 
 .mf-unfold {
@@ -878,18 +928,18 @@ body,
 .mf-place-ghost.mf-place-round {
   border-radius: 24px;
 }
-.mf-place-ghost.mf-place-circle,
-.mf-place-ghost.mf-place-diamond {
+.mf-place-ghost.mf-place-circle {
   width: 90px;
   height: 90px;
   margin-left: -45px;
   margin-top: -45px;
-}
-.mf-place-ghost.mf-place-circle {
   border-radius: 50%;
 }
 .mf-place-ghost.mf-place-diamond {
-  transform: rotate(45deg);
+  width: 126px;
+  height: 126px;
+  margin-left: -63px;
+  margin-top: -63px;
 }
 
 /* ---- insertion-preview ghost on the canvas ----
@@ -1601,6 +1651,28 @@ body,
   border-radius: 4px;
   user-select: none;
   pointer-events: none;
+}
+.mf-node.is-sized {
+  padding: min(8px, 6%) min(12px, 10%);
+}
+.mf-node.is-sized > .mf-node-body {
+  min-width: 0;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+.mf-node.is-sized .mf-node-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mf-node.is-sized > .mf-catalog-icon {
+  max-width: 100%;
+  max-height: 50%;
+}
+.mf-node.is-sized > .mf-node-img {
+  flex-shrink: 1;
+  min-height: 0;
+  max-width: 100%;
 }
 .mf-node-img.is-broken {
   display: grid;

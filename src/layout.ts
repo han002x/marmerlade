@@ -5,6 +5,7 @@
 // positions keyed by node id; the store applies them.
 
 import Dagre from '@dagrejs/dagre';
+import { DIAMOND_SIZE } from './shapes.ts';
 import { DEFAULT_IMAGE_SIZE, type DiagramEdge, type DiagramNode, type NodeImage, type NodeShape } from './types.ts';
 
 export type Direction = 'TB' | 'LR';
@@ -34,7 +35,7 @@ export function sizeFor(
     case 'dbl-circle':
       return { width: 96, height: 96 };
     case 'diamond':
-      return { width: 110, height: 110 };
+      return { width: DIAMOND_SIZE, height: DIAMOND_SIZE };
     case 'round':
       return { width: 140, height: 52 };
     case 'cylinder':
@@ -49,6 +50,10 @@ export function sizeFor(
     default:
       return { width: 150, height: 52 };
   }
+}
+
+export function nodeSize(node: DiagramNode) {
+  return node.size ?? sizeFor(node.shape, node.icon, node.image);
 }
 
 export function layout(
@@ -96,7 +101,7 @@ function run(
   g.setDefaultEdgeLabel(() => ({}));
 
   // an unfolded group has no card, only its sheet (cluster)
-  for (const n of nodes) if (!unfolded.has(n.id)) g.setNode(n.id, sizes[n.id] ?? sizeFor(n.shape, n.icon, n.image));
+  for (const n of nodes) if (!unfolded.has(n.id)) g.setNode(n.id, sizes[n.id] ?? nodeSize(n));
   for (const id of open) g.setNode(sheetId(id), {});
   for (const n of nodes) {
     if (open.has(n.id)) {
@@ -119,7 +124,7 @@ function run(
     const p = g.node(n.id);
     if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
     // dagre gives node centers; React Flow positions are top-left
-    const { width, height } = sizes[n.id] ?? sizeFor(n.shape, n.icon, n.image);
+    const { width, height } = sizes[n.id] ?? nodeSize(n);
     positions[n.id] = { x: p.x - width / 2, y: p.y - height / 2 };
   }
   return positions;

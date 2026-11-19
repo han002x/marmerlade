@@ -82,8 +82,6 @@ export function shapePath(
       return { outline: roundedRect(w, h, h / 2) };
     case 'circle':
       return { outline: ellipse(w, h) };
-    case 'diamond': // the node body is a square rotated 45deg
-      return { outline: roundedRect(w, h, 0) };
     default:
       return { outline: roundedRect(w, h, rounded ? 12 : 0) };
   }

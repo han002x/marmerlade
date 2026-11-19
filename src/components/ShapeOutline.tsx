@@ -109,7 +109,6 @@ const BOX_GLYPH: Partial<Record<NodeShape, string>> = {
   rect: 'M0 0H100V100H0Z',
   round: 'M25 0H75A25 25 0 0 1 100 25V75A25 25 0 0 1 75 100H25A25 25 0 0 1 0 75V25A25 25 0 0 1 25 0Z',
   circle: 'M0 50A50 50 0 1 0 100 50A50 50 0 1 0 0 50Z',
-  diamond: 'M50 0L100 50L50 100L0 50Z',
 };
 
 export function ShapeGlyph({ shape, size = 18 }: { shape: NodeShape; size?: number }) {

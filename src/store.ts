@@ -11,7 +11,7 @@ import type {
   Page,
 } from './types';
 import { fromMermaid, mergeDiagram, parseMermaid, toMermaid } from './mermaid/io.ts';
-import { layout, sizeFor, type Direction } from './layout.ts';
+import { layout, nodeSize, type Direction } from './layout.ts';
 import type { NodeClipboard } from './clipboard.ts';
 import { createPageFor, mergePages, newPageId, normalizeDiagram, type LinkKey } from './pages.ts';
 import {
@@ -21,6 +21,7 @@ import {
   groupPlan,
   ungroupTarget,
   hiddenIds as computeHidden,
+  type Rect,
 } from './fold.ts';
 
 let idSeq = 0;
@@ -210,6 +211,7 @@ interface State {
   /** set (or, with undefined, clear) the flow step of several edges */
   setEdgeOrder: (ids: string[], order: number | undefined) => void;
   moveNode: (id: string, position: { x: number; y: number }) => void;
+  resizeNodes: (before: DiagramNode[], rects: ReadonlyMap<string, Rect>) => void;
   removeNode: (id: string) => void;
   connect: (source: string, target: string) => void;
   updateEdgeLabel: (id: string, label: string) => void;
@@ -516,7 +518,7 @@ export const useDiagram = create<State>((set, get) => {
       // A group's stored position does not describe where its contents are drawn.
       if (kids.has(node.id)) continue;
       const { x, y } = node.position;
-      const { width, height } = sizeFor(node.shape, node.icon, node.image);
+      const { width, height } = nodeSize(node);
       bounds.left = Math.min(bounds.left, x);
       bounds.top = Math.min(bounds.top, y);
       bounds.right = Math.max(bounds.right, x + width);
@@ -679,6 +681,37 @@ export const useDiagram = create<State>((set, get) => {
       return {
         ...hist,
         nodes: s.nodes.map((n) => (n.id === id ? { ...n, position } : n)),
+      };
+    }),
+
+  resizeNodes: (before, rects) =>
+    set((s) => {
+      if (s.nodes !== before || rects.size === 0) return s;
+      const kids = childrenOf(s.nodes);
+      const positions = new Map<string, DiagramNode['position']>();
+      for (const [id, rect] of rects) {
+        if (!kids.has(id)) {
+          positions.set(id, { x: rect.x, y: rect.y });
+          continue;
+        }
+        const origin = groupOrigin(id, s.nodes, kids);
+        if (!origin) continue;
+        const dx = rect.x - origin.x;
+        const dy = rect.y - origin.y;
+        if (!dx && !dy) continue;
+        const inside = new Set(descendants(id, kids));
+        for (const node of s.nodes) {
+          if (inside.has(node.id)) positions.set(node.id, { x: node.position.x + dx, y: node.position.y + dy });
+        }
+      }
+      return {
+        ...snapshot(),
+        nodes: s.nodes.map((node) => {
+          const rect = rects.get(node.id);
+          const position = positions.get(node.id);
+          if (rect) return { ...node, position: position ?? node.position, size: { width: rect.width, height: rect.height } };
+          return position ? { ...node, position } : node;
+        }),
       };
     }),
 

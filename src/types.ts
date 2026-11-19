@@ -94,6 +94,8 @@ export interface DiagramNode {
    * top-left of its contents
    */
   position: { x: number; y: number };
+  /** Canvas dimensions after a manual resize. Omitted for auto-sized nodes. */
+  size?: { width: number; height: number };
   /**
    * full Iconify name (`lucide:database`, `simple-icons:github`). Set, the node
    * is an icon tile and exports as Mermaid's `@{ icon: ... }` form; its shape

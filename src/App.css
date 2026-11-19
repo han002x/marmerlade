@@ -1117,6 +1117,10 @@ body,
   flex-wrap: wrap;
   gap: 5px;
 }
+.mf-swatch-placeholder {
+  width: 22px;
+  height: 22px;
+}
 .mf-swatch {
   width: 22px;
   height: 22px;
@@ -1552,6 +1556,10 @@ body,
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: stroke 160ms ease;
+}
+.mf-node.selected .mf-outline-fill,
+.mf-node.selected :is(.mf-outline-ink, .mf-outline-detail) {
+  transition: none;
 }
 /* the folded pages under a card: same stock, fainter ink */
 .mf-outline-page .mf-outline-ink {

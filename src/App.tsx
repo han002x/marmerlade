@@ -10,6 +10,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStoreApi,
   useStore,
   type Connection,
   type Edge,
@@ -145,6 +146,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   const autoLayout = useDiagram((s) => s.autoLayout);
   const undo = useDiagram((s) => s.undo);
   const { fitView, screenToFlowPosition, getZoom } = useReactFlow();
+  const flowStore = useStoreApi();
   useEffect(() => installRenderBridge(async () => {
     await document.fonts.ready;
     if (!useDiagram.getState().nodes.length) return;
@@ -483,9 +485,11 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
       id: SHEET_PREFIX + sh.groupId,
       type: 'sheet',
       position: { x: sh.rect.x, y: sh.rect.y },
-      // explicit size: sheets have no handles, so React Flow never re-measures them
       width: sh.rect.width,
       height: sh.rect.height,
+      // without `measured`, React Flow drops the sheet's handle bounds on every
+      // rebuild, and a node without them counts as inside any selection box
+      measured: { width: sh.rect.width, height: sh.rect.height },
       zIndex: sh.depth - nodes.length - 1,
       draggable: true,
       selected: selected.includes(sh.groupId),
@@ -711,8 +715,18 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
       let nextSel: string[] | null = null;
+      // A drag-select would also take every edge touching a selected node.
+      // Keep only the edges that lie inside the box (both ends selected).
+      const boxing = flowStore.getState().userSelectionActive;
+      const all = useDiagram.getState().edges;
+      const inside = new Set(useDiagram.getState().selectedNodeIds);
+      const within = (id: string) => {
+        const e = all.find((x) => x.id === id);
+        return !!e && inside.has(e.source) && inside.has(e.target);
+      };
       for (const c of changes) {
         if (c.type === 'select') {
+          if (boxing && c.selected && !within(c.id)) continue;
           const base: string[] = nextSel ?? useDiagram.getState().selectedEdgeIds;
           nextSel = c.selected
             ? [...new Set([...base, c.id])]
@@ -723,7 +737,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         setSelection(useDiagram.getState().selectedNodeIds, nextSel);
       }
     },
-    [setSelection],
+    [setSelection, flowStore],
   );
 
   const asSide = (h?: string | null): Side | undefined =>

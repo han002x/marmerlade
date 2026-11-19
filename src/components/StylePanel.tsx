@@ -1,5 +1,5 @@
 import { useStyleDefaults } from '../useStyleDefaults';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDiagram } from '../store';
 import { DEFAULT_IMAGE_SIZE, type DiagramNode, type ElementStyle } from '../types';
 import { asImageSrc, isDataUri, kb, readImageFile, sizedImage } from '../imageUpload';
@@ -109,7 +109,7 @@ export function StylePanel() {
               onClick={() => patch({ stroke: c })}
             />
           ))}
-          {recentColor && (
+          {recentColor ? (
             <button
               className={`mf-swatch${active('stroke', recentColor) ? ' active' : ''}`}
               style={{ background: recentColor }}
@@ -117,12 +117,12 @@ export function StylePanel() {
               aria-label={`Recent stroke ${recentColor}`}
               onClick={() => patch({ stroke: recentColor })}
             />
-          )}
+          ) : <span className="mf-swatch-placeholder" aria-hidden="true" />}
           <label className="mf-swatch mf-swatch-custom" title="Custom stroke color">
-            <input
-              type="color"
+            <CustomColor
+              key={`stroke:${selectedNodeIds.join(',')}:${selectedEdgeIds.join(',')}`}
               value={toHex(val('stroke')) ?? '#2a2723'}
-              onChange={(e) => { setRecentColor(e.target.value); patch({ stroke: e.target.value }); }}
+              onPick={(color) => { setRecentColor(color); patch({ stroke: color }); }}
             />
           </label>
         </div>
@@ -144,7 +144,7 @@ export function StylePanel() {
                 onClick={() => patch({ background: c })}
               />
             ))}
-            {recentColor && (
+            {recentColor ? (
               <button
                 className={`mf-swatch${active('background', recentColor) ? ' active' : ''}`}
                 style={{ background: recentColor }}
@@ -152,15 +152,15 @@ export function StylePanel() {
                 aria-label={`Recent background ${recentColor}`}
                 onClick={() => patch({ background: recentColor })}
               />
-            )}
+            ) : <span className="mf-swatch-placeholder" aria-hidden="true" />}
             <label
               className="mf-swatch mf-swatch-custom"
               title="Custom background color"
             >
-              <input
-                type="color"
+              <CustomColor
+                key={`background:${selectedNodeIds.join(',')}:${selectedEdgeIds.join(',')}`}
                 value={toHex(val('background')) ?? '#fffdf8'}
-                onChange={(e) => { setRecentColor(e.target.value); patch({ background: e.target.value }); }}
+                onPick={(color) => { setRecentColor(color); patch({ background: color }); }}
               />
             </label>
           </div>
@@ -249,12 +249,14 @@ export function StylePanel() {
             <button key={c} className={`mf-swatch${val('fontColor') === c ? ' active' : ''}`}
               style={{ background: c }} title={c} aria-label={`Font color ${c}`} onClick={() => patch({ fontColor: c })} />
           ))}
-          {recentColor && <button className={`mf-swatch${val('fontColor') === recentColor ? ' active' : ''}`}
+          {recentColor ? <button className={`mf-swatch${val('fontColor') === recentColor ? ' active' : ''}`}
             style={{ background: recentColor }} title={`Recent font color ${recentColor}`}
-            aria-label={`Recent font color ${recentColor}`} onClick={() => patch({ fontColor: recentColor })} />}
+            aria-label={`Recent font color ${recentColor}`} onClick={() => patch({ fontColor: recentColor })} />
+            : <span className="mf-swatch-placeholder" aria-hidden="true" />}
           <label className="mf-swatch mf-swatch-custom" title="Custom font color">
-            <input type="color" aria-label="Custom font color" value={toHex(val('fontColor')) ?? '#2a2723'}
-              onChange={(e) => { setRecentColor(e.target.value); patch({ fontColor: e.target.value }); }} />
+            <CustomColor key={`font:${selectedNodeIds.join(',')}:${selectedEdgeIds.join(',')}`}
+              label="Custom font color" value={toHex(val('fontColor')) ?? '#2a2723'}
+              onPick={(color) => { setRecentColor(color); patch({ fontColor: color }); }} />
           </label>
         </div>
       </section>
@@ -371,6 +373,30 @@ export function StylePanel() {
       )}
     </aside>
   );
+}
+
+function CustomColor({ value, onPick, label }: { value: string; onPick: (color: string) => void; label?: string }) {
+  const input = useRef<HTMLInputElement>(null);
+  const pending = useRef<{ color: string; pick: (color: string) => void; timer: number } | null>(null);
+  const flush = () => {
+    const change = pending.current;
+    if (!change) return;
+    window.clearTimeout(change.timer);
+    pending.current = null;
+    change.pick(change.color);
+  };
+
+  useEffect(() => {
+    if (input.current && !pending.current) input.current.value = value;
+  }, [value]);
+  useEffect(() => () => flush(), []);
+
+  return <input ref={input} type="color" aria-label={label} defaultValue={value} onBlur={flush}
+    onChange={(e) => {
+      if (pending.current) window.clearTimeout(pending.current.timer);
+      const color = e.currentTarget.value;
+      pending.current = { color, pick: onPick, timer: window.setTimeout(flush, 100) };
+    }} />;
 }
 
 /** image size presets; px labels, so they don't read as the font S/M/L */

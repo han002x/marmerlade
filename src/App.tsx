@@ -3,6 +3,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  ConnectionMode,
   MiniMap,
   NodeToolbar,
   Position,
@@ -66,7 +67,7 @@ import {
 import { exportGif } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
-import type { DiagramNode as DNode } from './types';
+import type { DiagramNode as DNode, Side } from './types';
 import { SAMPLE } from './sample';
 import { hasOutline, shapeDef } from './shapes';
 import { installRenderBridge } from './renderBridge';
@@ -485,9 +486,10 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
       // explicit size: sheets have no handles, so React Flow never re-measures them
       width: sh.rect.width,
       height: sh.rect.height,
-      zIndex: -10 + sh.depth,
+      zIndex: sh.depth - nodes.length - 1,
       draggable: true,
-      selectable: false,
+      selected: selected.includes(sh.groupId),
+      selectable: true,
       focusable: false,
       deletable: false,
       className: foldPhase && moving.has(sh.groupId) ? `mf-sheet-${foldPhase}` : undefined,
@@ -500,7 +502,7 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         title: byId.get(sh.groupId)?.label ?? '',
       },
     }));
-  }, [nodes, hidden, positionOf, sizeOf, foldPhase, foldAnchor, previewRects]);
+  }, [nodes, hidden, positionOf, sizeOf, foldPhase, foldAnchor, previewRects, selected]);
 
   // folding a group hides its subtree: drop it from the selection so a later
   // delete never removes something the user can no longer see
@@ -603,6 +605,8 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
           type: 'diagram',
           source: endOf(leg.source),
           target: endOf(leg.target),
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
           className: 'mf-ghost-edge',
           selectable: false,
           focusable: false,
@@ -621,6 +625,8 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         selected: selEdge.has(e.id),
         source: e.source,
         target: e.target,
+        sourceHandle: e.sourceSide ?? 'bottom',
+        targetHandle: e.targetSide ?? 'top',
         label: e.label,
         animated: false,
         data: { style: e.style, flowStep: flow.edgeStep.get(e.id) },
@@ -630,6 +636,8 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         type: 'diagram',
         source: f.source,
         target: f.target,
+        sourceHandle: 'bottom',
+        targetHandle: 'top',
         label: f.label,
         selectable: false,
         focusable: false,
@@ -674,6 +682,12 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
                 y: origin.y + c.position.y - sheet.position.y,
               });
             }
+          } else if (c.type === 'select') {
+            const groupId = c.id.slice(SHEET_PREFIX.length);
+            const base: string[] = nextSel ?? useDiagram.getState().selectedNodeIds;
+            nextSel = c.selected
+              ? [...new Set([...base, groupId])]
+              : base.filter((id) => id !== groupId);
           }
           continue;
         }
@@ -712,9 +726,20 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
     [setSelection],
   );
 
+  const asSide = (h?: string | null): Side | undefined =>
+    h === 'top' || h === 'right' || h === 'bottom' || h === 'left' ? h : undefined;
+  const dragFrom = useRef<string | null>(null);
+
   const onConnect = useCallback(
     (c: Connection) => {
-      if (c.source && c.target) connect(c.source, c.target);
+      const real = (id: string) => (id.startsWith(SHEET_PREFIX) ? id.slice(SHEET_PREFIX.length) : id);
+      if (!c.source || !c.target) return;
+      // Direction follows the drag, whichever side of the node it started from.
+      const from = dragFrom.current;
+      const flip = from === c.target && from !== c.source;
+      const [a, b] = flip ? [c.target, c.source] : [c.source, c.target];
+      const [sa, sb] = flip ? [c.targetHandle, c.sourceHandle] : [c.sourceHandle, c.targetHandle];
+      connect(real(a), real(b), asSide(sa), asSide(sb));
     },
     [connect],
   );
@@ -1137,9 +1162,14 @@ function Canvas({ onTogglePanel }: { onTogglePanel: () => void }) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onConnectStart={() => setConnecting(true)}
+        connectionMode={ConnectionMode.Loose}
+        onConnectStart={(_, p) => {
+          dragFrom.current = p.nodeId;
+          setConnecting(true);
+        }}
         onConnectEnd={() => setConnecting(false)}
         connectionLineComponent={JoinPreview}
+        elevateNodesOnSelect={false}
         colorMode={theme}
         deleteKeyCode={null}
         // Drag on empty canvas selects; middle/right drag or Space + drag pans.

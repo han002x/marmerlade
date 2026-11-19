@@ -4,6 +4,7 @@ import type {
   Diagram,
   DiagramEdge,
   DiagramNode,
+  Side,
   ElementStyle,
   NodeImage,
   NodeShape,
@@ -66,7 +67,8 @@ function unchanged(a: Diagram, b: Diagram): boolean {
   for (let i = 0; i < a.edges.length; i++) {
     const x = a.edges[i];
     const y = b.edges[i];
-    if (x.source !== y.source || x.target !== y.target || x.label !== y.label) return false;
+    if (x.source !== y.source || x.target !== y.target || x.label !== y.label ||
+      x.sourceSide !== y.sourceSide || x.targetSide !== y.targetSide) return false;
   }
   return true;
 }
@@ -213,7 +215,7 @@ interface State {
   moveNode: (id: string, position: { x: number; y: number }) => void;
   resizeNodes: (before: DiagramNode[], rects: ReadonlyMap<string, Rect>) => void;
   removeNode: (id: string) => void;
-  connect: (source: string, target: string) => void;
+  connect: (source: string, target: string, sourceSide?: Side, targetSide?: Side) => void;
   updateEdgeLabel: (id: string, label: string) => void;
   removeEdge: (id: string) => void;
   toggleCollapse: (id: string) => void;
@@ -738,7 +740,7 @@ export const useDiagram = create<State>((set, get) => {
       };
     }),
 
-  connect: (source, target) =>
+  connect: (source, target, sourceSide, targetSide) =>
     set((s) => {
       if (source === target) return s;
       const exists = s.edges.some(
@@ -747,7 +749,16 @@ export const useDiagram = create<State>((set, get) => {
       if (exists) return s;
       return {
         ...snapshot(),
-        edges: [...s.edges, { id: nextId('e'), source, target }],
+        edges: [
+          ...s.edges,
+          {
+            id: nextId('e'),
+            source,
+            target,
+            ...(sourceSide && sourceSide !== 'bottom' && { sourceSide }),
+            ...(targetSide && targetSide !== 'top' && { targetSide }),
+          },
+        ],
       };
     }),
 

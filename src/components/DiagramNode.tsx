@@ -1,8 +1,9 @@
 import { useStyleDefaults } from '../useStyleDefaults';
 import { memo, useMemo, useState } from 'react';
-import { Handle, Position, useConnection, type Node, type NodeProps } from '@xyflow/react';
+import { useConnection, type Node, type NodeProps } from '@xyflow/react';
 import { DEFAULT_IMAGE_SIZE, type ElementStyle, type NodeImage, type NodeShape } from '../types';
 import { useDiagram } from '../store';
+import { SideHandles } from './SideHandles';
 import { useFoldMotion } from '../foldMotion';
 import { animationClass, flowDash, fontFamilyCss, inkOn } from '../style';
 import { CatalogIcon, ShapeOutline } from './ShapeOutline';
@@ -159,7 +160,7 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
         setEditing(true);
       }}
     >
-      <Handle type="target" position={Position.Top} />
+      <SideHandles />
       <ShapeOutline
         shape={d.shape}
         icon={tile}
@@ -212,7 +213,6 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
       </div>
       <PageButton nodeId={id} />
       <DeckButton nodeId={id} />
-      <Handle type="source" position={Position.Bottom} />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { memo, useState } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { type NodeProps } from '@xyflow/react';
 import { useFoldMotion } from '../foldMotion';
 import { useDiagram } from '../store';
+import { SideHandles } from './SideHandles';
 import { PageButton } from './PageButton';
 import { DeckButton } from './DeckButton';
 
@@ -44,9 +45,8 @@ function SheetNodeInner({ data }: NodeProps) {
       style={{ width: d.width, height: d.height }}
     >
       <div className="mf-sheet-paper" />
-      {/* edges into the group land on the sheet; it never starts a connection */}
-      <Handle type="target" position={Position.Top} isConnectable={false} className="mf-sheet-handle" />
-      <Handle type="source" position={Position.Bottom} isConnectable={false} className="mf-sheet-handle" />
+      {/* edges into the group land on the sheet, and it connects like a card */}
+      <SideHandles className="mf-sheet-handle" />
       {editing ? (
           <textarea
             autoFocus

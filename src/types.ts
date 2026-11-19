@@ -129,11 +129,17 @@ export interface Page {
 /** A slide deck: Markdown with `---` between slides. Linked to nodes like a page. */
 export type Deck = Page;
 
+/** A side of a node where an edge attaches. */
+export type Side = 'top' | 'right' | 'bottom' | 'left';
+
 export interface DiagramEdge {
   id: string;
   source: string;
   target: string;
   label?: string;
+  /** side the edge leaves from / arrives at; missing => bottom / top */
+  sourceSide?: Side;
+  targetSide?: Side;
   /** 1-based step in the flow sequence; missing => follows the graph */
   order?: number;
   /** optional per-edge visual overrides */

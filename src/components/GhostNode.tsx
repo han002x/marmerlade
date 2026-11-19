@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { type NodeProps } from '@xyflow/react';
+import { SideHandles } from './SideHandles';
 import type { NodeShape } from '../types';
 import { GHOST_SIZE } from '../layout';
 import { shapeCss } from '../shapes';
@@ -23,8 +24,7 @@ function GhostNodeInner({ data }: NodeProps) {
   // invisible, inert handles so preview edges (A → ghost → B) can attach
   return (
     <div className="mf-node mf-ghost" style={ghostCss(d.shape)}>
-      <Handle type="target" position={Position.Top} isConnectable={false} />
-      <Handle type="source" position={Position.Bottom} isConnectable={false} />
+      <SideHandles connectable={false} />
     </div>
   );
 }

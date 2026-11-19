@@ -75,8 +75,9 @@ Every node can link multiple Markdown pages, and pages can
 be shared across nodes. Press `W` (or the page button on a node) to open its
 default page in the side panel's **Page** tab. The picker switches pages;
 **New page**, **Link existing page**, **Unlink**, and **Make default** manage
-the links. The first linked page is the default. Opening a node with no pages
-creates one titled from the node; later node renames leave page titles alone.
+the links. The first linked page is the default. Selecting a node shows its default page title above the shape. Click the title
+to read it beside the diagram. **Add explanation** creates a page titled from
+the node and opens it for editing. Later node renames leave page titles alone.
 ↗ opens the current page in its own window, keeping the node context.
 Pages appear beneath their linked nodes in the canvas tree and the wiki's
 collapsible sidebar. The wiki follows the diagram's group hierarchy and
@@ -113,10 +114,23 @@ references; use `.marmerlade.json` to include page content.
 
 ## Slides
 
+**Create walkthrough**, beside **Play flow**, lets you click nodes and groups
+in the order you want to present them. The stop picker also lists nodes inside
+folded groups. Reorder or remove stops in the numbered list, give the
+walkthrough a title, then **Save**. Each stop becomes a slide with a live
+diagram embed, and each visited node links to the deck. **Present** starts
+the walkthrough from the canvas panel.
+
+On a slide with one live diagram, **Read explanation** opens its node’s
+default page beside the slide when available. **Explore diagram** takes you to
+that node on the canvas. **Resume walkthrough** returns to the same slide.
+Try **Follow a request** on the sample diagram’s Web UI node.
+
+
 Every node can also link slide decks, written as code. Press `K`,
 the slides button on a node (beside its page button), or **Slides** on the
 toolbar to open the selected node's deck in the side panel's **Slides** tab
-(created on first use, titled from the node); with nothing selected the tab
+(choose **New deck** to create one if needed); with nothing selected the tab
 lists every deck. The tab shows the deck as slides or as its Markdown, and
 its menu switches between a node's decks: **New deck**, **Link existing
 deck**, **Unlink**, **Make default**. ↗ opens the deck in the slides window,

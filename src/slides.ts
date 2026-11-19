@@ -480,6 +480,13 @@ function standalone(tag: Tag): string {
 }
 
 const EMBED = /^\{\{diagram(?::([^}\n]+))?\}\}[ \t]*$/gm;
+/** A slide with one live diagram can open that stop on the canvas. */
+export function slideDiagramTarget(body: string): string | undefined {
+  const embeds = md.lexer(body).filter((token) => token.type === 'paragraph')
+    .flatMap((token) => Array.from(token.raw.matchAll(EMBED), (match) => match[1]?.trim() ?? ''));
+  return embeds.length === 1 ? embeds[0] : undefined;
+}
+
 const WIKILINK = /\[\[([^[\]|]+)(?:\|([^[\]]+))?\]\]/g;
 
 /**

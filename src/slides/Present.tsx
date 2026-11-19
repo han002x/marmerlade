@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { deckHref } from '../route';
-import type { Slide as SlideData } from '../slides';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { deckHref, nodeHref } from '../route';
+import { embedNode, pageOf } from '../pages';
+import { useDiagram } from '../store';
+import { saveForNavigation } from '../persist';
+import Preview from '../wiki/Preview';
+import { slideDiagramTarget, type Slide as SlideData } from '../slides';
 import { Icon } from '../components/Icon';
 import Slide from './Slide';
 import './print.css';
@@ -39,10 +43,31 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
   presenter?: boolean;
 }) {
   const at = Math.min(slide, slides.length);
+  const current = slides[at - 1];
+  const target = useMemo(() => slideDiagramTarget(current.body), [current.body]);
+  const nodes = useDiagram((s) => s.nodes);
+  const pages = useDiagram((s) => s.pages);
+  const stopId = target === undefined ? undefined : embedNode(target, nodes, nodeId);
+  const stop = nodes.find((node) => node.id === stopId);
+  const explanation = pageOf(stop, pages);
+  const [reading, setReading] = useState<string | null>(null);
+  const page = reading ? pages.find((p) => p.id === reading) : undefined;
+  const readButton = useRef<HTMLButtonElement>(null);
+  const closeExplanation = () => {
+    setReading(null);
+    readButton.current?.focus();
+  };
+  const explore = (id: string) => {
+    saveForNavigation();
+    window.location.hash = nodeHref(id, deckHref(deckId, nodeId, at, presenter));
+  };
   const [notes, setNotes] = useState(presenter);
   // which way the deck last moved, so a slide can enter from the right side
   const [seen, setSeen] = useState({ at, back: false });
-  if (seen.at !== at) setSeen({ at, back: at < seen.at });
+  if (seen.at !== at) {
+    setSeen({ at, back: at < seen.at });
+    setReading(null);
+  }
   const [overview, setOverview] = useState(false);
   const [blank, setBlank] = useState(false);
   const [pointer, setPointer] = useState(false);
@@ -88,6 +113,14 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const { go, exit } = latest.current;
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (page) {
+        if (key === 'Escape') {
+          e.preventDefault();
+          closeExplanation();
+        }
+        return;
+      }
+      if ((key === 'Enter' || key === ' ') && e.target instanceof Element && e.target.closest('button, a')) return;
       if (blank) {
         // any key brings the slide back
         e.preventDefault();
@@ -134,9 +167,8 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [at, slides.length, blank, overview]);
+  }, [at, slides.length, blank, overview, page]);
 
-  const current = slides[at - 1];
   const tool = (label: string, key: string, icon: Parameters<typeof Icon>[0]['name'], run: () => void, on?: boolean) => (
     <button className="wk-icon" title={`${label}  ·  ${key}`} aria-label={label} aria-pressed={on} onClick={run}>
       <Icon name={icon} size={15} />
@@ -145,23 +177,43 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
 
   return (
     <div className={`sl-present${pointer ? ' pointer' : ''}${presenter ? ' presenter' : ''}`}>
-      <div className={`sl-stage${current.look.transition ? ` t-${current.look.transition}` : ''}${seen.back ? ' back' : ''}`}>
-        <Slide key={at} slide={current} nodeId={nodeId} />
-        <div className="sl-progress" role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={slides.length}
-          aria-valuenow={at} style={{ width: `${(at / slides.length) * 100}%` }} />
-        <footer className="sl-controls">
-          {tool('Previous slide', '←', 'step-back', () => go(at - 1))}
-          <span aria-label="Slide number">{at} / {slides.length}</span>
-          {tool('Next slide', '→', 'step-fwd', () => go(at + 1))}
-          {tool('All slides', 'O', 'grid', () => setOverview(true))}
-          {tool('Speaker notes', 'N', 'page', () => setNotes(!notes), notes)}
-          {!presenter && tool('Presenter window', 'P', 'export', openPresenter)}
-          {tool('Pointer', 'L', 'cursor', () => setPointer(!pointer), pointer)}
-          {tool('Blank screen', 'B', 'stop', () => setBlank(true))}
-          {tool('Full screen', 'F', 'expand', fullscreen)}
-          {tool('Exit presentation', 'Esc', 'close', exit)}
-        </footer>
+      <div className="sl-talk">
+        <div className={`sl-stage${current.look.transition ? ` t-${current.look.transition}` : ''}${seen.back ? ' back' : ''}`}>
+          <Slide key={at} slide={current} nodeId={nodeId} onNode={explore} />
+          <div className="sl-progress" role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={slides.length}
+            aria-valuenow={at} style={{ width: `${(at / slides.length) * 100}%` }} />
+          <footer className="sl-controls">
+            {tool('Previous slide', '←', 'step-back', () => go(at - 1))}
+            <span aria-label="Slide number">{at} / {slides.length}</span>
+            {tool('Next slide', '→', 'step-fwd', () => go(at + 1))}
+            {tool('All slides', 'O', 'grid', () => setOverview(true))}
+            {tool('Speaker notes', 'N', 'page', () => setNotes(!notes), notes)}
+            {!presenter && tool('Presenter window', 'P', 'export', openPresenter)}
+            {tool('Pointer', 'L', 'cursor', () => setPointer(!pointer), pointer)}
+            {tool('Blank screen', 'B', 'stop', () => setBlank(true))}
+            {tool('Full screen', 'F', 'expand', fullscreen)}
+            {tool('Exit presentation', 'Esc', 'close', exit)}
+          </footer>
+        </div>
+        {page && <aside className="sl-explanation" aria-label="Explanation">
+          <header><h2>{page.title || 'Untitled page'}</h2>
+            <button autoFocus className="wk-icon" aria-label="Close explanation" onClick={closeExplanation}>
+              <Icon name="close" size={16} />
+            </button>
+          </header>
+          <Preview body={page.body} nodeId={stop && stop.pageIds?.includes(page.id) ? stop.id : nodes.find((n) => n.pageIds?.includes(page.id))?.id}
+            onPage={setReading} onNode={explore} />
+        </aside>}
       </div>
+      {stop && <nav className="sl-stop" aria-label="Walkthrough stop">
+        <span>{stop.label || stop.id}</span>
+        {explanation && <button ref={readButton} className="wk-btn" aria-expanded={!!page}
+          onClick={() => page ? closeExplanation() : setReading(explanation.id)}>
+          <Icon name="page" size={14} />Read explanation
+        </button>}
+        <button className="wk-btn" onClick={() => explore(stop.id)}><Icon name="expand" size={14} />Explore diagram</button>
+      </nav>}
+      {target && !stop && <div className="sl-stop">Diagram node unavailable · {target}</div>}
       {notes && <aside className="sl-notes" aria-label="Presenter view">
         <div className="sl-notes-text">
           {current.notes.map((note, i) => <p key={i}>{note}</p>)}

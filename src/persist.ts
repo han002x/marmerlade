@@ -36,6 +36,12 @@ export function write(diagram: Diagram) {
   }
 }
 
+/** Flush the debounce before another route or window restores this workspace. */
+export function saveForNavigation() {
+  const { nodes, edges, pages, decks } = useDiagram.getState();
+  write({ nodes, edges, pages, decks });
+}
+
 /** Subscribe the store to localStorage with a debounce. Call once at startup. */
 export function startAutosave(debounceMs = 400): () => void {
   if (isLiveWorkspace()) return () => {};

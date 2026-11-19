@@ -46,6 +46,7 @@ import { GHOST_SIZE, IMAGE_LABEL_SPACE, nodeSize, sizeFor } from './layout';
 import { DiagramEdge } from './components/DiagramEdge';
 import { JoinPreview } from './components/JoinPreview';
 import { MermaidPanel } from './components/MermaidPanel';
+import WalkthroughBuilder from './components/WalkthroughBuilder';
 import { StylePanel } from './components/StylePanel';
 import { Icon } from './components/Icon';
 import { Welcome, WELCOME_EVENT, FIRST_RUN_FIT, isFirstRun } from './components/Welcome';
@@ -53,8 +54,8 @@ import { ShapePicker, type Placement } from './components/ShapePicker';
 import { ImagePicker } from './components/ImagePicker';
 import { CatalogIcon, ShapeOutline } from './components/ShapeOutline';
 import { useTheme, activeAppearance } from './theme';
-import { foldedAncestors } from './pages.ts';
-import { nameCanvasWindow, openDocs, parseRoute } from './route';
+import { foldedAncestors, pageOf } from './pages.ts';
+import { deckHref, nameCanvasWindow, nodeHref, openDocs, parseRoute } from './route';
 import { showDeck, showPage, useDock } from './dock';
 import { isTyping, useHotkeys } from './useHotkeys';
 import { copyNodes, imagesFromClipboard, nodesFromClipboard, snapshotClipboard } from './clipboard';
@@ -65,6 +66,7 @@ import {
   exportFile,
   importFile,
   clearSaved,
+  saveForNavigation,
 } from './persist';
 import { exportGif, exportImage } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
@@ -190,6 +192,24 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const theme = useTheme();
   const selected = useDiagram((s) => s.selectedNodeIds);
   const selectedEdges = useDiagram((s) => s.selectedEdgeIds);
+  const single = selected.length === 1 && !selectedEdges.length ? nodes.find((n) => n.id === selected[0]) : undefined;
+  const explanation = useDiagram((s) => pageOf(single, s.pages));
+  const linkedDeck = useDiagram((s) => pageOf(single, s.decks, 'deckIds'));
+  const [stops, setStops] = useState<string[] | null>(null);
+  const [resume, setResume] = useState<string>();
+  const exploring = !!resume;
+  const building = stops !== null;
+  const foldTarget = exploring && single ? (isGroup(single.id) ? single : nodes.find((n) => n.id === single.parentId)) : undefined;
+  const path = useMemo(() => {
+    if (!stops) return [];
+    const ids = new Set(nodes.map((node) => node.id));
+    return stops.filter((id) => ids.has(id));
+  }, [nodes, stops]);
+  const stopNumbers = useMemo(() => {
+    const numbers = new Map<string, number[]>();
+    path.forEach((id, index) => numbers.set(id, [...(numbers.get(id) ?? []), index + 1]));
+    return numbers;
+  }, [path]);
   const setSelection = useDiagram((s) => s.setSelection);
   const groupNodes = useDiagram((s) => s.groupNodes);
   const ungroupNodes = useDiagram((s) => s.ungroupNodes);
@@ -510,7 +530,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
       // rebuild, and a node without them counts as inside any selection box
       measured: { width: sh.rect.width, height: sh.rect.height },
       zIndex: sh.depth - nodes.length - 1,
-      draggable: true,
+      draggable: !building && !exploring,
       selected: selected.includes(sh.groupId),
       selectable: true,
       focusable: false,
@@ -526,7 +546,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
       },
     }));
     return reuse(sheetCache.current, list);
-  }, [nodes, hidden, positionOf, sizeOf, foldPhase, foldAnchor, previewRects, selected]);
+  }, [nodes, hidden, positionOf, sizeOf, foldPhase, foldAnchor, previewRects, selected, building, exploring]);
 
   // folding a group hides its subtree: drop it from the selection so a later
   // delete never removes something the user can no longer see
@@ -870,10 +890,15 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
 
   // #/node/<id> (from the wiki): unfold what hides the node, select it, frame it
   useEffect(() => {
+    let returnTo: string | undefined;
+    let frameTimer: number;
     const goto = () => {
       const route = parseRoute(window.location.hash);
       if (route.kind !== 'node') return;
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      if (route.resume && route.resume !== returnTo) useDock.getState().setOpen(false);
+      returnTo = route.resume ?? returnTo;
+      setResume(returnTo);
+      window.history.replaceState(null, '', returnTo ? nodeHref(route.id, returnTo) : window.location.pathname + window.location.search);
       const { nodes: all } = useDiagram.getState();
       const node = all.find((n) => n.id === route.id);
       if (!node) return;
@@ -882,7 +907,8 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
       setSelection([node.id], []);
       const sheet = !node.collapsed && all.some((n) => n.parentId === node.id);
       const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      window.setTimeout(
+      window.clearTimeout(frameTimer);
+      frameTimer = window.setTimeout(
         () =>
           fitView({
             nodes: [{ id: sheet ? `${SHEET_PREFIX}${node.id}` : node.id }],
@@ -898,13 +924,25 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
     window.addEventListener('hashchange', goto);
     return () => {
       window.clearTimeout(first);
+      window.clearTimeout(frameTimer);
       window.removeEventListener('hashchange', goto);
     };
   }, [unfold, setSelection, fitView]);
 
+  const resumeWalkthrough = useCallback(() => {
+    if (!resume) return;
+    saveForNavigation();
+    window.location.replace(resume);
+  }, [resume]);
+
   useHotkeys(
     useMemo(
-      () => [
+      () => building ? [{ key: 'escape', run: () => setStops(null) }] : exploring ? [
+        { key: 'f', run: foldSelection },
+        { key: '[', run: () => foldLevel('fold') },
+        { key: ']', run: () => foldLevel('unfold') },
+        { key: 'escape', run: resumeWalkthrough },
+      ] : [
         { key: 'v', run: cancelPending },
         { key: 'r', run: () => arm({ shape: 'rect' }) },
         { key: 'o', run: () => arm({ shape: 'round' }) },
@@ -932,14 +970,14 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         { key: 'backspace', run: deleteSelected },
         { key: 'delete', run: deleteSelected },
       ],
-      [arm, tidy, onTogglePanel, deleteSelected, undo, cancelPending, foldSelection, foldLevel, groupSelection, openSelectedPage, openSelectedDeck, toggleMode, togglePlay, stepFlow],
+      [building, exploring, resumeWalkthrough, arm, tidy, onTogglePanel, deleteSelected, undo, cancelPending, foldSelection, foldLevel, groupSelection, openSelectedPage, openSelectedDeck, toggleMode, togglePlay, stepFlow],
     ),
   );
 
   // Use native clipboard events so text fields and external images keep working.
   useEffect(() => {
     const isEditing = (e: ClipboardEvent) =>
-      e.defaultPrevented || isTyping(e.target) || isTyping(document.activeElement) || document.querySelector('dialog[open]') !== null;
+      building || exploring || e.defaultPrevented || isTyping(e.target) || isTyping(document.activeElement) || document.querySelector('dialog[open]') !== null;
     const onCopy = (e: ClipboardEvent) => {
       if (isEditing(e) || window.getSelection()?.toString()) return;
       const diagram = useDiagram.getState();
@@ -986,11 +1024,11 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
       document.removeEventListener('copy', onCopy);
       document.removeEventListener('paste', onPaste);
     };
-  }, [addNode, screenToFlowPosition, setSelection, flash]);
+  }, [building, exploring, addNode, screenToFlowPosition, setSelection, flash]);
 
   return (
     <div
-      className={`mf-canvas ${connecting ? 'is-connecting' : ''} ${pending ? 'is-placing' : ''}${resizePreview || moveGuides ? ' is-transforming' : ''}`}
+      className={`mf-canvas ${building ? 'is-choosing-stops' : exploring ? 'is-exploring' : ''} ${connecting ? 'is-connecting' : ''} ${pending ? 'is-placing' : ''}${resizePreview || moveGuides ? ' is-transforming' : ''}`}
       onPointerDownCapture={() => {
         if (!draggingNodes.current) return;
         draggingNodes.current = false;
@@ -1003,7 +1041,16 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         pointer.current = null;
       }}
     >
-      <div className="mf-toolbar">
+      {building && <WalkthroughBuilder nodes={nodes} stops={path} onChange={setStops} onCancel={() => setStops(null)}
+        onSave={(title) => {
+          const id = useDiagram.getState().createWalkthrough(title, path);
+          if (!id) return;
+          setStops(null);
+          showDeck(path[0], id);
+          useDock.getState().setDeckMode('slides');
+        }} />}
+      {exploring && <button className="mf-walk-resume" onClick={resumeWalkthrough}><Icon name="play" size={14} />Resume walkthrough</button>}
+      <div className="mf-toolbar" hidden={building || exploring}>
         <div className="mf-group-btns">
           <ToolButton label="Rectangle" hotkey="R" onClick={() => arm({ shape: 'rect' })}>
             <Icon name="rect" />
@@ -1067,6 +1114,14 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
               </div>
             )}
           </div>
+          <ToolButton label="Create walkthrough" disabled={!nodes.length} onClick={() => {
+            cancelPending();
+            setPickerOpen(false);
+            setImageOpen(false);
+            setFlowOpen(false);
+            stopFlow();
+            setStops([]);
+          }}><Icon name="deck" /></ToolButton>
         </div>
         <span className="mf-sep" />
         <div className="mf-menu-wrap" ref={exportRef}>
@@ -1185,6 +1240,14 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         edges={rfEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        onNodeClick={building ? (_, node) => {
+          const id = node.type === 'sheet' ? String(node.data.groupId) : node.id;
+          if (nodes.some((n) => n.id === id)) setStops((path) => path && [...path, id]);
+        } : undefined}
+        onDoubleClickCapture={building || exploring ? (event) => event.stopPropagation() : undefined}
+        nodesDraggable={!building && !exploring}
+        nodesConnectable={!building && !exploring}
+        elementsSelectable={!building}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onSelectionStart={() => {
@@ -1243,14 +1306,33 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         panOnDrag={[1, 2]}
         fitView
       >
+        {Array.from(stopNumbers, ([id, numbers]) => <NodeToolbar key={id} isVisible position={Position.Right}
+          nodeId={shown.endOf(id)} offset={5} style={{ pointerEvents: 'none' }}>
+          <span className="mf-walk-marker" aria-hidden="true">{numbers.join(', ')}</span>
+        </NodeToolbar>)}
         <NodeToolbar
-          nodeId={selected}
-          isVisible={groupAction !== null}
+          nodeId={selected.map(shown.endOf)}
+          isVisible={!building && (exploring ? !!single && !!(explanation || foldTarget) : groupAction !== null || !!single)}
           position={Position.Top}
           offset={30}
         >
           <div className="mf-selbar">
-            <button
+            {single && (!exploring || explanation) && <button className="mf-selbar-btn" title={explanation ? explanation.title || 'Untitled page' : 'Add explanation'} onClick={() => {
+              const id = explanation?.id ?? useDiagram.getState().openPage(single.id);
+              if (!id) return;
+              showPage(single.id, id);
+              useDock.getState().setMode(explanation ? 'read' : 'edit');
+            }}>
+              <Icon name="page" size={15} /><span>{explanation ? explanation.title || 'Untitled page' : 'Add explanation'}</span>
+            </button>}
+            {single && !exploring && linkedDeck && <button className="mf-selbar-btn" title={`Present ${linkedDeck.title}`} onClick={() => {
+              saveForNavigation();
+              window.location.hash = deckHref(linkedDeck.id, single.id, 1);
+            }}><Icon name="play" size={14} /><span>{linkedDeck.title || 'Untitled deck'}</span></button>}
+            {foldTarget && <button className="mf-selbar-btn" onClick={foldSelection}>
+              <Icon name="group" size={15} /><span>{foldTarget.collapsed ? 'Unfold' : 'Fold'} {foldTarget.label || 'group'}</span>
+            </button>}
+            {!exploring && groupAction && <button
               className="mf-selbar-btn"
               title={`${groupAction === 'ungroup' ? 'Ungroup' : groupAction === 'join' ? 'Add to group' : 'Group'}  ·  G`}
               onClick={groupSelection}
@@ -1258,7 +1340,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
               <Icon name="group" />
               <span>{groupAction === 'ungroup' ? 'Ungroup' : groupAction === 'join' ? 'Add to group' : 'Group'}</span>
               <kbd className="mf-tool-key" aria-hidden="true">G</kbd>
-            </button>
+            </button>}
           </div>
         </NodeToolbar>
         <Background gap={activeAppearance().texture === 'grid' ? 24 : 18} variant={activeAppearance().texture === 'grid' ? BackgroundVariant.Lines : BackgroundVariant.Dots} />
@@ -1266,9 +1348,9 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         <MiniMap pannable zoomable />
       </ReactFlow>
 
-      <NodeTransforms nodes={nodeRects} selected={selected} preview={resizePreview} moveGuides={moveGuides ?? []}
+      {!building && !exploring && <NodeTransforms nodes={nodeRects} selected={selected} preview={resizePreview} moveGuides={moveGuides ?? []}
         disabled={Boolean(pending || connecting || foldPhase || moveGuides)} onPreview={setResizePreview}
-        onCommit={commitResize} />
+        onCommit={commitResize} />}
 
       {pending && (
         <div
@@ -1300,7 +1382,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
           )}
         </div>
       )}
-      <StylePanel />
+      {!building && !exploring && <StylePanel />}
       {notice && (
         <div className="mf-notice" role="status">
           {notice}

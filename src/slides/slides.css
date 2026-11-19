@@ -215,6 +215,12 @@
   max-width: 100% !important;
   max-height: 32cqw;
 }
+/* Give a diagram stop the available slide area, even when it contains just one node. */
+.sl-slide .wk-preview > [data-embed]:only-child svg,
+.sl-slide .wk-preview > :is(h1, h2, h3):first-child + [data-embed]:last-child svg {
+  width: 100%;
+  height: 32cqw;
+}
 .sl-slide .wk-preview .embed[data-mermaid]:not(:has(svg)) {
   justify-content: flex-start;
   color: var(--mf-muted);
@@ -596,3 +602,30 @@
 }
 
 .sl-slide .wk-preview { font-family: var(--mf-content-font); }
+
+.sl-talk { position: relative; display: flex; flex: 1; min-height: 0; }
+.sl-talk .sl-stage { min-width: 0; }
+.sl-stop, .sl-explanation { background: var(--mf-panel); }
+.sl-stop {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--mf-border);
+  font-size: 13px;
+}
+.sl-stop > span { margin-right: auto; font-weight: 600; overflow-wrap: anywhere; }
+.sl-stop .wk-btn { display: inline-flex; align-items: center; gap: 6px; }
+.sl-explanation {
+  width: min(360px, 42vw);
+  padding: 18px;
+  overflow: auto;
+  border-left: 1px solid var(--mf-border);
+}
+.sl-explanation header { display: flex; align-items: start; gap: 10px; }
+.sl-explanation h2 { margin: 0 auto 12px 0; font-size: 18px; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .sl-talk { flex-direction: column; }
+  .sl-explanation { width: 100%; max-height: 48%; border: 0; border-top: 1px solid var(--mf-border); }
+}

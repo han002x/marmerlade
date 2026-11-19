@@ -116,8 +116,8 @@ type Deck = Page
 
 Pages and decks are independent of nodes: unlinking or deleting a node keeps
 them. A page no node links to is an **orphan**. Deleting a page removes its id
-from every node. A node with no page gets one lazily on first open, titled from
-its label (later renames do not retitle it).
+from every node. **Add explanation** creates a page titled from the node’s
+label. The page keeps its own title when the node is renamed.
 
 ### Wiki page Markdown
 
@@ -278,6 +278,6 @@ In the browser console or a script, the store takes the same data:
 - Node ids are unique; edge ids are unique.
 - Every id in `pageIds` / `deckIds` appears in `pages` / `decks`, with no
   duplicates in a list. (Mermaid import may leave a reference with no content
-  yet; it is created on first open.)
+  yet. Creating the explanation fills that reference.)
 - `updatedAt` is bumped on every body change.
 - Page and deck ids contain no `"`, `?`, `#` or `/`.

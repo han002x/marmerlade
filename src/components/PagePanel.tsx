@@ -52,7 +52,12 @@ export default function PagePanel() {
 
   const ids = node?.pageIds ?? [];
   const available = pages.filter((p) => !ids.includes(p.id)).sort((a, b) => a.title.localeCompare(b.title));
-  const create = () => node && setPage(useDiagram.getState().createPageForNode(node.id));
+  const create = () => {
+    if (!node) return;
+    const st = useDiagram.getState();
+    setPage(page ? st.createPageForNode(node.id) : st.openPage(node.id));
+    setMode('edit');
+  };
   const link = (id: string) => {
     if (!node) return;
     useDiagram.getState().linkPage(id, node.id);
@@ -62,7 +67,7 @@ export default function PagePanel() {
   if (!page) {
     return (
       <div className="wk-dock wk-dock-empty">
-        <button className="wk-btn" onClick={create}>New page</button>
+        <button className="wk-btn" onClick={create}>Add explanation</button>
         {available.length > 0 && <div className="wk-menu-label">Link existing page</div>}
         {available.map((p) => (
           <button key={p.id} className="wk-item" onClick={() => link(p.id)}>

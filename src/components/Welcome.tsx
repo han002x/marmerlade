@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 
+import BrandMark from './BrandMark';
 import type { FitViewOptions } from '@xyflow/react';
 const KEY = 'marmerlade.welcomed';
 
@@ -128,7 +129,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
         )}
       </svg>
       <div className="mf-welcome-brand" style={{ top: bar.bottom + 160 }}>
-        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="64" height="64" />
+        <BrandMark size={64} decorative />
         <span className="mf-brand">marmerlade</span>
       </div>
       <p className="mf-welcome-note" style={{ left: left.x, top: left.y }}>

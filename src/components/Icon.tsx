@@ -28,6 +28,9 @@ type IconName =
   | 'group'
   | 'more'
   | 'shapes'
+  | 'product-diagrams'
+  | 'product-wiki'
+  | 'product-slides'
   | 'pumpkin'
   | 'ghost'
   | 'bat'
@@ -47,6 +50,13 @@ type IconName =
   | 'step-fwd'
   | 'tree'
   | 'image';
+
+const JAR_COLORS = {
+  ink: '#3a352e',
+  amber: '#f2a23a',
+  cream: '#fbf8f1',
+  accent: '#d0532f',
+};
 
 const PATHS: Record<IconName, React.ReactNode> = {
   pumpkin: <><path d="M12 7C5 2 1 8 3 15c1 5 6 7 9 5 3 2 8 0 9-5 2-7-2-13-9-8ZM12 7c-1-3 0-5 2-5" /><path d="m6 11 3 1-2 2Zm12 0-3 1 2 2Z" fill="currentColor" stroke="none" /><path d="m7 16 2 2 3-1 3 1 2-2" /></>,
@@ -168,6 +178,31 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M7 13.5l3.8 6.5H3.2z" />
       <rect x="13.5" y="13.5" width="7" height="7" rx="3.5" />
     </>
+  ),
+  'product-diagrams': (
+    <>
+      <path d="M12 10v3.25M6 16v-2.75h12V16" />
+      <g stroke={JAR_COLORS.ink}>
+        <path d="m12 3 3.5 3.5-3.5 3.5-3.5-3.5Z" fill={JAR_COLORS.amber} />
+        <rect x="3" y="16" width="6" height="5" rx="1.2" fill={JAR_COLORS.cream} />
+        <rect x="15" y="16" width="6" height="5" rx="1.2" fill={JAR_COLORS.cream} />
+      </g>
+    </>
+  ),
+  'product-wiki': (
+    <g stroke={JAR_COLORS.ink}>
+      <path d="M12 6C9 4 6 3.5 3 4.5v14c3-.8 6-.3 9 1.5 3-1.8 6-2.3 9-1.5v-14c-3-1-6-.5-9 1.5Z" fill={JAR_COLORS.cream} />
+      <path d="M12 6v14M6 9c1.1 0 2.1.2 3 .6M6 13c1.1 0 2.1.2 3 .6M15 13.6c.9-.4 1.9-.6 3-.6" />
+      <path d="M15.5 4.5v6l1.5-1 1.5 1V4.1" fill={JAR_COLORS.amber} strokeWidth="1.4" />
+    </g>
+  ),
+  'product-slides': (
+    <g stroke={JAR_COLORS.ink}>
+      <rect x="3" y="8" width="14.5" height="12" rx="1.5" fill={JAR_COLORS.amber} />
+      <rect x="6.5" y="4" width="14.5" height="12" rx="1.5" fill={JAR_COLORS.cream} />
+      <path d="M10 8.5h7.5" stroke={JAR_COLORS.accent} />
+      <path d="M10 12h4.5" />
+    </g>
   ),
   play: <path d="M7 4.5v15l12-7.5z" />,
   stop: <rect x="6" y="6" width="12" height="12" rx="1.5" />,

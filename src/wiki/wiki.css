@@ -30,10 +30,8 @@
   gap: 2px;
   padding: 0 0 0 8px;
 }
-.wk-brand {
-  flex: 1;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.wk-index-head > .product-switcher {
+  margin-right: auto;
 }
 .wk-navigation {
   flex: 1;
@@ -491,7 +489,9 @@ a.wk-item {
     background: color-mix(in srgb, var(--mf-bg) 60%, transparent);
   }
   .wk-nav-toggle {
-    display: block;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
   .wk-bar {
     padding-left: 10px;

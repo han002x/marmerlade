@@ -19,6 +19,7 @@
   background: var(--mf-panel);
   border-bottom: 1px solid var(--mf-border);
 }
+.dk-head strong { display: inline-flex; align-items: center; gap: 6px; }
 .dk-head a { color: var(--mf-muted); text-decoration: none; }
 .dk-head a:hover { color: var(--mf-text); }
 

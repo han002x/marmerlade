@@ -3,6 +3,8 @@ import { useDiagram } from '../store';
 import { openAppearance } from '../theme';
 import { backlinks, nodesOfPage, pathTo } from '../pages';
 import { openNode, pageHref } from '../route';
+import BrandMark from '../components/BrandMark';
+import ProductNav from '../components/ProductNav';
 import { Icon } from '../components/Icon';
 import Document, { ModeSwitch, type PageMode } from './Document';
 import Menu from './Menu';
@@ -59,7 +61,7 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
     }}>
       <aside className="wk-index" id="wiki-sidebar">
         <div className="wk-index-head">
-          <a className="wk-brand" href="#/wiki">Wiki</a>
+          <ProductNav current="wiki" onNavigate={() => setIndex(null)} />
           <button className="wk-icon" onClick={openAppearance} title="Appearance" aria-label="Appearance">
             <Icon name={'shapes'} size={15} />
           </button>
@@ -78,9 +80,9 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
             onClick={event => {
               setIndex(indexOpen ? null : { at: pageId });
               const app = event.currentTarget.closest('.wk');
-              if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>('.wk-brand')?.focus());
+              if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>('.product-trigger')?.focus());
             }}>
-            Pages
+            <BrandMark size={20} decorative /> Pages
           </button>
           <nav className="wk-crumbs" aria-label="Linked nodes">
             {page && <NodeLinks id={page.id} nodeId={nodeId} />}

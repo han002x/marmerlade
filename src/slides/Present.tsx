@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { deckHref } from '../route';
 import type { Slide as SlideData } from '../slides';
+import BrandMark from '../components/BrandMark';
 import { Icon } from '../components/Icon';
 import Slide from './Slide';
 import './print.css';
@@ -151,6 +152,7 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
         <div className="sl-progress" role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={slides.length}
           aria-valuenow={at} style={{ width: `${(at / slides.length) * 100}%` }} />
         <footer className="sl-controls">
+          <BrandMark size={20} />
           {tool('Previous slide', '←', 'step-back', () => go(at - 1))}
           <span aria-label="Slide number">{at} / {slides.length}</span>
           {tool('Next slide', '→', 'step-fwd', () => go(at + 1))}

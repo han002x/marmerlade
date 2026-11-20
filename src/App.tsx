@@ -47,6 +47,7 @@ import { DiagramEdge } from './components/DiagramEdge';
 import { JoinPreview } from './components/JoinPreview';
 import { MermaidPanel } from './components/MermaidPanel';
 import { StylePanel } from './components/StylePanel';
+import ProductNav from './components/ProductNav';
 import { Icon } from './components/Icon';
 import { Welcome, WELCOME_EVENT, FIRST_RUN_FIT, isFirstRun } from './components/Welcome';
 import { ShapePicker, type Placement } from './components/ShapePicker';
@@ -102,6 +103,7 @@ function ToolButton({
   label,
   hotkey,
   active,
+  expanded,
   disabled,
   onClick,
   children,
@@ -110,6 +112,7 @@ function ToolButton({
   hotkey?: string;
   /** show the current tool pressed */
   active?: boolean;
+  expanded?: boolean;
   disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
@@ -119,6 +122,8 @@ function ToolButton({
       className={active ? 'mf-tool is-active' : 'mf-tool'}
       aria-label={label}
       aria-pressed={active}
+      aria-haspopup={expanded === undefined ? undefined : 'menu'}
+      aria-expanded={expanded}
       disabled={disabled}
       title={hotkey ? `${label}  ·  ${hotkey}` : label}
       onClick={onClick}
@@ -232,6 +237,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
   const [exportWidth, setExportWidth] = useState(900);
   const canvasWidth = useStore((state) => state.width);
   const canvasHeight = useStore((state) => state.height);
+  const compactToolbar = canvasWidth < 600;
 
   useEffect(() => {
     if (!menuOpen && !exportOpen) return;
@@ -245,6 +251,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (menuOpen) menuRef.current?.querySelector('button')?.focus();
         if (exportOpen) exportRef.current?.querySelector('button')?.focus();
         setMenuOpen(false);
         setExportOpen(false);
@@ -1010,7 +1017,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
         pointer.current = null;
       }}
     >
-      <div className="mf-toolbar">
+      <div className={compactToolbar ? 'mf-toolbar is-compact' : 'mf-toolbar'}>
         <div className="mf-group-btns">
           <ToolButton label="Rectangle" hotkey="R" onClick={() => arm({ shape: 'rect' })}>
             <Icon name="rect" />
@@ -1125,7 +1132,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
           )}
         </div>
         <div className="mf-menu-wrap" ref={menuRef}>
-          <ToolButton label="More actions" onClick={() => setMenuOpen((v) => !v)}>
+          <ToolButton label="More actions" expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
             <Icon name="more" />
           </ToolButton>
           {menuOpen && (
@@ -1179,6 +1186,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
             </div>
           )}
         </div>
+        <ProductNav current="canvas" iconOnly={compactToolbar} />
         <input
           ref={fileInput}
           type="file"

@@ -12,6 +12,8 @@ import { dragged, dragMode, RESIZE_HANDLES, type DragMode, type Point } from './
 import { isTyping } from '../useHotkeys';
 import { BoxBar, StylePanel } from './Design';
 import { deckHref, openNode } from '../route';
+import BrandMark from '../components/BrandMark';
+import ProductNav from '../components/ProductNav';
 import { Icon } from '../components/Icon';
 import Menu from '../wiki/Menu';
 import LibrarySearch from '../wiki/LibrarySearch';
@@ -389,7 +391,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
     }}>
       <aside className="wk-index" id="deck-sidebar">
         <div className="wk-index-head">
-          <a className="wk-brand" href="#/slides" onClick={() => setIndex(null)}>Slides</a>
+          <ProductNav current="slides" onNavigate={() => setIndex(null)} />
           <button className="wk-icon" onClick={openAppearance} title="Appearance" aria-label="Appearance">
             <Icon name={'shapes'} size={15} />
           </button>
@@ -430,10 +432,10 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
               setIndex(indexOpen ? null : { at: deckId });
               const app = event.currentTarget.closest('.wk');
               if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>(
-                showDecks ? '.wk-brand' : '.sl-thumbnail-select[aria-current]',
+                showDecks ? '.product-trigger' : '.sl-thumbnail-select[aria-current]',
               )?.focus());
             }}>
-            {showDecks ? 'Decks' : 'Slides'}
+            <BrandMark size={20} decorative /> {showDecks ? 'Decks' : 'Slides'}
           </button>
           <nav className="wk-crumbs" aria-label="Linked nodes">
             {deck && <NodeLinks kind="deckIds" id={deck.id} nodeId={nodeId} />}

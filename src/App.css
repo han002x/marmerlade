@@ -11,6 +11,18 @@
   min-width: 0;
 }
 
+.mf-toolbar .product-switcher {
+  margin-left: auto;
+  padding-left: 4px;
+  border-left: 1px solid var(--mf-border);
+}
+
+.mf-toolbar .product-trigger {
+  min-height: 30px;
+  gap: 4px;
+  padding: 0 4px;
+}
+
 .mf-export-overlay {
   position: fixed;
   inset: 0;
@@ -36,7 +48,11 @@
   top: 14px;
   left: 50%;
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 12px);
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
   align-items: center;
   background: var(--mf-grain), var(--mf-panel);
@@ -44,6 +60,11 @@
   border-radius: 8px;
   padding: 6px;
   box-shadow: var(--mf-lift);
+}
+
+/* Wrapped toolbar buttons can land at the left edge. Open their menus below the whole toolbar. */
+.mf-toolbar.is-compact > .mf-menu-wrap {
+  position: static;
 }
 
 .mf-sep {
@@ -514,6 +535,14 @@
   flex-direction: column;
   padding: 12px;
   gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .mf-app:has(> .mf-reopen) .mf-toolbar {
+    left: 6px;
+    transform: none;
+    max-width: calc(100% - 64px);
+  }
 }
 
 @media (max-width: 540px) {

@@ -17,7 +17,6 @@ import { parseRoute } from './route.ts'
 import { useDiagram } from './store.ts'
 import { SAMPLE } from './sample.ts'
 import { isFirstRun } from './components/Welcome.tsx'
-import { useDock } from './dock.ts'
 
 async function start() {
   await initializeWorkspace();
@@ -31,7 +30,6 @@ async function start() {
     if (!saved && (kind === 'canvas' || kind === 'node')) {
       useDiagram.getState().load(SAMPLE);
       showWelcome = isFirstRun();
-      if (showWelcome) useDock.getState().setOpen(false);
     }
   }
   createRoot(document.getElementById('root')!).render(

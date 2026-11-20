@@ -39,7 +39,7 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 let pendingFold: string[] | null = null;
 
 /** Jump any in-flight animation to its end state. */
-function settle() {
+export function settleFoldMotion() {
   clearTimeout(timer);
   if (pendingFold) useDiagram.getState().setCollapsed(pendingFold, true, sizeOf);
   pendingFold = null;
@@ -51,7 +51,7 @@ export const useFoldMotion = create<Motion>((set, get) => ({
   anchor: new Map(),
 
   fold: (ids) => {
-    settle();
+    settleFoldMotion();
     const { nodes, setCollapsed } = useDiagram.getState();
     const targets = new Set(
       ids.filter((id) => nodes.some((n) => n.id === id && !n.collapsed)),
@@ -75,11 +75,11 @@ export const useFoldMotion = create<Motion>((set, get) => ({
 
     pendingFold = [...targets];
     set({ phase: 'folding', anchor });
-    timer = setTimeout(settle, FOLD_MS);
+    timer = setTimeout(settleFoldMotion, FOLD_MS);
   },
 
   unfold: (ids) => {
-    settle();
+    settleFoldMotion();
     const { setCollapsed } = useDiagram.getState();
     const before = hiddenIds(useDiagram.getState().nodes);
     setCollapsed(ids, false, sizeOf);
@@ -104,7 +104,7 @@ export const useFoldMotion = create<Motion>((set, get) => ({
       requestAnimationFrame(() => {
         if (get().anchor !== anchor) return;
         set({ phase: 'unfolding' });
-        timer = setTimeout(settle, UNFOLD_MS);
+        timer = setTimeout(settleFoldMotion, UNFOLD_MS);
       }),
     );
   },

@@ -214,6 +214,7 @@ export const LAYOUTS = {
 /** Things a slide is made of, ready to drop in at the caret. */
 export const BLOCKS = {
   Diagram: '{{diagram}}',
+  'Sequence diagram': '{{sequence}}',
   Mermaid: '```mermaid\nflowchart LR\n  A --> B\n```',
   Table: '| Column | Column |\n| --- | --- |\n| Cell | Cell |',
   Code: '```ts\n\n```',
@@ -553,7 +554,8 @@ export function toMarkdown(deck: Deck, diagram: Diagram, nodeId?: string, appear
       if (t.type === 'code') return t.raw;
       return t.raw
         .replace(DIAGRAM_LINE, (_all, target: string | undefined) => mermaid(target ?? ''))
-        .replace(WIKILINK, (_all, target: string, alias: string | undefined) => (alias ?? target).trim());
+        .replace(WIKILINK, (_all, target: string, alias: string | undefined) => (alias ?? target).trim())
+        .replace(/^\{\{sequence\}\}(?:\{width=\d{1,3}%\})?[ \t]*$/gm, () => diagram.sequence ? '```mermaid\n' + diagram.sequence + '\n```' : '');
     })
     .join('')
     .trim();

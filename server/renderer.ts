@@ -63,25 +63,30 @@ export function createRenderer(workspace: Workspace, url: string) {
     try {
       await context.addInitScript(({ diagram, appearance }) => {
         window.__marmerladeRender = true;
-        localStorage.setItem('marmerlade.diagram', JSON.stringify({ version: 3, diagram }));
+        localStorage.setItem('marmerlade.diagram', JSON.stringify({ version: diagram.diagrams ? 5 : diagram.sequence === undefined ? 3 : 4, diagram }));
         localStorage.setItem('marmerlade.appearance', JSON.stringify({ selected: appearance, custom: null }));
       }, { diagram: renderDiagram(snapshot.diagram, options), appearance: options.appearance });
       const page = await context.newPage();
       page.setDefaultTimeout(20_000);
       const errors: string[] = [];
       page.on('pageerror', error => errors.push(error.message));
-      const target = options.view === 'canvas' ? '' : `${options.view}/${encodeURIComponent(options.id ?? '')}`;
+      const target = options.view === 'canvas' ? (options.diagramKind === 'sequence' ? 'diagrams/sequence' : '') : `${options.view}/${encodeURIComponent(options.id ?? '')}`;
       const query = new URLSearchParams();
       if (options.nodeId) query.set('node', options.nodeId);
       if (options.view === 'slides') query.set('slide', String(options.slide));
       await page.goto(`${url}/#/${target}${query.size ? `?${query}` : ''}`, { waitUntil: 'load' });
-      if (options.view === 'canvas') {
+      if (options.view === 'canvas' && options.diagramKind === 'sequence') {
+        if (!snapshot.diagram.sequence) throw new Error('No sequence diagram in this workspace');
+        await page.locator('.sq-image svg, .sq-empty').waitFor({ state: 'visible' });
+      } else if (options.view === 'canvas') {
         await page.waitForFunction(() => !!window.marmerladeRenderer && document.querySelector('.react-flow__viewport'));
         await page.evaluate(async () => { if (window.marmerladeRenderer) await window.marmerladeRenderer.fit(); });
         await page.addStyleTag({ content: '.mf-toolbar,.mf-style-panel,.mf-reopen,.react-flow__controls,.react-flow__minimap {display:none!important}' });
       } else {
         await page.locator(options.view === 'wiki' ? '.wk-document' : '.sl-slide').first().waitFor({ state: 'visible' });
         if (options.view === 'wiki') await page.getByRole('tab', { name: 'Read', exact: true }).click();
+        if (snapshot.diagram.sequence) await page.waitForFunction(() =>
+          Array.from(document.querySelectorAll('.embed[data-sequence]')).every(el => el.hasAttribute('data-shown')));
       }
       await page.evaluate(async () => {
         await document.fonts.ready;
@@ -127,6 +132,14 @@ export function createRenderer(workspace: Workspace, url: string) {
   }
 
   return {
+    validateSequence(revision: number, source: string) {
+      const value = snapshot(revision);
+      return exclusive(async () => {
+        const session = await pageFor(value, renderOptionsSchema.parse({}));
+        try { await session.page.evaluate(source => window.marmerladeRenderer!.validateSequence(source), source); }
+        finally { await session.close(); }
+      });
+    },
     preview(revision: number, options: RenderOptions) {
       const value = snapshot(revision);
       return exclusive(async () => {
@@ -170,6 +183,7 @@ export function createRenderer(workspace: Workspace, url: string) {
       });
     },
     exportGif(revision: number, options: RenderOptions, gif: RenderGifOptions) {
+      if (options.diagramKind === 'sequence') throw new Error('GIF export requires a flowchart');
       if (options.view !== 'canvas') throw new Error('GIF export supports the canvas view');
       const value = snapshot(revision);
       if (!value.diagram.nodes.length) throw new Error('Add diagram nodes before exporting a GIF');

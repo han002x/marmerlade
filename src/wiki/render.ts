@@ -44,7 +44,7 @@ const marked = new Marked({
     {
       name: 'embed',
       level: 'block',
-      start: (src) => src.indexOf('{{diagram'),
+      start: (src) => src.search(/\{\{(?:diagram|sequence)/),
       tokenizer(src) {
         const embed = readDiagramEmbed(src);
         return embed && { type: 'embed', ...embed };
@@ -53,6 +53,7 @@ const marked = new Marked({
         const embed = readDiagramEmbed(token.raw);
         if (!embed) return '';
         const width = embed.width === null ? '' : ` data-embed-width="${embed.width}" style="width:${embed.width}%"`;
+        if (embed.sequence) return `<div class="embed" data-sequence=""${width}></div>\n`;
         return `<div class="embed" data-embed="${esc(embed.target)}"${width}></div>\n`;
       },
     },

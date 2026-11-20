@@ -51,12 +51,12 @@ export default function DiagramView({ node, editor, getPos, updateAttributes, no
       <button type="button" className="wk-icon" aria-label="Move diagram down" title="Move diagram down" disabled={!resolved || index >= resolved.parent.childCount - 1} onClick={() => move(1)}>↓</button>
     </div>
     <div ref={frame} className="wk-diagram-frame">
-      {nodeId || target ? <div className={width === null ? undefined : 'wk-sized-diagram'}
+      {nodeId || target || node.attrs.sequence ? <div className={width === null ? undefined : 'wk-sized-diagram'}
         style={width === null ? undefined : { width: `${width}%` }}>
-        <Preview body={diagramMarkdown(target)} nodeId={nodeId} onPage={onPage} onNode={onNode} onDiagramWidth={setIntrinsicWidth} />
+        <Preview body={diagramMarkdown(target, null, node.attrs.sequence)} nodeId={nodeId} onPage={onPage} onNode={onNode} onDiagramWidth={setIntrinsicWidth} />
       </div>
         : <span className="wk-empty-links">Link this page to a node to show its diagram.</span>}
-      {(nodeId || target) && <button type="button" className="wk-diagram-resize" aria-label="Resize diagram" title="Resize diagram"
+      {(nodeId || target || node.attrs.sequence) && <button type="button" className="wk-diagram-resize" aria-label="Resize diagram" title="Resize diagram"
         style={{ left: handleLeft }}
         onPointerDown={event => {
           if (event.button !== 0) return;

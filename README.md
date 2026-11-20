@@ -45,7 +45,7 @@ to be useful or too detailed to read. Marmerlade lets you have both.
 | | |
 | --- | --- |
 | 🪗 **Foldable diagrams** | Nest groups to any depth. Fold a whole level at once, or open one group at a time. |
-| 🧜 **Mermaid editing** | Edit source beside the canvas. Import flowcharts and export Mermaid for other tools. |
+| 🧜 **Mermaid editing** | Edit source beside the canvas. Edit flowcharts and sequence diagrams in the same workspace, then export either as Mermaid. |
 | 📖 **Connected wiki** | Link pages to nodes, share a page across nodes, and follow wikilinks and backlinks. |
 | 🎞️ **Markdown slides** | Write decks with live diagram embeds, speaker notes, and a presenter view. Print to PDF. |
 | ▶️ **Flow playback** | Animate connections in sequence, step through a flow, or export the loop as a GIF. |
@@ -153,7 +153,8 @@ save to `architecture.marmerlade.json`, so you can commit them with your code.
 | PDF / GIF | Print a presentation to PDF, or export flow playback as an animated GIF. |
 
 Mermaid import supports a [flowchart subset](docs/usage.md#mermaid-support),
-including subgraphs, classic shapes, labeled edges, and icon metadata.
+including subgraphs, classic shapes, labeled edges, and icon metadata. It also
+opens [Mermaid sequence diagrams](docs/usage.md#sequence-diagrams) as entities alongside flowcharts on one workspace canvas. Each workspace can hold multiple diagrams of either type.
 
 ## Learn more
 

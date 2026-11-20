@@ -2,6 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "diagramKind": {
+      "default": "flowchart",
+      "type": "string",
+      "enum": [
+        "flowchart",
+        "sequence"
+      ]
+    },
     "view": {
       "default": "canvas",
       "type": "string",

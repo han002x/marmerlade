@@ -35,6 +35,7 @@ const SHAPE_TOOLS = [
   { shape: 'arrow', label: 'Arrow', icon: 'arrow' },
 ] as const;
 const BLOCK_TOOLS = [
+  { name: 'Sequence diagram', icon: 'shapes' },
   { name: 'Mermaid', icon: 'group' },
   { name: 'Table', icon: 'grid' },
   { name: 'Code', icon: 'code' },
@@ -373,8 +374,8 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
 
   const download = () => {
     if (!deck) return;
-    const { nodes, edges } = useDiagram.getState();
-    const url = URL.createObjectURL(new Blob([toMarkdown(deck, { nodes, edges }, node?.id, activeAppearance())], { type: 'text/markdown' }));
+    const { nodes, edges, sequence } = useDiagram.getState();
+    const url = URL.createObjectURL(new Blob([toMarkdown(deck, { nodes, edges, sequence }, node?.id, activeAppearance())], { type: 'text/markdown' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = deckFileName(deck);

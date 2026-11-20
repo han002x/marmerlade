@@ -6,8 +6,8 @@ import { previewRequestSchema, gifRequestSchema } from '../../../src/renderContr
 const schemas = [
   {
     filename: 'workspace.schema.json',
-    id: 'urn:marmerlade:workspace:v3',
-    schema: z.object({ version: z.literal(3), diagram: diagramSchema }),
+    id: 'urn:marmerlade:workspace:v5',
+    schema: z.object({ version: z.literal([3, 4, 5]), diagram: diagramSchema }),
   },
   {
     filename: 'changes.schema.json',

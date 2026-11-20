@@ -37,25 +37,26 @@ export const DiagramEmbed = Node.create({
   name: 'diagramEmbed', group: 'block', atom: true, draggable: true,
   addAttributes: () => ({
     target: { default: '' },
+    sequence: { default: false },
     width: { default: null },
   }),
   parseHTML: () => [{
     tag: 'div[data-diagram]',
     getAttrs: element => {
       const width = Number(element.getAttribute('data-width'));
-      return { target: element.getAttribute('data-diagram') ?? '', width: width > 0 && width <= 100 ? width : null };
+      return { sequence: element.hasAttribute('data-sequence'), target: element.getAttribute('data-diagram') ?? '', width: width > 0 && width <= 100 ? width : null };
     },
   }],
-  renderHTML: ({ node }) => ['div', { 'data-diagram': node.attrs.target, 'data-width': node.attrs.width }, 'Diagram'],
+  renderHTML: ({ node }) => ['div', { 'data-diagram': node.attrs.target, 'data-width': node.attrs.width, 'data-sequence': node.attrs.sequence ? '' : null }, 'Diagram'],
   markdownTokenizer: {
-    name: 'diagramEmbed', level: 'block', start: src => src.indexOf('{{diagram'),
+    name: 'diagramEmbed', level: 'block', start: src => src.search(/\{\{(?:diagram|sequence)/),
     tokenize(src) {
       const embed = readDiagramEmbed(src);
       return embed && { type: 'diagramEmbed', ...embed };
     },
   },
-  parseMarkdown: token => ({ type: 'diagramEmbed', attrs: { target: token.target, width: token.width } }),
-  renderMarkdown: node => diagramMarkdown(node.attrs?.target, node.attrs?.width ?? null),
+  parseMarkdown: token => ({ type: 'diagramEmbed', attrs: { target: token.target, width: token.width, sequence: token.sequence } }),
+  renderMarkdown: node => diagramMarkdown(node.attrs?.target, node.attrs?.width ?? null, node.attrs?.sequence),
 });
 
 export function editorExtensions(diagram: typeof DiagramEmbed = DiagramEmbed) {

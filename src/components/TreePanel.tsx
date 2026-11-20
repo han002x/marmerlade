@@ -5,7 +5,7 @@ import { useFoldMotion } from '../foldMotion';
 import { useDock } from '../dock';
 
 const NONE: string[] = [];
-import type { DiagramNode } from '../types';
+import type { DiagramEntity, DiagramNode } from '../types';
 import { Icon } from './Icon';
 import { showDeck, showPage } from '../dock';
 
@@ -56,16 +56,22 @@ function EditableLabel({ label, fallback, onSave }: {
   );
 }
 
-function TreePanelInner() {
-  const nodes = useStructure();
-  const edges = useDiagram((s) => s.edges);
+function TreePanelInner({diagram,activate}: {
+  diagram?:Extract<DiagramEntity,{kind:'flowchart'}>;
+  activate?:()=>void;
+}) {
+  const liveNodes = useStructure();
+  const liveEdges = useDiagram((s) => s.edges);
+  const current = useDiagram(s=>!diagram || s.activeDiagramId===diagram.id);
+  const nodes = current ? liveNodes : diagram?.nodes ?? liveNodes;
+  const edges = current ? liveEdges : diagram?.edges ?? liveEdges;
   const pages = useDiagram((s) => s.pages);
   const decks = useDiagram((s) => s.decks);
   // hidden while another tab shows: hover and selection must not re-render it
   const shown = useDock((s) => s.view === 'tree');
-  const selectedNodeIds = useDiagram((s) => (shown ? s.selectedNodeIds : NONE));
-  const selectedEdgeIds = useDiagram((s) => (shown ? s.selectedEdgeIds : NONE));
-  const highlight = useDiagram((s) => (shown ? s.highlight : null));
+  const selectedNodeIds = useDiagram((s) => (shown && current ? s.selectedNodeIds : NONE));
+  const selectedEdgeIds = useDiagram((s) => (shown && current ? s.selectedEdgeIds : NONE));
+  const highlight = useDiagram((s) => (shown && current ? s.highlight : null));
   const setHighlight = useDiagram((s) => s.setHighlight);
   const setSelection = useDiagram((s) => s.setSelection);
   const updateLabel = useDiagram((s) => s.updateLabel);
@@ -85,6 +91,7 @@ function TreePanelInner() {
   }, [nodes, byId]);
 
   const select = (event: MouseEvent, kind: 'node' | 'edge', id: string) => {
+    activate?.();
     const reveal = new Set<string>();
     const revealParents = (nodeId: string) => {
       let parent = byId.get(nodeId)?.parentId;
@@ -107,6 +114,7 @@ function TreePanelInner() {
     if (folded.length) motion.unfold(folded);
     const extend = event.metaKey || event.ctrlKey || event.shiftKey;
     const toggle = (ids: string[]) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
+    const {selectedNodeIds,selectedEdgeIds}=useDiagram.getState();
     setSelection(
       kind === 'node' ? (extend ? toggle(selectedNodeIds) : [id]) : (extend ? selectedNodeIds : []),
       kind === 'edge' ? (extend ? toggle(selectedEdgeIds) : [id]) : (extend ? selectedEdgeIds : []),
@@ -130,8 +138,8 @@ function TreePanelInner() {
         return (
           <li key={node.id}>
             <div className={rowClass('node', node.id, selectedNodeIds.includes(node.id))}
-              onMouseEnter={() => setHighlight({ kind: 'node', id: node.id })}
-              onMouseLeave={() => setHighlight(null)}>
+              onMouseEnter={() => current && setHighlight({ kind: 'node', id: node.id })}
+              onMouseLeave={() => current && setHighlight(null)}>
               {hasChildren ? (
                 <button className="mf-tree-toggle" aria-label={`${expanded ? 'Collapse' : 'Expand'} ${node.label || node.id}`}
                   aria-expanded={expanded} onClick={() => setClosed((previous) => {
@@ -148,14 +156,14 @@ function TreePanelInner() {
                 <Icon name={count ? 'group' : node.shape === 'diamond' ? 'diamond' : node.shape === 'circle' ? 'circle' : 'rect'} size={14} />
               </button>
               <div className="mf-tree-name" onClick={(event) => select(event, 'node', node.id)}>
-                <EditableLabel label={node.label} fallback={node.id} onSave={(label) => updateLabel(node.id, label)} />
+                <EditableLabel label={node.label} fallback={node.id} onSave={(label) => { activate?.();updateLabel(node.id,label); }} />
               </div>
               <span className="mf-tree-id">{node.id}</span>
             </div>
             {hasChildren && expanded && <>
               {linkedDecks.length > 0 && <ul className="mf-tree-list">
                 {linkedDecks.map((deck) => <li key={deck.id}>
-                  <button className="mf-tree-page" onClick={() => showDeck(node.id, deck.id)}
+                  <button className="mf-tree-page" onClick={() => { activate?.();showDeck(node.id,deck.id); }}
                     title={deck.title || 'Untitled'}>
                     <Icon name="deck" size={14} />
                     <span>{deck.title || 'Untitled'}</span>
@@ -182,8 +190,8 @@ function TreePanelInner() {
     </ul>
   );
 
-  return (
-    <nav className="mf-tree" aria-label="Diagram tree">
+  const content=(
+    <>
       {nodes.length === 0 ? <p className="mf-tree-empty">No nodes</p> : renderNodes(null)}
       {edges.length > 0 && <>
         <h3 className="mf-tree-heading">Connections</h3>
@@ -192,22 +200,23 @@ function TreePanelInner() {
             const endpoints = `${byId.get(edge.source)?.label || edge.source} → ${byId.get(edge.target)?.label || edge.target}`;
             return (
               <li key={edge.id} title={endpoints} className={rowClass('edge', edge.id, selectedEdgeIds.includes(edge.id))}
-                onMouseEnter={() => setHighlight({ kind: 'edge', id: edge.id })}
-                onMouseLeave={() => setHighlight(null)}>
+                onMouseEnter={() => current && setHighlight({ kind: 'edge', id: edge.id })}
+                onMouseLeave={() => current && setHighlight(null)}>
                 <button className="mf-tree-select" aria-label={`Select connection ${endpoints}`}
                   aria-pressed={selectedEdgeIds.includes(edge.id)} onClick={(event) => select(event, 'edge', edge.id)}>
                   <Icon name="tidy-right" size={14} />
                 </button>
                 <div className="mf-tree-name" onClick={(event) => select(event, 'edge', edge.id)}>
-                  <EditableLabel label={edge.label ?? ''} fallback={endpoints} onSave={(label) => updateEdgeLabel(edge.id, label)} />
+                  <EditableLabel label={edge.label ?? ''} fallback={endpoints} onSave={(label) => { activate?.();updateEdgeLabel(edge.id,label); }} />
                 </div>
               </li>
             );
           })}
         </ul>
       </>}
-    </nav>
+    </>
   );
+  return diagram ? content : <nav className="mf-tree" aria-label="Diagram tree">{content}</nav>;
 }
 
 export const TreePanel = memo(TreePanelInner);

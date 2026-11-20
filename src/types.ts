@@ -158,6 +158,9 @@ export interface DiagramEdge {
 }
 
 export interface Diagram {
+  diagrams?: DiagramEntity[];
+  /** Mermaid sequence source, independent of the flowchart. */
+  sequence?: string;
   nodes: DiagramNode[];
   edges: DiagramEdge[];
   /** wiki pages; absent in diagrams saved before the wiki existed */
@@ -166,3 +169,14 @@ export interface Diagram {
   decks?: Deck[];
   wikiFolders?: WikiFolder[];
 }
+
+/** A diagram placed on the shared workspace canvas. */
+export type DiagramEntity = {
+  id: string;
+  title: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+} & (
+  | { kind: 'flowchart'; nodes: DiagramNode[]; edges: DiagramEdge[] }
+  | { kind: 'sequence'; source: string }
+);

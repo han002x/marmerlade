@@ -1,3 +1,5 @@
+import { parseDiagram } from './workspaceSchema.ts';
+import { validateSequence } from './sequence/model.ts';
 // Diagram persistence: autosave to localStorage, restore on load, and
 // file-based export/import. Keeps the "open and build, come back later"
 // promise — nothing is lost on refresh.
@@ -40,8 +42,8 @@ export function readSaved(): Diagram | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Saved;
-    if (![1, 2, VERSION].includes(parsed.version) || !parsed.diagram) return null;
-    return removeSampleWalkthrough(normalizeDiagram(parsed.diagram));
+    if (![1, 2, VERSION, 4, 5].includes(parsed.version) || !parsed.diagram) return null;
+    return removeSampleWalkthrough(parseDiagram(parsed.diagram));
   } catch {
     return null;
   }
@@ -50,7 +52,7 @@ export function readSaved(): Diagram | null {
 export function write(diagram: Diagram) {
   if (isLiveWorkspace()) return;
   try {
-    localStorage.setItem(KEY, JSON.stringify({ version: VERSION, diagram: normalizeDiagram(diagram) }));
+    localStorage.setItem(KEY, JSON.stringify({ version: diagram.diagrams ? 5 : diagram.sequence === undefined ? VERSION : 4, diagram: normalizeDiagram(diagram) }));
   } catch {
     // storage full or disabled — autosave is best-effort, never fatal
   }
@@ -81,7 +83,7 @@ export function startAutosave(debounceMs = 400): () => void {
       write(workspaceDiagram(state));
       return;
     }
-    if (state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
+    if (state.diagrams === prev.diagrams && state.sequence === prev.sequence && state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
     window.clearTimeout(timer);
     timer = window.setTimeout(flush, debounceMs);
   });
@@ -99,8 +101,20 @@ export function startSync(): () => void {
     if (e.key !== KEY) return;
     const saved = readSaved();
     if (!saved) return;
+    // Another tab may be editing the other canvas inside our autosave debounce.
+    // A sequence-only save carries a snapshot of the flowchart it last saw.
+    let previous: Diagram | undefined;
+    try { previous = e.oldValue ? JSON.parse(e.oldValue).diagram : undefined; } catch { /* Legacy or missing snapshot. */ }
+    const local = useDiagram.getState();
+    if(saved.diagrams){applyingRemote=true;try{local.applyRemote(saved);}finally{applyingRemote=false;}return;}
+    if (previous && previous.sequence === saved.sequence) saved.sequence = local.sequence;
+    if (previous && previous.sequence !== saved.sequence &&
+        JSON.stringify([previous.nodes, previous.edges]) === JSON.stringify([saved.nodes, saved.edges])) {
+      saved.nodes = local.nodes;
+      saved.edges = local.edges;
+    }
     applyingRemote = true;
-    try { useDiagram.getState().applyRemote(saved); }
+    try { local.applyRemote(saved); }
     finally { applyingRemote = false; }
   };
   window.addEventListener('storage', onStorage);
@@ -109,7 +123,8 @@ export function startSync(): () => void {
 
 /** Download the current diagram as a .marmerlade.json file. */
 export function exportFile() {
-  const payload: Saved = { version: VERSION, diagram: workspaceDiagram() };
+  const diagram = workspaceDiagram();
+  const payload: Saved = { version: diagram.diagrams ? 5 : diagram.sequence === undefined ? VERSION : 4, diagram };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: 'application/json',
   });
@@ -129,5 +144,10 @@ export async function importFile(file: File): Promise<void> {
   if (!Array.isArray(diagram.nodes) || !Array.isArray(diagram.edges)) {
     throw new Error('Not a marmerlade diagram file');
   }
-  useDiagram.getState().load(diagram);
+  if (diagram.sequence !== undefined) {
+    await validateSequence(diagram.sequence);
+  }
+  const valid=parseDiagram(diagram);
+  for(const entity of valid.diagrams ?? []) if(entity.kind==='sequence')await validateSequence(entity.source);
+  useDiagram.getState().load(valid);
 }

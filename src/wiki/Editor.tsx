@@ -40,6 +40,7 @@ const commands: Choice[] = [
   { label: 'Code block', aliases: 'pre snippet', run: (e: ChainedCommands) => e.toggleCodeBlock() },
   { label: 'Divider', aliases: 'horizontal rule hr', run: (e: ChainedCommands) => e.setHorizontalRule() },
   { label: 'Table', aliases: 'grid cells', run: (e: ChainedCommands) => e.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) },
+  { label: 'Sequence diagram', aliases: 'embed lifelines', run: (e: ChainedCommands) => e.insertContent({ type: 'diagramEmbed', attrs: { sequence: true } }) },
   { label: 'Diagram', aliases: 'embed canvas', run: (e: ChainedCommands) => e.insertContent({ type: 'diagramEmbed' }) },
 ];
 type Suggestion = { from: number; to: number; query: string; kind: 'slash' | 'wiki'; x: number; y: number };

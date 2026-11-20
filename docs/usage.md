@@ -4,8 +4,17 @@
 
 ## Infinite canvas
 
-Pan, zoom, minimap, drag nodes, draw edges by dragging
-between handles. Built on [React Flow](https://reactflow.dev) (`@xyflow/react`).
+The workspace canvas holds multiple flowchart and sequence diagram entities.
+Open **Add diagram** in the toolbar. Drag **Flowchart** or **Sequence** onto
+the canvas, or choose a type and click where you want the diagram to start.
+Drag a diagram by its name bar or preview to move it. Rename it in its header
+or resize it when selected. Drag on empty canvas to select several diagrams,
+then move, duplicate, or delete them together.
+
+Double-click a diagram or choose **Edit diagram** to edit it in place.
+Choose **Done** when finished. Drag flowchart nodes and draw edges between
+handles. Pan or zoom anywhere on the workspace, or use the minimap to
+navigate between diagrams. Built on [React Flow](https://reactflow.dev) (`@xyflow/react`).
 
 ## Origami folding
 
@@ -20,9 +29,10 @@ time. Nesting is arbitrary depth.
 
 ## Mermaid interop
 
-The right panel has **Mermaid** and **Tree** tabs.
-Mermaid edits sync live with the canvas. The tree follows subgraph nesting,
-with expandable groups and a connection list. Select nodes or connections in
+The shared right panel edits the active diagram. In **Tree**, expand a diagram
+row to see its contents, or click the row to activate that diagram. Flowcharts
+list their nested node groups and connections. Sequences list participants and
+messages. Edits in **Mermaid** sync live with the active diagram. Select nodes or connections in
 the tree, or double-click their labels to rename them; changes update the
 canvas and Mermaid source. **Copy** exports the source for other renderers.
 
@@ -183,7 +193,7 @@ natively; Marp needs a Mermaid plugin, and HTML enabled to show objects. Deck li
 The diagram autosaves to `localStorage` and restores on
 reload, so nothing is lost on refresh. Export / import a `.marmerlade.json` file,
 or clear the canvas, from the toolbar. Older single-page saves and JSON files
-migrate automatically; new saves use version 3.
+migrate automatically. Workspaces containing diagram entities save as version 5, including every diagram and its frame position and size.
 
 ## Paper and ink
 
@@ -231,7 +241,7 @@ shortcuts show their keys in the bottom-right corner of each button and in their
 
 ## Mermaid support
 
-Parses the common `flowchart` / `graph` subset: node declarations in all 14
+The flowchart canvas parses the common `flowchart` / `graph` subset: node declarations in all 14
 classic bracket shapes (`[]` `()` `([])` `[[]]` `[()]` `(())` `((()))` `{}`
 `{{}}` `[//]` `[\\]` `[/\]` `[\/]` `>]`), v11 `@{ shape: … }` / `@{ icon: … }`
 metadata, `-->` / `---` edges with optional `|labels|`, and `subgraph … end`
@@ -246,3 +256,50 @@ The shape table lives in `src/shapes.ts`.
 Inter and JetBrains Mono are self-hosted via `@fontsource` and bundled into the
 build, so there's no Google Fonts network dependency and the app renders
 correctly offline.
+
+### Sequence diagrams
+
+Choose **Add diagram → Sequence** and click the workspace canvas to place it.
+Open it in **Tree** or choose **Edit diagram** in its header. Each sequence has its own source and participants.
+Paste the following in its Mermaid editor.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant API as Order service
+    Customer->>API: Submit order
+    alt Accepted
+        API-->>Customer: Order number
+    else Invalid
+        API-->>Customer: Check address
+    end
+```
+
+Drag **Place participant** from the toolbar onto the canvas. Drop it between
+two headers to insert a lane there. You can also press **R**, click the canvas,
+type a participant label, and press **Enter**.
+
+Drag a connection handle onto a receiving participant to create a message on
+drop. With **Connect participants** active, you can drag directly from one
+header to another. You can also click the sender and receiver, then enter a
+label. Click the same participant twice for a self-message.
+
+Double-click a participant, message arrow, or note to edit its label. Drag a
+participant header horizontally to reorder its lane. Its lifeline, incoming
+arrows, and outgoing arrows follow the drag. Drag a message vertically to
+change its order within a branch. Drag on the background
+to select several elements. **Delete** removes the selection and **Ctrl/Cmd+Z**
+undoes the edit.
+
+Expand the sequence in **Tree** to edit statement properties or insert a note, block,
+or other Mermaid construct. Select a statement, edit its fields, and choose **Apply edit**. Select a block and choose
+**Add else branch**, **Add and branch**, or **Add option branch** to extend it.
+**Clear selection** places new elements at the end of the sequence. Use
+**Mermaid** to edit or copy the complete sequence. During an invalid edit
+the source panel shows the parser error and the canvas retains the last valid drawing.
+
+Use **Export PNG** for an image and **Workspace file** in the Export menu to share the editable
+diagrams and their documents. Insert **Sequence diagram** in a wiki page or a
+slide, or write `{{sequence}}` on its own line. The embed follows the workspace
+sequence, including when the flowchart is open. Standalone deck Markdown includes
+the sequence as a Mermaid code fence.

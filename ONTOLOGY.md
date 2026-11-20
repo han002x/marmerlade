@@ -15,7 +15,7 @@ Diagram ─┬─ nodes[]  DiagramNode   a box, icon, image, or group
 
 One flat document, saved as `{ version: 3, diagram: { nodes, edges, pages, decks } }`
 (`.marmerlade.json`, and `localStorage["marmerlade.diagram"]`). Import also accepts a
-bare `Diagram`. `pages`, `decks`, and `wikiFolders` may be absent. A wiki folder
+bare `Diagram`. Adding a `sequence` source string saves the envelope as version 4. `pages`, `decks`, and `wikiFolders` may be absent. A wiki folder
 has `id`, `name`, `parentId`, and `pageIds`. A null parent places the folder at
 the top level. Pages outside folders appear at the top level.
 
@@ -194,7 +194,7 @@ transition: fade             # fade | slide
 ## Mermaid mapping
 
 `src/mermaid/io.ts`: `toMermaid` / `fromMermaid` / `parseMermaid` (strict).
-Output is always `flowchart TD`.
+Flowchart output begins with `flowchart TD`. The workspace also accepts an optional `sequence` string containing the original Mermaid sequence source. Both diagrams share pages and decks. Use `{{sequence}}` to embed the complete sequence.
 
 | marmerlade | Mermaid |
 | --- | --- |
@@ -209,8 +209,7 @@ Output is always `flowchart TD`.
 
 Parser limits: chains (`A --> B --> C`) and `&` groups (`A & B --> C & D`)
 import as one edge per node pair and export one per line; `-->`, `---`,
-`-.->`, `==>` all import as a plain edge; only `flowchart`/`graph` (not
-`sequenceDiagram`). Any line it cannot read makes `parseMermaid` fail, so the
+`-.->`, `==>` all import as a plain edge; flowchart import accepts `flowchart` and `graph`. Sequence imports go to the sequence canvas. Any line it cannot read makes `parseMermaid` fail, so the
 canvas holds its last good state.
 
 **Mermaid carries structure only.** It loses: `position`, `collapsed`,
@@ -288,3 +287,16 @@ In the browser console or a script, the store takes the same data:
   yet. Creating the explanation fills that reference.)
 - `updatedAt` is bumped on every body change.
 - Page and deck ids contain no `"`, `?`, `#` or `/`.
+
+
+## Diagram entities
+
+Version 5 workspaces include a `diagrams` array. Each diagram is an independent
+entity with an ID, title, canvas position, and frame size. A flowchart entity has
+`kind: "flowchart"`, `nodes`, and `edges`. A sequence entity has
+`kind: "sequence"` and Mermaid `source`. Both types coexist on the workspace
+canvas and can have multiple instances. Node and edge identifiers are local to
+their flowchart. Pages and decks belong to the workspace.
+
+The original top-level graph and sequence fields project the first entity of
+each type. Older files migrate into frames when opened on the shared canvas.

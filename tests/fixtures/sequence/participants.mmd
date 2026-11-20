@@ -1,0 +1,35 @@
+sequenceDiagram
+    title Checkout request
+    accTitle: Checkout
+    accDescr {
+        The customer asks the gateway to submit an order.
+    }
+    %% Retain participant aliases and metadata when another statement changes.
+    actor U as Customer
+    box rgb(220,230,240) Services
+        participant API@{ "type": "boundary", "alias": "Gateway" }
+        participant C@{ "type": "control" } as Controller
+        participant Order@{ "type": "entity" }
+        participant DB@{ "type": "database" }
+        participant History@{ "type": "collections" }
+        participant Jobs@{ "type": "queue" }
+    end
+    link API: Guide @ https://example.org/guide
+    links C: {"Guide":"https://example.org/guide"}
+    properties DB: {"Role":"primary"}
+    details API: gatewayDetails
+    autonumber 10 2
+    U->>+API: Submit order
+    activate C
+    Note left of U: Ready
+    Note over U,API: Checkout
+    Note right of C: Work in progress
+    C->>C: Check again
+    C->>C: Check again
+    deactivate C
+    API-->>-U: Accepted
+    autonumber off
+    create participant Job
+    Jobs-)Job: Run
+    destroy Job
+    Job--)Jobs: Finished

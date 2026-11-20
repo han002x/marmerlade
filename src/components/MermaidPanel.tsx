@@ -1,6 +1,9 @@
-import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, memo, Suspense, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useDiagram, useStructure } from '../store';
 import { toMermaidWithMap } from '../mermaid/io';
+import { activeAppearance } from '../theme';
+import { diagramSvg } from '../mermaid/svg';
+import { isSequence, statements, validateSequence } from '../sequence/model';
 import { Icon } from './Icon';
 import { AppearanceSettings } from './AppearanceSettings';
 import { TreePanel } from './TreePanel';
@@ -28,11 +31,16 @@ const SlidesPanel = lazy(() => import('./SlidesPanel'));
 const views: View[] = ['tree', 'mermaid', 'page', 'slides', 'appearance'];
 const titles: Record<View, string> = { mermaid: 'Mermaid', tree: 'Tree', page: 'Page', slides: 'Slides', appearance: 'Appearance' };
 
-export function MermaidPanel({ width, onWidthChange, onClose }: {
-  width: number;
-  onWidthChange: (width: number) => void;
-  onClose: () => void;
+export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=true}: {
+  width:number;
+  onWidthChange:(width:number)=>void;
+  onClose:()=>void;
+  tree?:ReactNode;
+  source?:ReactNode;
+  showLinks?:boolean;
 }) {
+  const tab=useDock(s=>s.view);
+  const setTab=useDock(s=>s.setView);
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const resize = useRef<{ pointerId: number; x: number; width: number } | null>(null);
   const maxWidth = Math.min(Math.max(280, viewportWidth - 240), viewportWidth);
@@ -46,6 +54,128 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  return (
+    <aside className="mf-panel" id="mf-right-panel" style={{ width: panelWidth }} onKeyDown={(event) => {
+      if (tab === 'appearance' && event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+        requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[aria-label="More actions"]')?.focus());
+      }
+    }}>
+      <div
+        className="mf-panel-resize"
+        role="separator"
+        tabIndex={0}
+        aria-label="Resize right panel"
+        aria-orientation="vertical"
+        aria-controls="mf-right-panel"
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        aria-valuenow={panelWidth}
+        aria-valuetext={`${panelWidth} pixels`}
+        title="Drag to resize · Double-click to reset"
+        onPointerDown={(event) => {
+          if (event.button !== 0 || !event.isPrimary) return;
+          event.preventDefault();
+          event.currentTarget.focus();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          resize.current = { pointerId: event.pointerId, x: event.clientX, width: panelWidth };
+        }}
+        onPointerMove={(event) => {
+          const start = resize.current;
+          if (start?.pointerId !== event.pointerId) return;
+          onWidthChange(clampWidth(start.width + start.x - event.clientX));
+        }}
+        onPointerUp={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+        }}
+        onPointerCancel={() => { resize.current = null; }}
+        onLostPointerCapture={() => { resize.current = null; }}
+        onDoubleClick={() => onWidthChange(clampWidth(360))}
+        onKeyDown={(event) => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const step = event.shiftKey ? 50 : 10;
+          const next = event.key === 'Home' ? minWidth
+            : event.key === 'End' ? maxWidth
+            : panelWidth + (event.key === 'ArrowLeft' ? step : -step);
+          onWidthChange(clampWidth(next));
+        }}
+      />
+      <div className="mf-panel-head">
+        <div className="mf-panel-tabs" role="tablist" aria-label="Diagram views">
+          {views.map((view) => (
+            <button key={view} id={`mf-tab-${view}`} role="tab"
+              aria-label={titles[view]} title={titles[view]}
+              aria-selected={tab === view} aria-controls={`mf-view-${view}`}
+              tabIndex={tab === view ? 0 : -1}
+              onKeyDown={(event) => {
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const at = views.indexOf(view);
+                const next =
+                  event.key === 'Home' ? views[0]
+                  : event.key === 'End' ? views[views.length - 1]
+                  : views[(at + (event.key === 'ArrowRight' ? 1 : views.length - 1)) % views.length];
+                document.getElementById(`mf-tab-${next}`)?.click();
+                document.getElementById(`mf-tab-${next}`)?.focus();
+              }}
+              onClick={() => {
+                const state=useDiagram.getState();
+                state.setHighlight(null);
+                state.setInsertion(null);
+                setTab(view);
+              }}>
+              <Icon name={icons[view]} size={16} />
+            </button>
+          ))}
+        </div>
+        <button
+          className="mf-tool"
+          aria-label="Close panel"
+          title="Close  ·  M"
+          onClick={onClose}
+        >
+          <Icon name="close" size={15} />
+        </button>
+      </div>
+
+      <div className="mf-panel-body mf-appearance mf-appearance-docked" role="tabpanel" id="mf-view-appearance"
+        aria-labelledby="mf-tab-appearance" hidden={tab !== 'appearance'}>
+        {tab === 'appearance' && <AppearanceSettings />}
+      </div>
+      <div className="mf-panel-body" role="tabpanel" id="mf-view-page"
+        aria-labelledby="mf-tab-page" hidden={tab !== 'page'}>
+        {tab === 'page' && (showLinks ? (
+          <Suspense fallback={null}>
+            <PagePanel />
+          </Suspense>
+        ) : <p className="mf-tree-empty">Select a flowchart node to view its page.</p>)}
+      </div>
+      <div className="mf-panel-body" role="tabpanel" id="mf-view-slides"
+        aria-labelledby="mf-tab-slides" hidden={tab !== 'slides'}>
+        {tab === 'slides' && (showLinks ? (
+          <Suspense fallback={null}>
+            <SlidesPanel />
+          </Suspense>
+        ) : <p className="mf-tree-empty">Select a flowchart node to view its slides.</p>)}
+      </div>
+      <div className="mf-panel-body" role="tabpanel" id="mf-view-tree"
+        aria-labelledby="mf-tab-tree" hidden={tab !== 'tree'}>
+        {tree ?? <TreePanel />}
+      </div>
+      <div className="mf-panel-body" role="tabpanel" id="mf-view-mermaid"
+        aria-labelledby="mf-tab-mermaid" hidden={tab !== 'mermaid'}>
+        {source ?? <FlowchartSource />}
+      </div>
+    </aside>
+  );
+}
+
+export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:Map<string,string>} = {}) {
   const syncMermaid = useDiagram((s) => s.syncMermaid);
   const nodes = useStructure();
   const edges = useDiagram((s) => s.edges);
@@ -58,8 +188,8 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
   const base = usePageBase((s) => s.base);
   const setBase = usePageBase((s) => s.set);
   const tab = useDock((s) => s.view);
-  const setTab = useDock((s) => s.setView);
-  const [text, setText] = useState('');
+  const savedDraft = diagramId ? drafts?.get(diagramId) : undefined;
+  const [text, setText] = useState(savedDraft ?? '');
   // line map is only valid while the textarea matches the live diagram; while
   // a parse error stands we null the mapping so stale highlights don't point at
   // wrong lines. On a clean parse the text and canvas agree, so it stays live.
@@ -68,7 +198,7 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
   );
   // true only while the textarea text does not cleanly map to the live diagram
   // (an in-flight debounce or a standing parse error); gates highlight/gap sync
-  const [edited, setEdited] = useState(false);
+  const [edited, setEdited] = useState(savedDraft !== undefined);
   const [err, setErr] = useState<string | null>(null);
 
   /** boundary index where an insertion caret is shown: caret sits *above* line
@@ -146,10 +276,29 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
   // clears (re-enabling highlight/gap sync); on a parse error we hold the last
   // good canvas and surface the message inline
   const syncTimer = useRef<number | null>(null);
-  const pendingSource = useRef('');
+  const pendingSource = useRef(savedDraft ?? '');
+  const isCurrent = () => !diagramId || useDiagram.getState().activeDiagramId === diagramId;
   const runSync = (src: string) => {
+    if(!isCurrent())return;
+    if (isSequence(src)) {
+      const initial = useDiagram.getState().sequenceHistory;
+      const check = statements(src).length ? diagramSvg(src,activeAppearance()) : validateSequence(src);
+      void check.then(() => {
+        if (!isCurrent() || pendingSource.current !== src || initial !== useDiagram.getState().sequenceHistory || !textareaRef.current?.checkVisibility()) return;
+        if(diagramId)drafts?.delete(diagramId);
+        const store=useDiagram.getState();
+        if(diagramId || store.diagrams)store.createDiagram({kind:'sequence',source:src});
+        else {
+          store.setSequence(src);
+          location.hash = '/diagrams/sequence';
+        }
+        setText(derivedText.current); setEdited(false); setErr(null);
+      }, error => { if (pendingSource.current === src) setErr(String(error)); });
+      return;
+    }
     const res = syncMermaid(src);
     if (res.ok) {
+      if(diagramId)drafts?.delete(diagramId);
       setErr(null);
       setEdited(false);
     } else {
@@ -158,6 +307,7 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
   };
   const scheduleSync = (src: string) => {
     pendingSource.current = src;
+    if(diagramId)drafts?.set(diagramId,src);
     if (syncTimer.current) window.clearTimeout(syncTimer.current);
     syncTimer.current = window.setTimeout(() => {
       syncTimer.current = null;
@@ -175,12 +325,16 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
       if (syncTimer.current !== null) {
         window.clearTimeout(syncTimer.current);
         syncTimer.current = null;
-        syncMermaid(pendingSource.current);
+        if (!diagramId && !isSequence(pendingSource.current)) syncMermaid(pendingSource.current);
       }
     },
-    [syncMermaid],
+    [syncMermaid, diagramId],
   );
 
+  const restoreDraft=useEffectEvent(()=>{
+    if(savedDraft!==undefined) scheduleSync(savedDraft);
+  });
+  useEffect(()=>{restoreDraft();},[]);
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard?.writeText(text);
@@ -356,122 +510,13 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
     showGap(null);
   };
 
+  const leaveSource=useEffectEvent(()=>{
+    flushSource();
+    clearHover();
+  });
+  useEffect(()=>{if(tab!=='mermaid')leaveSource();},[tab]);
   return (
-    <aside className="mf-panel" id="mf-right-panel" style={{ width: panelWidth }} onKeyDown={(event) => {
-      if (tab === 'appearance' && event.key === 'Escape') {
-        event.stopPropagation();
-        onClose();
-        requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[aria-label="More actions"]')?.focus());
-      }
-    }}>
-      <div
-        className="mf-panel-resize"
-        role="separator"
-        tabIndex={0}
-        aria-label="Resize right panel"
-        aria-orientation="vertical"
-        aria-controls="mf-right-panel"
-        aria-valuemin={minWidth}
-        aria-valuemax={maxWidth}
-        aria-valuenow={panelWidth}
-        aria-valuetext={`${panelWidth} pixels`}
-        title="Drag to resize · Double-click to reset"
-        onPointerDown={(event) => {
-          if (event.button !== 0 || !event.isPrimary) return;
-          event.preventDefault();
-          event.currentTarget.focus();
-          event.currentTarget.setPointerCapture(event.pointerId);
-          resize.current = { pointerId: event.pointerId, x: event.clientX, width: panelWidth };
-        }}
-        onPointerMove={(event) => {
-          const start = resize.current;
-          if (start?.pointerId !== event.pointerId) return;
-          onWidthChange(clampWidth(start.width + start.x - event.clientX));
-        }}
-        onPointerUp={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
-        onPointerCancel={() => { resize.current = null; }}
-        onLostPointerCapture={() => { resize.current = null; }}
-        onDoubleClick={() => onWidthChange(clampWidth(360))}
-        onKeyDown={(event) => {
-          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-          event.preventDefault();
-          event.stopPropagation();
-          const step = event.shiftKey ? 50 : 10;
-          const next = event.key === 'Home' ? minWidth
-            : event.key === 'End' ? maxWidth
-            : panelWidth + (event.key === 'ArrowLeft' ? step : -step);
-          onWidthChange(clampWidth(next));
-        }}
-      />
-      <div className="mf-panel-head">
-        <div className="mf-panel-tabs" role="tablist" aria-label="Diagram views">
-          {views.map((view) => (
-            <button key={view} id={`mf-tab-${view}`} role="tab"
-              aria-label={titles[view]} title={titles[view]}
-              aria-selected={tab === view} aria-controls={`mf-view-${view}`}
-              tabIndex={tab === view ? 0 : -1}
-              onKeyDown={(event) => {
-                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-                event.preventDefault();
-                const at = views.indexOf(view);
-                const next =
-                  event.key === 'Home' ? views[0]
-                  : event.key === 'End' ? views[views.length - 1]
-                  : views[(at + (event.key === 'ArrowRight' ? 1 : views.length - 1)) % views.length];
-                document.getElementById(`mf-tab-${next}`)?.click();
-                document.getElementById(`mf-tab-${next}`)?.focus();
-              }}
-              onClick={() => {
-                flushSource();
-                clearHover();
-                setHighlight(null);
-                setInsertion(null);
-                setTab(view);
-              }}>
-              <Icon name={icons[view]} size={16} />
-            </button>
-          ))}
-        </div>
-        <button
-          className="mf-tool"
-          aria-label="Close panel"
-          title="Close  ·  M"
-          onClick={onClose}
-        >
-          <Icon name="close" size={15} />
-        </button>
-      </div>
-
-      <div className="mf-panel-body mf-appearance mf-appearance-docked" role="tabpanel" id="mf-view-appearance"
-        aria-labelledby="mf-tab-appearance" hidden={tab !== 'appearance'}>
-        {tab === 'appearance' && <AppearanceSettings />}
-      </div>
-      <div className="mf-panel-body" role="tabpanel" id="mf-view-page"
-        aria-labelledby="mf-tab-page" hidden={tab !== 'page'}>
-        {tab === 'page' && (
-          <Suspense fallback={null}>
-            <PagePanel />
-          </Suspense>
-        )}
-      </div>
-      <div className="mf-panel-body" role="tabpanel" id="mf-view-slides"
-        aria-labelledby="mf-tab-slides" hidden={tab !== 'slides'}>
-        {tab === 'slides' && (
-          <Suspense fallback={null}>
-            <SlidesPanel />
-          </Suspense>
-        )}
-      </div>
-      <div className="mf-panel-body" role="tabpanel" id="mf-view-tree"
-        aria-labelledby="mf-tab-tree" hidden={tab !== 'tree'}>
-        <TreePanel />
-      </div>
-      <div className="mf-panel-body" role="tabpanel" id="mf-view-mermaid"
-        aria-labelledby="mf-tab-mermaid" hidden={tab !== 'mermaid'}>
+    <>
         <div className="mf-mermaid-wrap">
           {/* highlight + hover overlay, scroll-synced behind/over the textarea */}
           <div className="mf-mermaid-overlay" ref={scrollRef} aria-hidden>
@@ -526,7 +571,6 @@ export function MermaidPanel({ width, onWidthChange, onClose }: {
             spellCheck={false}
           />
         </div>
-      </div>
-    </aside>
+    </>
   );
 }

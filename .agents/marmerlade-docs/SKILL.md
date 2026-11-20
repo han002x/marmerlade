@@ -17,7 +17,7 @@ selection. This skill describes entities, syntax, validation, and portability.
 | Write or convert Mermaid, wiki pages, or slide decks; understand export loss | [Formats](references/formats.md) |
 | Edit a connected workspace or diagnose an editing conflict | [MCP contract](references/mcp.md) |
 | Inspect a complete small workspace | [Linked example](references/example.marmerlade.json) |
-| Validate version-3 JSON syntax and field constraints | [Workspace JSON Schema](references/workspace.schema.json) |
+| Validate workspace JSON syntax and field constraints | [Workspace JSON Schema](references/workspace.schema.json) |
 | Validate an `apply_changes` request's structure | [Changes JSON Schema](references/changes.schema.json) |
 | Validate native preview and GIF requests | [Preview schema](references/preview.schema.json), [GIF schema](references/gif.schema.json) |
 
@@ -28,7 +28,8 @@ is readable, a wikilink resolves, or a slide fits.
 
 ## Essential rules
 
-- Save complete work as `{ "version": 3, "diagram": { "nodes": [], "edges": [], "pages": [], "decks": [] } }`.
+- Use version 4 when the diagram includes a `sequence` string with Mermaid sequence source.
+- Save a flowchart-only workspace as `{ "version": 3, "diagram": { "nodes": [], "edges": [], "pages": [], "decks": [] } }`.
 - Groups are ordinary nodes referenced by other nodes' `parentId`. There is no
   stored `children` array or group discriminator.
 - Node `pageIds` and `deckIds` are ordered many-to-many links. The first is the

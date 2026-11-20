@@ -17,6 +17,7 @@ export function parsePageIds(value: unknown): string[] {
 
 /** Read old single-page diagrams without retaining a second source of truth. */
 export function normalizeDiagram(diagram: Diagram): Diagram {
+  if (diagram.sequence !== undefined && typeof diagram.sequence !== 'string') throw new Error('Sequence source must be text');
   const pages = Array.isArray(diagram.pages) ? diagram.pages : [];
   return {
     ...diagram,

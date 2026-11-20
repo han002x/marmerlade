@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { EditorSlots } from './diagrams/editorSlots';
+import DiagramBoard from './diagrams/DiagramBoard';
+import { useWorkspaceZoom } from './diagrams/useWorkspaceZoom';
+import { ToolButton } from './components/ToolButton';
+import { Activity, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -55,7 +60,7 @@ import { ImagePicker } from './components/ImagePicker';
 import { CatalogIcon, ShapeOutline } from './components/ShapeOutline';
 import { useTheme, activeAppearance } from './theme';
 import { foldedAncestors, pageOf } from './pages.ts';
-import { deckHref, openDocs, parseRoute } from './route';
+import { deckHref, openDocs, parseRoute, useHash } from './route';
 import { showDeck, showPage, useDock } from './dock';
 import { isTyping, useHotkeys } from './useHotkeys';
 import { copyNodes, imagesFromClipboard, nodesFromClipboard, snapshotClipboard } from './clipboard';
@@ -98,48 +103,13 @@ function placeHalf({ shape, icon, image }: Placement): { x: number; y: number } 
   return side ? { x: side / 2, y: side / 2 } : { x: 60, y: 24 };
 }
 
-/** A toolbar button with its keyboard shortcut in the bottom-right corner. */
-function ToolButton({
-  label,
-  hotkey,
-  active,
-  expanded,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  hotkey?: string;
-  /** show the current tool pressed */
-  active?: boolean;
-  expanded?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      className={active ? 'mf-tool is-active' : 'mf-tool'}
-      aria-label={label}
-      aria-pressed={active}
-      aria-haspopup={expanded === undefined ? undefined : 'menu'}
-      aria-expanded={expanded}
-      disabled={disabled}
-      title={hotkey ? `${label}  ·  ${hotkey}` : label}
-      onClick={onClick}
-    >
-      {children}
-      {hotkey && <kbd className="mf-tool-key" aria-hidden="true">{hotkey}</kbd>}
-    </button>
-  );
-}
-
 function openAppearancePanel() {
   useDock.setState({ open: true, view: 'appearance' });
   requestAnimationFrame(() => document.getElementById('mf-tab-appearance')?.focus());
 }
 
-function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
+function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
+  slots?: EditorSlots;
   onTogglePanel: () => void;
   exporting: 'gif' | 'png' | null;
   setExporting: (format: 'gif' | 'png' | null) => void;
@@ -158,6 +128,9 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
   const autoLayout = useDiagram((s) => s.autoLayout);
   const undo = useDiagram((s) => s.undo);
   const { fitView, screenToFlowPosition, getZoom, setViewport } = useReactFlow();
+  useWorkspaceZoom(slots?.workspaceZoom);
+  const embedded = Boolean(slots);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const flowStore = useStoreApi();
   const selectionRect = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const selectingBox = useRef(false);
@@ -165,16 +138,19 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
     if (state.userSelectionRect) selectionRect.current = state.userSelectionRect;
   }), [flowStore]);
   // Keep the canvas centered on the same point as the dock opens, resizes, or closes.
-  useEffect(() => flowStore.subscribe((state, previous) => {
-    if (state.width === previous.width && state.height === previous.height) return;
-    if (!previous.width || !previous.height || !state.width || !state.height) return;
-    const [x, y, zoom] = state.transform;
-    void setViewport({
-      x: x + (state.width - previous.width) / 2,
-      y: y + (state.height - previous.height) / 2,
-      zoom,
+  useEffect(() => {
+    if (embedded) return;
+    return flowStore.subscribe((state, previous) => {
+      if (state.width === previous.width && state.height === previous.height) return;
+      if (!previous.width || !previous.height || !state.width || !state.height) return;
+      const [x, y, zoom] = state.transform;
+      void setViewport({
+        x: x + (state.width - previous.width) / 2,
+        y: y + (state.height - previous.height) / 2,
+        zoom,
+      });
     });
-  }), [flowStore, setViewport]);
+  }, [flowStore, setViewport, embedded]);
   useEffect(() => installRenderBridge(async () => {
     await document.fonts.ready;
     if (!useDiagram.getState().nodes.length) return;
@@ -281,8 +257,10 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
   );
 
   const clearCanvas = useCallback(() => {
-    const { pages, decks, wikiFolders } = useDiagram.getState();
-    load({ nodes: [], edges: [], pages, decks, wikiFolders });
+    const state = useDiagram.getState();
+    if(state.activeDiagramId)state.loadMermaid('flowchart TD');
+    else load({ ...state, nodes: [], edges: [] });
+    useDiagram.setState({ sequenceHistory: state.sequenceHistory });
     saveForNavigation();
     useDock.getState().setOpen(false);
     window.dispatchEvent(new Event(WELCOME_EVENT));
@@ -303,7 +281,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
   // selection so no outline bleeds into the capture, then record the viewport.
   const saveExport = useCallback(async (format: 'gif' | 'png') => {
     if (exporting) return;
-    const el = document.querySelector<HTMLElement>('.react-flow');
+    const el = canvasRef.current;
     if (!el) return;
     setExporting(format);
     setSelection([], []);
@@ -797,8 +775,9 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
 
   const onPaneMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (!pending) return;
-      setCursor({ x: e.clientX, y: e.clientY });
+      const bounds = canvasRef.current?.getBoundingClientRect();
+      if (!pending || !bounds) return;
+      setCursor({ x: e.clientX - bounds.left, y: e.clientY - bounds.top });
     },
     [pending],
   );
@@ -967,7 +946,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
       if (!readNodes && !clip) return;
       e.preventDefault();
       // at the pointer when it is over the canvas, else the middle of the view
-      const pane = document.querySelector('.react-flow')?.getBoundingClientRect();
+      const pane = canvasRef.current?.getBoundingClientRect();
       const p = pointer.current;
       const inside = p && pane && p.x >= pane.left && p.x <= pane.right && p.y >= pane.top && p.y <= pane.bottom;
       const screen = inside ? p : pane ? { x: pane.left + pane.width / 2, y: pane.top + pane.height / 2 } : { x: 0, y: 0 };
@@ -1002,22 +981,8 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
     };
   }, [addNode, screenToFlowPosition, setSelection, flash]);
 
-  return (
-    <div
-      className={`mf-canvas${connecting ? ' is-connecting' : ''}${pending ? ' is-placing' : ''}${resizePreview || moveGuides ? ' is-transforming' : ''}`}
-      onPointerDownCapture={() => {
-        if (!draggingNodes.current) return;
-        draggingNodes.current = false;
-        setMoveGuides(null);
-      }}
-      onPointerMove={(e) => {
-        pointer.current = { x: e.clientX, y: e.clientY };
-      }}
-      onPointerLeave={() => {
-        pointer.current = null;
-      }}
-    >
-      <div className={compactToolbar ? 'mf-toolbar is-compact' : 'mf-toolbar'}>
+  const toolbar=(
+    <>
         <div className="mf-group-btns">
           <ToolButton label="Rectangle" hotkey="R" onClick={() => arm({ shape: 'rect' })}>
             <Icon name="rect" />
@@ -1142,7 +1107,8 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
                 role="menuitem"
                 onClick={() => {
                   setMenuOpen(false);
-                  fileInput.current?.click();
+                  if(slots)slots.onImport();
+                  else fileInput.current?.click();
                 }}
               >
                 <Icon name="import" />
@@ -1171,6 +1137,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
                 <Icon name="book" />
                 <span>Docs</span>
               </button>
+              {slots && <div onClick={()=>setMenuOpen(false)}>{slots.workspaceActions}</div>}
               <span className="mf-menu-sep" />
               <button
                 className="mf-menu-item mf-menu-danger"
@@ -1186,16 +1153,32 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
             </div>
           )}
         </div>
-        <ProductNav current="canvas" iconOnly={compactToolbar} />
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".json,application/json"
-          hidden
-          onChange={onPickFile}
-        />
-      </div>
-      <ReactFlow
+        {!slots && <ProductNav current="canvas" iconOnly={compactToolbar} />}
+        {!slots && (
+          <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={onPickFile} />
+        )}
+    </>
+  );
+
+  return (
+    <div
+      className={`mf-canvas${connecting ? ' is-connecting' : ''}${pending ? ' is-placing' : ''}${resizePreview || moveGuides ? ' is-transforming' : ''}`}
+      onPointerDownCapture={() => {
+        if (!draggingNodes.current) return;
+        draggingNodes.current = false;
+        setMoveGuides(null);
+      }}
+      onPointerMove={(e) => {
+        pointer.current = { x: e.clientX, y: e.clientY };
+      }}
+      onPointerLeave={() => {
+        pointer.current = null;
+      }}
+    >
+      {slots ? (slots.toolbar && createPortal(toolbar,slots.toolbar)) : (
+        <div className={compactToolbar ? 'mf-toolbar is-compact' : 'mf-toolbar'}>{toolbar}</div>
+      )}
+      <ReactFlow ref={canvasRef}
         nodes={rfNodesWithGhost}
         edges={rfEdges}
         nodeTypes={nodeTypes}
@@ -1255,7 +1238,17 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
         deleteKeyCode={null}
         // Drag on empty canvas selects; middle/right drag or Space + drag pans.
         selectionOnDrag
-        panOnDrag={[1, 2]}
+        panOnDrag={slots ? false : [1, 2]}
+        panActivationKeyCode={slots ? null : 'Space'}
+        zoomOnScroll={!slots}
+        zoomOnPinch={!slots}
+        zoomOnDoubleClick={!slots}
+        zoomActivationKeyCode={slots ? null : undefined}
+        preventScrolling={!slots}
+        autoPanOnNodeDrag={!slots}
+        autoPanOnConnect={!slots}
+        minZoom={slots ? 0.05 : undefined}
+        fitViewOptions={slots ? { maxZoom: slots.workspaceZoom, padding: 0.18 } : undefined}
         fitView
       >
         <NodeToolbar
@@ -1288,9 +1281,16 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
             </button>}
           </div>
         </NodeToolbar>
-        <Background gap={activeAppearance().texture === 'grid' ? 24 : 18} variant={activeAppearance().texture === 'grid' ? BackgroundVariant.Lines : BackgroundVariant.Dots} />
-        <Controls />
-        <MiniMap pannable zoomable />
+        {!embedded && (
+          <>
+            <Background
+              gap={activeAppearance().texture === 'grid' ? 24 : 18}
+              variant={activeAppearance().texture === 'grid' ? BackgroundVariant.Lines : BackgroundVariant.Dots}
+            />
+            <Controls />
+            <MiniMap pannable zoomable />
+          </>
+        )}
       </ReactFlow>
 
       <NodeTransforms nodes={nodeRects} selected={selected} preview={resizePreview} moveGuides={moveGuides ?? []}
@@ -1337,9 +1337,16 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome }: {
   );
 }
 
-export default function App({ showWelcome }: { showWelcome: boolean }) {
+const SequenceEditor = lazy(() => import('./sequence/SequenceEditor'));
+const AppearanceDialog = lazy(() => import('./components/AppearanceDialog'));
+
+function DiagramEditor({ showWelcome, diagramKind, slots }: { showWelcome: boolean; diagramKind?:'flowchart'|'sequence'; slots?:EditorSlots }) {
   const panelOpen = useDock((s) => s.open);
   const setPanelOpen = useDock((s) => s.setOpen);
+  const hash=useHash();
+  const sequenceView = diagramKind ? diagramKind==='sequence' : hash === '#/diagrams/sequence';
+  const [visited, setVisited] = useState(sequenceView);
+  if (sequenceView && !visited) setVisited(true);
   const [panelWidth, setPanelWidth] = useState(360);
   const [exporting, setExporting] = useState<'gif' | 'png' | null>(null);
 
@@ -1365,31 +1372,41 @@ export default function App({ showWelcome }: { showWelcome: boolean }) {
 
   return (
     <ReactFlowProvider>
-      {welcome && <Welcome onDone={() => setWelcome(false)} />}
-      <div className="mf-app" inert={exporting === 'gif'}>
-        <Canvas welcome={welcome} onTogglePanel={() => setPanelOpen(!useDock.getState().open)} exporting={exporting} setExporting={setExporting} />
-        {panelOpen ? (
-          <MermaidPanel
-            width={panelWidth}
-            onWidthChange={setPanelWidth}
-            onClose={() => setPanelOpen(false)}
-          />
-        ) : (
-          <button
-            className="mf-reopen"
-            title="Mermaid  ·  M"
-            aria-label="Open Mermaid panel"
-            onClick={() => setPanelOpen(true)}
-          >
-            <Icon name="code" />
-          </button>
-        )}
-      </div>
-      {exporting === 'gif' && (
-        <div className="mf-export-overlay" role="status" aria-live="polite">
-          <span>Exporting GIF…</span>
+      <Activity mode={sequenceView ? 'hidden' : 'visible'}>
+        {welcome && <Welcome onDone={() => setWelcome(false)} />}
+        <div className={slots ? 'mf-frame-editor' : 'mf-app'} inert={exporting === 'gif'}>
+          <Canvas slots={slots} welcome={welcome} onTogglePanel={() => setPanelOpen(!useDock.getState().open)} exporting={exporting} setExporting={setExporting} />
+          {!slots && (panelOpen ? (
+            <MermaidPanel
+              width={panelWidth}
+              onWidthChange={setPanelWidth}
+              onClose={() => setPanelOpen(false)}
+            />
+          ) : (
+            <button
+              className="mf-reopen"
+              title="Mermaid  ·  M"
+              aria-label="Open Mermaid panel"
+              onClick={() => setPanelOpen(true)}
+            >
+              <Icon name="code" />
+            </button>
+          ))}
         </div>
-      )}
+        {exporting === 'gif' && (
+          <div className="mf-export-overlay" role="status" aria-live="polite">
+            <span>Exporting GIF…</span>
+          </div>
+        )}
+      </Activity>
+      {(sequenceView || visited) && <Activity mode={sequenceView ? 'visible' : 'hidden'}>
+        <Suspense fallback={null}><SequenceEditor /><AppearanceDialog /></Suspense>
+      </Activity>}
     </ReactFlowProvider>
   );
+}
+
+export default function App({showWelcome}:{showWelcome:boolean}) {
+  if(window.__marmerladeRender)return <DiagramEditor showWelcome={showWelcome}/>;
+  return <DiagramBoard Editor={DiagramEditor}/>;
 }

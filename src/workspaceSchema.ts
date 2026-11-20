@@ -1,3 +1,4 @@
+import { isSequence } from './sequence/model.ts';
 import { z } from 'zod';
 import { normalizeDiagram } from './pages.ts';
 import type { Diagram } from './types.ts';
@@ -24,10 +25,31 @@ export const nodeSchema = z.object({
 const side = z.enum(['top', 'right', 'bottom', 'left']);
 export const edgeSchema = z.object({ id, source: id, target: id, label: z.string().optional(), sourceSide: side.optional(), targetSide: side.optional(), order: z.number().int().positive().optional(), style: style.optional() });
 export const documentSchema = z.object({ id: id.regex(/^[A-Za-z0-9_-]+$/), title: z.string(), body: z.string(), updatedAt: z.number().nonnegative() });
-export const diagramSchema = z.object({ nodes: z.array(nodeSchema), edges: z.array(edgeSchema), pages: z.array(documentSchema).default([]), decks: z.array(documentSchema).default([]), wikiFolders: wikiFoldersSchema.optional() });
+const entityBase = {
+  id,
+  title: z.string(),
+  position: z.object({ x: z.number(), y: z.number() }),
+  size: z.object({ width: z.number().min(400), height: z.number().min(300) }),
+};
+export const diagramEntitySchema = z.discriminatedUnion('kind', [
+  z.object({
+    ...entityBase,
+    kind: z.literal('flowchart'),
+    nodes: z.array(nodeSchema),
+    edges: z.array(edgeSchema),
+  }),
+  z.object({
+    ...entityBase,
+    kind: z.literal('sequence'),
+    source: z.string().refine(isSequence, 'Expected a Mermaid sequenceDiagram'),
+  }),
+]);
+export const diagramSchema = z.object({ diagrams:z.array(diagramEntitySchema).optional(), sequence: z.string().refine(isSequence, 'Expected a Mermaid sequenceDiagram').optional(), nodes: z.array(nodeSchema), edges: z.array(edgeSchema), pages: z.array(documentSchema).default([]), decks: z.array(documentSchema).default([]), wikiFolders: wikiFoldersSchema.optional() });
 export const snapshotSchema = z.object({ revision: z.number().int().nonnegative(), diagram: diagramSchema });
 export const bootstrapSchema = snapshotSchema.extend({ token: z.string().min(1) });
 export const changeSchema = z.discriminatedUnion('kind', [
+  z.object({kind:z.literal('put_diagram'),diagram:diagramEntitySchema}),
+  z.object({kind:z.literal('delete_diagram'),id}),
   z.object({ kind: z.literal('put_node'), node: nodeSchema }),
   z.object({ kind: z.literal('put_edge'), edge: edgeSchema }),
   z.object({ kind: z.literal('put_page'), document: documentSchema.omit({ updatedAt: true }) }),
@@ -39,7 +61,18 @@ export type Change = z.infer<typeof changeSchema>;
 
 export function parseDiagram(value: unknown): Diagram {
   const d = normalizeDiagram(diagramSchema.parse(value));
-  for (const list of [d.nodes, d.edges, d.pages ?? [], d.decks ?? []]) {
+  // Legacy operations address the first diagram of each kind.
+  const firstFlow=d.diagrams?.find(e=>e.kind==='flowchart')?.id;
+  const firstSequence=d.diagrams?.find(e=>e.kind==='sequence')?.id;
+  if(d.diagrams)d.diagrams=d.diagrams.map(entity=>{
+    if(entity.kind==='flowchart' && entity.id===firstFlow)return {...entity,nodes:d.nodes,edges:d.edges};
+    if(entity.kind==='sequence' && entity.id===firstSequence && d.sequence!==undefined)return {...entity,source:d.sequence};
+    return entity;
+  });
+  for(const entity of d.diagrams ?? []) {
+    if(entity.kind==='flowchart') parseDiagram({nodes:entity.nodes,edges:entity.edges,pages:d.pages,decks:d.decks});
+  }
+  for (const list of [d.diagrams ?? [],d.nodes, d.edges, d.pages ?? [], d.decks ?? []]) {
     if (new Set(list.map(x => x.id)).size !== list.length) throw new Error('Duplicate IDs');
   }
   const nodes = new Map(d.nodes.map(n => [n.id, n]));

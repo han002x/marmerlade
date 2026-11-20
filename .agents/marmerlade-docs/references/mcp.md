@@ -11,7 +11,7 @@ resources. Validate calls against that server's registered input schemas.
 | `get_workspace` | No arguments | `{revision, diagram, file, url}` |
 | `apply_changes` | `{revision, changes}` | Atomically commits changes and returns `{revision, diagram}` |
 | `import_mermaid` | `{revision, source, tidy?}` | Replaces structural content and returns a committed snapshot; `tidy` defaults true |
-| `export_mermaid` | No arguments | `{source}` with Mermaid structure |
+| `export_mermaid` | `{diagramKind?}` | `{source}` with Mermaid structure |
 | `diagnose_environment` | `{probe?}` | Runtime checks and actionable failures; probe defaults true |
 | `list_icons` | `{query?, group?, offset?, limit?}` | Supported icon IDs, names, groups, and pagination |
 | `import_image` | `{revision, nodeId, path}` | Embed a normalized project image on an existing node; returns new revision and original path |
@@ -19,7 +19,7 @@ resources. Validate calls against that server's registered input schemas.
 | `render_preview` | `{revision, ...renderOptions}` | PNG image, local file, revision, and diagnostics |
 | `export_gif` | `{revision, ...renderOptions, fps?, maxWidth?, flow?}` | Queues native GIF; returns `jobId` and pinned revision |
 | `get_render_job` | `{jobId}` | Queued/running/complete/failed job status |
-| `open_workspace` | `{view?, id?}` | Opens the requested view and returns `{url}`; `view` defaults to `canvas` |
+| `open_workspace` | `{view?, id?, diagramKind?}` | Opens the requested view and returns `{url}`; `view` defaults to `canvas` |
 
 `revision` is a nonnegative integer for the current server process. A successful
 commit increments it. Use the revision from the latest snapshot; it is not the
@@ -69,7 +69,9 @@ intended change, and create a reconciled batch. Do not blindly retry a stale
 replacement. If the user or another writer changed the same meaning in a way
 that cannot be reconciled, report that specific conflict.
 
-`import_mermaid` replaces nodes and edges with the parsed structure while
+For a sequence import, `import_mermaid` updates only `diagram.sequence`. Set `diagramKind` to `sequence` on export, preview, or canvas opening. The default is `flowchart`.
+
+For a flowchart import, `import_mermaid` replaces nodes and edges with the parsed structure while
 preserving existing document collections and mergeable visual state. Newly
 referenced pages/decks get empty documents. `tidy: true` repositions nodes; it
 does not preserve authored geometry. Use `apply_changes` for incremental edits.

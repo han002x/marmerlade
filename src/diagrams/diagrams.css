@@ -1,0 +1,182 @@
+.diagram-board {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: var(--mf-bg);
+  color: var(--mf-text);
+}
+.mf-workspace > .diagram-board {
+  flex: 1;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+}
+.mf-toolbar-slot {
+  display: contents;
+}
+.mf-toolbar.is-compact > .mf-toolbar-slot > .mf-menu-wrap {
+  position: static;
+}
+.mf-toolbar .drag-placement:has(.mf-menu-item) {
+  display: block;
+}
+.mf-frame-editor {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.mf-sequence-source {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+}
+.mf-diagram-tree-title {
+  flex: 1;
+  min-width: 0;
+}
+.mf-diagram-tree-children {
+  padding-inline-start: 16px;
+}
+.mf-tree .sq-inspector {
+  width: auto;
+  border: 0;
+  background: transparent;
+  padding: 5px 0 5px 8px;
+  overflow: visible;
+}
+.diagram-entity {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.diagram-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  height: 40px;
+  flex: 0 0 40px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  cursor: grab;
+  font: 13px var(--mf-ui-font);
+}
+.react-flow__node.selected > .diagram-entity .diagram-title,
+.diagram-entity.is-editing .diagram-title {
+  color: var(--mf-accent);
+}
+.diagram-title input {
+  width: 140px;
+  field-sizing: content;
+  min-width: 80px;
+  max-width: min(210px, 48vw);
+  font: 500 15px var(--mf-ui-font);
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+.diagram-title button {
+  font: inherit;
+  border: 1px solid var(--mf-border);
+  border-radius: 5px;
+  background: var(--mf-input);
+  color: var(--mf-text);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.diagram-preview {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  padding: 22px;
+}
+.diagram-preview > p {
+  font: 13px var(--mf-ui-font);
+  color: var(--mf-muted);
+}
+.diagram-preview > div {
+  position: absolute;
+  inset: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.diagram-preview svg {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100% !important;
+}
+.diagram-editor {
+  position: absolute;
+  z-index: 3;
+  pointer-events: auto;
+  transform-origin: top left;
+}
+.diagram-editor .sq-editor {
+  background: transparent;
+}
+.diagram-board-error {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: var(--mf-panel);
+  padding: 10px;
+  z-index: 10;
+}
+.diagram-placement-preview {
+  position: absolute;
+  pointer-events: none;
+  z-index: 4;
+  border: 1px dashed var(--mf-accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mf-accent) 6%, transparent);
+}
+.diagram-board.is-placing-diagram
+  :is(
+    .diagram-editor,
+    .diagram-editor *,
+    .diagram-title input,
+    .diagram-title button,
+    .react-flow__resize-control
+  ),
+.diagram-board.is-panning
+  :is(.diagram-editor, .diagram-editor *, .react-flow__node-diagram, .react-flow__node-diagram *) {
+  pointer-events: none !important;
+}
+.diagram-board.is-placing-diagram > .react-flow :is(.react-flow__pane, .diagram-preview, .diagram-title) {
+  cursor: crosshair;
+}
+.diagram-placement-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 6;
+  padding: 6px 10px;
+  background: var(--mf-panel);
+  border: 1px solid var(--mf-border);
+  border-radius: 6px;
+  color: var(--mf-text);
+  font: 13px var(--mf-ui-font);
+}
+.diagram-placement-hint button {
+  margin-left: 6px;
+  color: inherit;
+  font: inherit;
+}
+
+@media (max-width: 540px) {
+  .diagram-board > .react-flow .react-flow__minimap {
+    display: none;
+  }
+}

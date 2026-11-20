@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { randomUUID } from 'node:crypto';
+import { diagramEntities, projectDiagrams } from '../src/diagramEntities.ts';
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -13,7 +15,8 @@ import { layout } from '../src/layout.ts';
 import { createRenderer } from './renderer.ts';
 import { diagnoseEnvironment } from './environment.ts';
 import { hostNames, setupProject } from './setup.ts';
-import { previewRequestSchema, gifRequestSchema } from '../src/renderContract.ts';
+import { isSequence, validateSequence } from '../src/sequence/model.ts';
+import { diagramKindSchema, previewRequestSchema, gifRequestSchema } from '../src/renderContract.ts';
 import { ICONS } from '../src/icons/catalog.ts';
 
 async function main() {
@@ -49,20 +52,125 @@ async function main() {
     description: 'Atomically edit a workspace. Read its revision first. put operations replace the entity with that ID; delete_node removes its subtree and incident edges, retaining documents. Document deletions unlink every node. Include all related changes in one batch.',
     inputSchema: { revision: z.number().int().nonnegative(), changes: z.array(changeSchema).min(1) },
   }, ({ revision, changes }) => tool(() => workspace.commit(revision, d => applyChanges(d, changes))));
-  server.registerTool('import_mermaid', {
-    description: 'Replace diagram structure from a Mermaid flowchart, preserving existing content and styling by ID. New document references create empty pages/decks. Optional tidy repositions nodes.',
-    inputSchema: { revision: z.number().int().nonnegative(), source: z.string(), tidy: z.boolean().default(true) },
-  }, ({ revision, source, tidy }) => tool(() => workspace.commit(revision, current => {
-    const parsed = parseMermaid(source); if (!parsed.ok) throw new Error(parsed.error);
-    const d = { ...current, ...mergeDiagram(parsed.diagram, current), pages: current.pages ?? [], decks: current.decks ?? [] };
-    for (const [key, list] of [['pageIds', d.pages], ['deckIds', d.decks]] as const) {
-      for (const node of d.nodes) for (const id of node[key] ?? []) if (!list.some(doc => doc.id === id)) list.push({ id, title: node.label, body: '', updatedAt: Date.now() });
-    }
-    parseDiagram(d);
-    if (tidy) { const positions = layout(d.nodes, d.edges); d.nodes = d.nodes.map(n => ({ ...n, position: positions[n.id] ?? n.position })); }
-    return d;
-  })));
-  server.registerTool('export_mermaid', { description: 'Export diagram structure as Mermaid. Use get_workspace for lossless content.' }, () => tool(() => ({ source: toMermaid(workspace.snapshot().diagram) })));
+  server.registerTool(
+    'import_mermaid',
+    {
+      description:
+        'Import a Mermaid sequenceDiagram into the sequence canvas, or replace a flowchart preserving existing content and styling by ID. New document references create empty pages/decks. Optional tidy repositions nodes.',
+      inputSchema: {
+        revision: z.number().int().nonnegative(),
+        source: z.string(),
+        diagramId: z.string().optional(),
+        tidy: z.boolean().default(true),
+      },
+    },
+    ({ revision, source, diagramId, tidy }) =>
+      tool(async () => {
+        if (isSequence(source)) {
+          try {
+            await validateSequence(source);
+          } catch (error) {
+            // Mermaid resolves box colours and details references through browser DOM APIs.
+            const needsDOM =
+              (error instanceof ReferenceError && /window|document/.test(error.message)) ||
+              (error instanceof TypeError && /DOMPurify/.test(error.message));
+            if (!needsDOM) throw error;
+            await renderer.validateSequence(revision, source);
+          }
+          return workspace.commit(revision, (current) => {
+            if (!current.diagrams && !diagramId) return { ...current, sequence: source };
+            const entities = diagramEntities(current);
+            const target = diagramId
+              ? entities.find((e) => e.id === diagramId)
+              : entities.find((e) => e.kind === 'sequence');
+            if (target && target.kind !== 'sequence') throw new Error('Diagram type does not match the source');
+            const entity = {
+              id: diagramId ?? target?.id ?? randomUUID(),
+              title: target?.title ?? 'Sequence',
+              position: target?.position ?? {
+                x: Math.max(0, ...entities.map((e) => e.position.x + e.size.width)) + 100,
+                y: 0,
+              },
+              size: target?.size ?? { width: 900, height: 650 },
+              kind: 'sequence' as const,
+              source,
+            };
+            return projectDiagrams(
+              current,
+              target ? entities.map((e) => (e.id === target.id ? entity : e)) : [...entities, entity],
+            );
+          });
+        }
+        return workspace.commit(revision, (current) => {
+          const entities = current.diagrams || diagramId ? diagramEntities(current) : undefined;
+          const target = diagramId
+            ? entities?.find((e) => e.id === diagramId)
+            : entities?.find((e) => e.kind === 'flowchart');
+          if (target && target.kind !== 'flowchart') throw new Error('Diagram type does not match the source');
+          const content = target?.kind === 'flowchart' ? target : current;
+          const parsed = parseMermaid(source);
+          if (!parsed.ok) throw new Error(parsed.error);
+          const d = {
+            ...current,
+            ...mergeDiagram(parsed.diagram, content),
+            pages: current.pages ?? [],
+            decks: current.decks ?? [],
+          };
+          for (const [key, list] of [
+            ['pageIds', d.pages],
+            ['deckIds', d.decks],
+          ] as const) {
+            for (const node of d.nodes)
+              for (const id of node[key] ?? [])
+                if (!list.some((doc) => doc.id === id))
+                  list.push({ id, title: node.label, body: '', updatedAt: Date.now() });
+          }
+          parseDiagram(d);
+          if (tidy) {
+            const positions = layout(d.nodes, d.edges);
+            d.nodes = d.nodes.map((n) => ({ ...n, position: positions[n.id] ?? n.position }));
+          }
+          if (entities) {
+            const entity = {
+              id: diagramId ?? target?.id ?? randomUUID(),
+              title: target?.title ?? 'Flowchart',
+              position: target?.position ?? {
+                x: Math.max(0, ...entities.map((e) => e.position.x + e.size.width)) + 100,
+                y: 0,
+              },
+              size: target?.size ?? { width: 900, height: 650 },
+              kind: 'flowchart' as const,
+              nodes: d.nodes,
+              edges: d.edges,
+            };
+            return projectDiagrams(
+              { ...current, pages: d.pages, decks: d.decks },
+              target ? entities.map((e) => (e.id === target.id ? entity : e)) : [...entities, entity],
+            );
+          }
+          return d;
+        });
+      }),
+  );
+  server.registerTool(
+    'export_mermaid',
+    {
+      description: 'Export a flowchart or sequence diagram as Mermaid source.',
+      inputSchema: { diagramKind: diagramKindSchema, diagramId: z.string().optional() },
+    },
+    ({ diagramKind, diagramId }) =>
+      tool(() => {
+        const diagram = workspace.snapshot().diagram;
+        if (diagramId) {
+          const entity = diagram.diagrams?.find((e) => e.id === diagramId);
+          if (!entity) throw new Error('Unknown diagram ID');
+          return { source: entity.kind === 'sequence' ? entity.source : toMermaid(entity) };
+        }
+        if (diagramKind === 'sequence' && diagram.sequence === undefined)
+          throw new Error('No sequence diagram in this workspace');
+        return { source: diagramKind === 'sequence' ? diagram.sequence : toMermaid(diagram) };
+      }),
+  );
   server.registerTool('diagnose_environment', {
     description: 'Check Node, packaged app, project access, and Chromium. Image generation belongs to the host agent, not this server.',
     inputSchema: { probe: z.boolean().default(true) },
@@ -101,10 +209,10 @@ async function main() {
   }, ({ jobId }) => tool(() => renderer.job(jobId)));
   server.registerTool('open_workspace', {
     description: 'Open the live browser canvas, or a node, wiki page, or slide deck.',
-    inputSchema: { view: z.enum(['canvas', 'node', 'wiki', 'slides']).default('canvas'), id: z.string().optional() },
-  }, ({ view, id }) => tool(async () => {
+    inputSchema: { diagramKind: diagramKindSchema, view: z.enum(['canvas', 'node', 'wiki', 'slides']).default('canvas'), id: z.string().optional() },
+  }, ({ view, id, diagramKind }) => tool(async () => {
     if (view === 'node' && !id) throw new Error('Node view requires an id');
-    const url = `${http.url}/#/${view === 'canvas' ? '' : view}${id ? '/' + encodeURIComponent(id) : ''}`;
+    const url = `${http.url}/#/${view === 'canvas' ? (diagramKind === 'sequence' ? 'diagrams/sequence' : '') : view}${id ? '/' + encodeURIComponent(id) : ''}`;
     try { await open(url); return { url, opened: true }; }
     catch (error) { return { url, opened: false, error: error instanceof Error ? error.message : String(error) }; }
   }));

@@ -96,7 +96,7 @@ without making a past project's theme a default for every project.
 atomic batch. Puts replace whole entities, so retain existing fields that must
 survive. Use `import_mermaid` only when replacing the diagram's entire structure
 is intended; `tidy` defaults to true. It is not an incremental add-nodes tool.
-For an offline deliverable, write the version-3 envelope and validate it.
+For an offline deliverable, write a version-4 envelope when including sequence source or version 3 for a flowchart-only workspace, then validate it.
 
 **Done:** Read back the committed workspace. IDs, parents, endpoints, and document
 references resolve. Requested structure exists and unrelated content remains.

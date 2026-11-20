@@ -514,14 +514,6 @@ export function positionDiagram(body: string, slide: number, index: number, targ
   return { body: next, box };
 }
 
-/** A slide with one live diagram can open that stop on the canvas. */
-export function slideDiagramTarget(body: string): string | undefined {
-  const positioned = md.lexer(body).filter(token => token.type === 'html')
-    .flatMap(token => [...token.raw.matchAll(POSITIONED_DIAGRAM)].map(match => decodeDiagramTarget(match[1])));
-  const embeds = [...flowDiagrams(body).map(embed => embed.target), ...positioned];
-  return embeds.length === 1 ? embeds[0] : undefined;
-}
-
 const WIKILINK = /\[\[([^[\]|]+)(?:\|([^[\]]+))?\]\]/g;
 
 /**

@@ -7,6 +7,8 @@ import LibrarySearch from './LibrarySearch';
 import { byLibraryTitle, libraryTitle, matchesTitle } from './libraryTitles';
 import Menu from './Menu';
 
+const wikiPageDragType = 'application/x-marmerlade-wiki-page';
+
 type FolderAction =
   | { kind: 'create'; parentId: string | null }
   | { kind: 'rename' | 'move'; folder: WikiFolder }
@@ -84,6 +86,8 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
   const [action, setAction] = useState<FolderAction | null>(null);
   const searchRegion = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<Set<string>>(() => new Set());
+  const draggedPageId = useRef<string | null>(null);
+  const [dropFolderId, setDropFolderId] = useState<string | null>(null);
   const model = useMemo(() => {
     const byId = new Map(folders.map(folder => [folder.id, folder]));
     const children = new Map<string | null, WikiFolder[]>();
@@ -121,25 +125,60 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
   const primaryClick = (event: MouseEvent) => {
     if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) onOpen();
   };
-  const pageRow = (page: Page, showPath = false) => (
-    <li className="wk-library-row" key={page.id}>
-      <a className={`wk-item${page.id === pageId ? ' on' : ''}`} href={href(page.id)} onClick={primaryClick}
-        aria-current={page.id === pageId ? 'page' : undefined} title={libraryTitle(page)}>
-        <Icon name="page" size={14} />
-        <span className="wk-library-name">{libraryTitle(page)}
-          {showPath && <small>{folderTrail(model.byId, model.pageParents.get(page.id) ?? null).map(folder => folder.name).join(' / ') || 'Top level'}</small>}
-        </span>
-      </a>
-      {folders.length > 0 && <Menu className="wk-icon" label={`Actions for ${libraryTitle(page)}`} button={<Icon name="more" size={14} />}>
-        <button role="menuitem" onClick={() => setAction({ kind: 'page', page })}>Move to folder</button>
-      </Menu>}
-    </li>
-  );
+  const endPageDrag = () => {
+    draggedPageId.current = null;
+    setDropFolderId(null);
+  };
+  const pageRow = (page: Page, showPath = false) => {
+    const canMoveByDrag = !showPath && folders.length > 0;
+    return (
+      <li className="wk-library-row" key={page.id}>
+        <a className={`wk-item${page.id === pageId ? ' on' : ''}`} href={href(page.id)} onClick={primaryClick}
+          aria-current={page.id === pageId ? 'page' : undefined} title={libraryTitle(page)}
+          draggable={canMoveByDrag || undefined}
+          onDragStart={canMoveByDrag ? event => {
+            event.dataTransfer.clearData();
+            event.dataTransfer.setData(wikiPageDragType, page.id);
+            event.dataTransfer.effectAllowed = 'move';
+            draggedPageId.current = page.id;
+          } : undefined}
+          onDragEnd={endPageDrag}>
+          <Icon name="page" size={14} />
+          <span className="wk-library-name">{libraryTitle(page)}
+            {showPath && <small>{folderTrail(model.byId, model.pageParents.get(page.id) ?? null).map(folder => folder.name).join(' / ') || 'Top level'}</small>}
+          </span>
+        </a>
+        {folders.length > 0 && <Menu className="wk-icon" label={`Actions for ${libraryTitle(page)}`} button={<Icon name="more" size={14} />}>
+          <button role="menuitem" onClick={() => setAction({ kind: 'page', page })}>Move to folder</button>
+        </Menu>}
+      </li>
+    );
+  };
   const tree = (parentId: string | null, depth = 0) => (
     <ul className="wk-tree-list" style={{ paddingInlineStart: depth > 0 && depth <= 8 ? 9 : 0 }}>
       {(model.children.get(parentId) ?? []).map(folder => (
         <li key={folder.id}>
-          <div className="wk-library-row">
+          <div className={`wk-library-row${dropFolderId === folder.id ? ' drop-target' : ''}`}
+            onDragOver={event => {
+              const draggedId = draggedPageId.current;
+              if (draggedId === null || model.pageParents.get(draggedId) === folder.id ||
+                !event.dataTransfer.types.includes(wikiPageDragType)) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = 'move';
+              setDropFolderId(folder.id);
+            }}
+            onDragLeave={event => {
+              if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+              setDropFolderId(previous => previous === folder.id ? null : previous);
+            }}
+            onDrop={event => {
+              const draggedId = draggedPageId.current;
+              if (draggedId === null || event.dataTransfer.getData(wikiPageDragType) !== draggedId) return;
+              event.preventDefault();
+              endPageDrag();
+              useDiagram.getState().movePageToFolder(draggedId, folder.id);
+              reveal(folder.id);
+            }}>
             <button className="wk-item" aria-expanded={open.has(folder.id)}
               onClick={() => setOpen(previous => {
                 const next = new Set(previous);

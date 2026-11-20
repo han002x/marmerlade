@@ -16,13 +16,32 @@ interface Saved {
   diagram: Diagram;
 }
 
+function removeSampleWalkthrough(diagram: Diagram): Diagram {
+  const { decks = [] } = diagram;
+  const sampleBody = [
+    '## A request starts in the browser\n\n{{diagram:UI}}',
+    '## The gateway routes it\n\n{{diagram:API}}',
+    '## The backend checks identity\n\n{{diagram:Auth}}',
+  ].join('\n\n---\n\n');
+  const sample = decks.find((deck) => deck.id === 'follow-request' && deck.updatedAt === 1 &&
+    deck.title === 'Follow a request' && deck.body === sampleBody);
+  if (!sample) return diagram;
+  return {
+    ...diagram,
+    decks: decks.filter((deck) => deck.id !== sample.id),
+    nodes: diagram.nodes.map((node) => node.deckIds?.includes(sample.id)
+      ? { ...node, deckIds: node.deckIds.filter((id) => id !== sample.id) }
+      : node),
+  };
+}
+
 export function readSaved(): Diagram | null {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Saved;
     if (![1, 2, VERSION].includes(parsed.version) || !parsed.diagram) return null;
-    return normalizeDiagram(parsed.diagram);
+    return removeSampleWalkthrough(normalizeDiagram(parsed.diagram));
   } catch {
     return null;
   }

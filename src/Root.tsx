@@ -29,13 +29,12 @@ export default function Root({ showWelcome }: { showWelcome: boolean }) {
   const product = route.kind === 'node' ? 'canvas' : route.kind
   const presenting = useDiagram(state =>
     route.kind === 'slides' && !!route.slide && state.decks.some(deck => deck.id === route.id))
-  const exploring = route.kind === 'node' && !!route.resume
   useEffect(() => {
     nameProductWindow(product)
     if (product === 'canvas') document.title = 'Diagrams · marmerlade'
   }, [product])
   return <>
-    {product !== 'docs' && !presenting && !exploring && !window.__marmerladeRender && <ProductNav current={product} />}
+    {product !== 'docs' && !presenting && !window.__marmerladeRender && <ProductNav current={product} />}
     <Suspense fallback={null}><Route route={route} showWelcome={showWelcome} /></Suspense>
     {product !== 'canvas' && <AppearanceDialog />}
     <WorkspaceStatus />

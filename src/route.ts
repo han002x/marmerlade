@@ -12,7 +12,7 @@ import { useSyncExternalStore } from 'react';
 export type Route =
   | { kind: 'canvas' }
   | { kind: 'docs' }
-  | { kind: 'node'; id: string; resume?: string }
+  | { kind: 'node'; id: string }
   | { kind: 'wiki'; id: string | null; nodeId?: string }
   | { kind: 'slides'; id: string | null; nodeId?: string; slide?: number; presenter?: boolean };
 
@@ -33,11 +33,7 @@ export function parseRoute(hash: string): Route {
       ...(kind === 'slides' && query.has('presenter') && { presenter: true }),
     };
   }
-  if (kind === 'node' && decoded) {
-    const resume = new URLSearchParams(hash.split('?')[1]).get('resume');
-    const target = resume?.startsWith('#/slides/') ? parseRoute(resume) : null;
-    return { kind: 'node', id: decoded, ...(resume && target?.kind === 'slides' && target.id && target.slide && { resume }) };
-  }
+  if (kind === 'node' && decoded) return { kind: 'node', id: decoded };
   return { kind: 'canvas' };
 }
 
@@ -48,8 +44,7 @@ export const deckHref = (deckId: string, nodeId?: string, slide?: number, presen
     .filter(Boolean).join('&');
   return `#/slides/${encodeURIComponent(deckId)}${query ? `?${query}` : ''}`;
 };
-export const nodeHref = (nodeId: string, resume?: string) =>
-  `#/node/${encodeURIComponent(nodeId)}${resume ? `?resume=${encodeURIComponent(resume)}` : ''}`;
+export const nodeHref = (nodeId: string) => `#/node/${encodeURIComponent(nodeId)}`;
 
 const subscribe = (cb: () => void) => {
   window.addEventListener('hashchange', cb);

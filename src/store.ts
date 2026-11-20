@@ -202,7 +202,6 @@ interface State {
   openDeck: (nodeId: string, deckId?: string) => string | null;
   createDeckForNode: (nodeId: string) => string | null;
   createDeck: (title: string) => string;
-  createWalkthrough: (title: string, stops: string[]) => string | null;
   deleteDeck: (id: string) => void;
   linkDeck: (deckId: string, nodeId: string) => void;
   unlinkDeck: (deckId: string, nodeId: string) => void;
@@ -642,20 +641,6 @@ export const useDiagram = create<State>((set, get) => {
   openDeck: decks.open,
   createDeckForNode: decks.createFor,
   createDeck: decks.create,
-  createWalkthrough: (title, stops) => {
-    const { nodes, decks } = get();
-    const byId = new Set(nodes.map((node) => node.id));
-    const path = stops.filter((id) => byId.has(id));
-    if (!path.length) return null;
-    const id = newPageId(decks, 'deck');
-    const linked = new Set(path);
-    const body = path.map((stop) => `{{diagram:${stop}}}`).join('\n\n---\n\n');
-    set({
-      decks: [...decks, { id, title, body, updatedAt: Date.now() }],
-      nodes: nodes.map((node) => linked.has(node.id) ? { ...node, deckIds: [...(node.deckIds ?? []), id] } : node),
-    });
-    return id;
-  },
   deleteDeck: decks.remove,
   linkDeck: decks.link,
   unlinkDeck: decks.unlink,

@@ -2205,72 +2205,9 @@
   }
 }
 
-.mf-toolbar[hidden] { display: none; }
 .mf-selbar-btn span {
   max-width: min(200px, 24vw);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.mf-walk-builder, .mf-walk-resume {
-  position: absolute;
-  z-index: 8;
-  background: var(--mf-panel);
-  color: var(--mf-text);
-  border: 1px solid var(--mf-border);
-  border-radius: 10px;
-  box-shadow: var(--mf-lift);
-  font: 500 13px var(--mf-ui-font, var(--mf-sans));
-}
-.mf-walk-builder {
-  top: 14px;
-  left: 14px;
-  width: min(320px, calc(100% - 28px));
-  max-height: 48%;
-  overflow: auto;
-  padding: 8px;
-}
-.mf-walk-head, .mf-walk-builder li, .mf-walk-resume {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.mf-walk-builder input, .mf-walk-builder select, .mf-walk-builder li button {
-  background: var(--mf-panel);
-  color: var(--mf-text);
-  border: 1px solid var(--mf-border);
-  border-radius: 5px;
-  font: inherit;
-}
-.mf-walk-head input { min-width: 0; flex: 1; padding: 5px; border-color: transparent; }
-.mf-walk-builder select { width: 100%; margin-top: 6px; padding: 5px; }
-.mf-walk-save {
-  background: var(--mf-text);
-  color: var(--mf-panel);
-  border: 0;
-  border-radius: 5px;
-  font: inherit;
-  padding: 5px 10px;
-}
-.mf-walk-builder button, .mf-walk-resume { cursor: pointer; }
-.mf-walk-builder button:disabled { opacity: .4; cursor: default; }
-.mf-walk-builder ol { padding: 0; margin: 7px 0 0; }
-.mf-walk-builder li { padding: 4px 0; border-top: 1px solid var(--mf-border); }
-.mf-walk-number { font: 11px var(--mf-mono); color: var(--mf-muted); padding: 0 4px; }
-.mf-walk-label { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.mf-walk-builder li button { width: 26px; height: 26px; }
-.mf-walk-resume { bottom: 18px; left: 50%; transform: translateX(-50%); padding: 8px 12px; white-space: nowrap; }
-.is-choosing-stops .react-flow__node { cursor: crosshair; }
-.is-choosing-stops .react-flow__handle, .is-choosing-stops .mf-page { display: none; }
-
-.mf-walk-marker {
-  display: block;
-  border-radius: 12px;
-  padding: 3px 7px;
-  background: var(--mf-accent);
-  color: var(--mf-panel);
-  font: 600 12px var(--mf-ui-font, var(--mf-sans));
-  pointer-events: none;
-}
-
-.is-exploring .mf-page, .is-exploring .react-flow__handle, .is-exploring ~ .mf-reopen { display: none; }

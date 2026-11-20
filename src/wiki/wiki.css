@@ -708,6 +708,12 @@ a.wk-item {
 }
 .wk-library-actions .wk-btn { white-space: nowrap; }
 .wk-library-row > .wk-item { flex: 1; min-width: 0; }
+.wk-library-row > a[draggable='true'] { cursor: grab; }
+.wk-library-row.drop-target {
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--mf-accent) 18%, transparent);
+  box-shadow: inset 0 0 0 1px var(--mf-accent);
+}
 .wk-library-row > .wk-icon {
   opacity: 0;
   width: 26px;

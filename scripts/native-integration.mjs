@@ -81,7 +81,9 @@ try {
   assert.deepEqual(second.configured, []);
   assert.equal(await readFile(codex, 'utf8'), configured);
   assert((await readFile(codex + '.marmerlade-backup', 'utf8')).includes('other-server'));
-  for (const host of ['.agents/skills', '.kiro/skills']) for (const name of ['marmerlade-director', 'marmerlade-docs', 'marmerlade-setup']) assert((await readFile(join(project, host, name, 'SKILL.md'), 'utf8')).startsWith('---'));
+  const skillNames = ['marmerlade-director', 'marmerlade-codebase-map', 'marmerlade-docs', 'marmerlade-setup'];
+  for (const host of ['claude', 'cursor']) await run(process.execPath, [cli, 'setup', '--project', project, '--host', host, '--file', file, '--no-browser']);
+  for (const host of ['.agents/skills', '.kiro/skills', '.claude/skills', '.cursor/skills']) for (const name of skillNames) assert((await readFile(join(project, host, name, 'SKILL.md'), 'utf8')).startsWith('---'));
   await assert.rejects(run(process.execPath, [...setupArgs, '--file', join(project, 'different.json')]), /already has a different/);
   assert.equal(await readFile(codex, 'utf8'), configured);
   await writeFile(file, 'invalid workspace JSON');

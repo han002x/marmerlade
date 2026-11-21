@@ -1,0 +1,3 @@
+interface:
+  display_name: "Marmerlade codebase map"
+  short_description: "Map or refresh a repository as a foldable diagram"

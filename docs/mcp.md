@@ -22,7 +22,7 @@ command in a terminal alone does not register it with an assistant.
 
 ## Guided local setup
 
-The package includes director, docs, and setup skills. Configure a project with:
+The package includes director, codebase-map, docs, and setup skills. Configure a project with:
 
 ```bash
 node dist/cli.js setup --project /absolute/project --host both --file architecture.marmerlade.json
@@ -177,13 +177,14 @@ as the arguments.
 
 - `get_workspace` returns the complete document, revision, file path and canvas URL.
 - `apply_changes` takes the revision and an atomic `changes` array. Operations are
-  `put_node`, `put_edge`, `put_page`, `put_deck`, `delete_node`, `delete_edge`,
-  `delete_page`, and `delete_deck`. Put operations replace the entity by ID.
-  Document puts take `{id, title, body}`; the server sets `updatedAt`.
-- `import_mermaid` takes `revision`, `source`, and optional `tidy` (default true).
+  `put_diagram`, `put_node`, `put_edge`, `put_page`, `put_deck`, `delete_diagram`,
+  `delete_node`, `delete_edge`, `delete_page`, and `delete_deck`. Put operations
+  replace the entity by ID. Document puts take `{id, title, body}`; the server
+  sets `updatedAt`. Pass `dryRun: true` to validate a batch without writing it.
+- `import_mermaid` takes `revision`, `source`, optional `diagramId`, and optional `tidy` (default true).
   It replaces diagram structure while preserving existing document content and
   surviving nodes' styling. New page/deck references create empty documents.
-- `export_mermaid` returns structure as Mermaid. JSON preserves all content.
+- `export_mermaid` takes optional `diagramKind` and `diagramId`, and returns structure as Mermaid. JSON preserves all content.
 - `open_workspace` accepts `view` (`canvas`, `node`, `wiki`, `slides`) and an optional
   `id` to open a particular item. `node` requires an ID.
 - `diagnose_environment` checks Node, packaged UI, project access, and Chromium.
@@ -202,6 +203,9 @@ as the arguments.
   `get_render_job` with its `jobId` for progress, a completed file, or an error.
 - `marmerlade://guide` describes the model and Markdown syntax;
   `marmerlade://example` contains a complete linked example.
+- Prompts `map_codebase` (`path`, optional `focus`) and `refresh_diagram` (optional
+  `scope`) start the codebase-map workflow. Tools declare read-only or destructive
+  annotations so hosts can ask for approval only where data can change.
 
 Read `get_workspace` before editing and pass its revision to the edit tool.
 All operations in a batch are validated together. Deleting a node removes its

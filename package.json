@@ -15,6 +15,7 @@
     "prepack": "npm run build",
     "test:mcp": "node --experimental-strip-types scripts/workspace-test.ts",
     "test:mcp:integration": "node scripts/mcp-integration.mjs",
+    "test:skills": "node --experimental-strip-types scripts/skills-drift.ts",
     "test:native": "node scripts/native-integration.mjs"
   },
   "dependencies": {

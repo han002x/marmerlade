@@ -20,6 +20,7 @@ npm run lint
 npm test
 npm run test:mcp
 npm run build
+npm run test:skills
 npx playwright install chromium
 npm run test:e2e
 npm run test:mcp:integration
@@ -32,6 +33,8 @@ and the editor. It also checks exported diagrams against the real Mermaid parser
 app and Playwright's Chromium. Browser tests cover the editor, slides, appearance,
 and docs. `test:native` verifies idempotent project setup, existing host settings,
 isolated previews, measured layout, image import, and asynchronous GIF jobs.
+`npm run test:skills` needs a build. It fails when the skills or MCP reference
+drift from the server's tools, prompts, hosts, or change kinds.
 Both integration scripts accept a built CLI path to test a clean package install.
 
 Other useful commands:

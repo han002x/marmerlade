@@ -36,6 +36,22 @@ test('atomic edits, conflicts, locks, validation and restart persistence', async
   try { assert.equal(reopened.snapshot().diagram.pages?.[0].body, '# Hello'); }
   finally { await reopened.close(); await rm(dir, { recursive: true }); }
 });
+test('check validates a batch without writing or advancing the revision', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'marmerlade-'));
+  const file = join(dir, 'diagram.marmerlade.json');
+  const workspace = await openWorkspace(file);
+  try {
+    const before = await readFile(file, 'utf8').catch(() => '');
+    const good = [{ kind: 'put_node' as const, node }];
+    assert.deepEqual(await workspace.check(0, d => applyChanges(d, good)), { ok: true, revision: 0 });
+    await assert.rejects(workspace.check(0, d => applyChanges(d, [{ kind: 'put_node', node: { ...node, parentId: 'missing' } }])));
+    await assert.rejects(workspace.check(5, d => applyChanges(d, good)), /changed/);
+    assert.equal(workspace.snapshot().revision, 0);
+    assert.equal(workspace.snapshot().diagram.nodes.length, 0);
+    assert.equal(await readFile(file, 'utf8').catch(() => ''), before);
+    assert.equal((await workspace.commit(0, d => applyChanges(d, good))).revision, 1);
+  } finally { await workspace.close(); await rm(dir, { recursive: true }); }
+});
 test('rejects broken graph/document links and accepts the packaged example', async () => {
   assert.throws(() => parseDiagram({ nodes: [node, node], edges: [] }), /Duplicate/);
   assert.throws(() => parseDiagram({ nodes: [node], edges: [{ id: 'e', source: 'a', target: 'b' }] }), /endpoint/);

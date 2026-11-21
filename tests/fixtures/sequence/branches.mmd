@@ -1,0 +1,32 @@
+---
+title: Retry policy
+---
+sequenceDiagram
+    participant Client; participant Server
+    rect rgb(230,240,250)
+        loop Retry
+            alt Connected
+                opt Has credentials
+                    Client->>Server: Request #59; poll
+                end
+            else Offline
+                break Cancelled
+                    Server-->>Client: Stop
+                end
+            end
+        end
+    end
+    par Notify
+        Server-)Client: Notify
+    and Audit
+        par_over Persist
+            Server->>Server: Write
+        and Trace
+            Server->>Server: Trace
+        end
+    end
+    critical Commit
+        Client->>Server: Save
+    option Timeout
+        Client->>Server: Roll back
+    end

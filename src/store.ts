@@ -1,3 +1,5 @@
+import { diagramEntities, projectDiagrams } from './diagramEntities.ts';
+import type { DiagramEntity } from './types';
 import { restyleDeck } from './slides.ts';
 import { create } from 'zustand';
 import { structural } from './stable.ts';
@@ -11,11 +13,13 @@ import type {
   NodeShape,
   Deck,
   Page,
+  WikiFolder,
 } from './types';
 import { fromMermaid, mergeDiagram, parseMermaid, toMermaid } from './mermaid/io.ts';
 import { layout, layoutShown, nodeSize, type Direction } from './layout.ts';
 import type { NodeClipboard } from './clipboard.ts';
 import { createPageFor, mergePages, newPageId, normalizeDiagram, type LinkKey } from './pages.ts';
+import { folderTrail, placeWikiPage } from './wikiFolders.ts';
 import {
   childrenOf,
   descendants,
@@ -131,10 +135,21 @@ interface Snapshot {
 }
 
 interface State {
+  diagrams?: DiagramEntity[];
+  activeDiagramId: string | null;
+  openDiagram: (id:string|null)=>void;
+  createDiagram: (content: {kind:'sequence';source:string}|{kind:'flowchart';nodes:DiagramNode[];edges:DiagramEdge[]})=>void;
+  setDiagrams: (diagrams:DiagramEntity[])=>void;
+
+  sequence?: string;
+  sequenceHistory: (string | undefined)[];
+  setSequence: (source: string) => void;
+  undoSequence: () => void;
   nodes: DiagramNode[];
   edges: DiagramEdge[];
   /** wiki pages; not part of undo history */
   pages: Page[];
+  wikiFolders: WikiFolder[];
   /** slide decks; not part of undo history */
   decks: Deck[];
 
@@ -181,7 +196,12 @@ interface State {
   openPage: (nodeId: string, pageId?: string) => string | null;
   createPageForNode: (nodeId: string) => string | null;
   /** a free-standing page (no node yet) */
-  createPage: (title: string) => string;
+  createPage: (title: string, folderId?: string) => string;
+  createFolder: (name: string, parentId: string | null) => void;
+  renameFolder: (id: string, name: string) => void;
+  moveFolder: (id: string, parentId: string | null) => void;
+  deleteFolder: (id: string) => void;
+  movePageToFolder: (id: string, folderId: string | null) => void;
   /** drop a page and unlink any node that pointed at it */
   deletePage: (id: string) => void;
   /** Attach an existing page without changing its other links. */
@@ -216,6 +236,8 @@ interface State {
   setEdgeOrder: (ids: string[], order: number | undefined) => void;
   moveNode: (id: string, position: { x: number; y: number }) => void;
   resizeNodes: (before: DiagramNode[], rects: ReadonlyMap<string, Rect>) => void;
+  /** Enlarge a node so its text fits; never shrinks and records no history. */
+  growNode: (id: string, size: { width?: number; height?: number }) => void;
   removeNode: (id: string) => void;
   connect: (source: string, target: string, sourceSide?: Side, targetSide?: Side) => void;
   updateEdgeLabel: (id: string, label: string) => void;
@@ -330,14 +352,18 @@ export const useDiagram = create<State>((set, get) => {
         return id;
       },
       /** a free-standing document (no node yet) */
-      create: (title: string): string => {
+      create: (title: string, folderId?: string): string => {
         const id = newPageId(get()[list], prefix);
-        set((s) => ({ [list]: [...s[list], { id, title, body: '', updatedAt: Date.now() }] }) as Partial<State>);
+        set((s) => ({
+          [list]: [...s[list], { id, title, body: '', updatedAt: Date.now() }],
+          wikiFolders: list === 'pages' && folderId ? placeWikiPage(s.wikiFolders, id, folderId) : s.wikiFolders,
+        }) as Partial<State>);
         return id;
       },
       remove: (id: string) =>
         set((s) => ({
           [list]: s[list].filter((p) => p.id !== id),
+          wikiFolders: list === 'pages' ? placeWikiPage(s.wikiFolders, id, null) : s.wikiFolders,
           nodes: relink(s.nodes, has(id), (old) => old.filter((p) => p !== id)),
           // Undo can restore deleted nodes, but must not revive links to deleted documents.
           history: s.history.map((h) => ({ ...h, nodes: relink(h.nodes, has(id), (old) => old.filter((p) => p !== id)) })),
@@ -365,6 +391,7 @@ export const useDiagram = create<State>((set, get) => {
   nodes: [],
   edges: [],
   pages: [],
+  wikiFolders: [],
   decks: [],
   highlight: null,
   insertion: null,
@@ -373,17 +400,87 @@ export const useDiagram = create<State>((set, get) => {
   selectedEdgeIds: [],
   history: [],
 
+  activeDiagramId: null,
+  diagrams: undefined,
+  setDiagrams: (diagrams) =>
+    set((state) => {
+      if (state.activeDiagramId) return { diagrams };
+      const flow = diagrams.find((e) => e.kind === 'flowchart');
+      const sequence = diagrams.find((e) => e.kind === 'sequence');
+      return { diagrams, nodes: flow?.nodes ?? [], edges: flow?.edges ?? [], sequence: sequence?.source };
+    }),
+  createDiagram: (content) => {
+    const entities = diagramEntities(workspaceDiagram(get()));
+    const entity: DiagramEntity = {
+      ...content,
+      id: crypto.randomUUID(),
+      title: content.kind === 'sequence' ? 'Sequence' : 'Flowchart',
+      position: { x: Math.max(0, ...entities.map((e) => e.position.x + e.size.width)) + 100, y: 0 },
+      size: { width: 900, height: 650 },
+    };
+    set({ diagrams: [...entities, entity] });
+    get().openDiagram(entity.id);
+  },
+  openDiagram: (id) => {
+    const current = get();
+    const diagrams = workspaceDiagram(current).diagrams ?? diagramEntities(current);
+    const entity = diagrams.find((item) => item.id === id);
+    const flow = entity?.kind === 'flowchart' ? entity : diagrams.find((item) => item.kind === 'flowchart');
+    const sequence = entity?.kind === 'sequence' ? entity : diagrams.find((item) => item.kind === 'sequence');
+    lastMoveId = null;
+    lastStyleKey = null;
+    syncing = false;
+    set({
+      diagrams: current.diagrams ? diagrams : undefined,
+      activeDiagramId: entity?.id ?? null,
+      nodes: flow?.nodes ?? [],
+      edges: flow?.edges ?? [],
+      sequence: sequence?.source,
+      history: [],
+      sequenceHistory: [],
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
+      insertion: null,
+      ghostAt: null,
+      highlight: null,
+    });
+  },
+  sequenceHistory: [],
+  setSequence: (sequence) =>
+    set((s) =>
+      s.sequence === sequence
+        ? s
+        : {
+            sequence,
+            sequenceHistory: [...s.sequenceHistory.slice(-99), s.sequence],
+          },
+    ),
+  undoSequence: () =>
+    set((s) =>
+      s.sequenceHistory.length
+        ? {
+            sequence: s.sequenceHistory.at(-1),
+            sequenceHistory: s.sequenceHistory.slice(0, -1),
+          }
+        : s,
+    ),
+
   isGroup: (id) => get().nodes.some((n) => n.parentId === id),
 
   hiddenNodeIds: () => computeHidden(get().nodes),
 
   canUndo: () => get().history.length > 0,
 
-  restyleAppearance: () => set((state) => {
+  restyleAppearance: () =>
+    set((state) => {
     const clear = (style: ElementStyle | undefined): ElementStyle | undefined => {
       if (!style) return style;
       const kept = { ...style };
-      delete kept.stroke; delete kept.background; delete kept.fontFamily; delete kept.sloppiness; delete kept.edges;
+        delete kept.stroke;
+        delete kept.background;
+        delete kept.fontFamily;
+        delete kept.sloppiness;
+        delete kept.edges;
       return kept;
     };
     return {
@@ -415,8 +512,7 @@ export const useDiagram = create<State>((set, get) => {
       // avoid a pointless re-render when nothing changed
       const cur = s.highlight;
       if (cur === highlight) return s;
-      if (cur && highlight && cur.kind === highlight.kind && cur.id === highlight.id)
-        return s;
+      if (cur && highlight && cur.kind === highlight.kind && cur.id === highlight.id) return s;
       return { highlight };
     }),
 
@@ -517,7 +613,8 @@ export const useDiagram = create<State>((set, get) => {
     return id;
   },
 
-  pasteNodes: (fragment, center) => set((s) => {
+  pasteNodes: (fragment, center) =>
+    set((s) => {
     if (fragment.nodes.length === 0) return s;
 
     const kids = childrenOf(fragment.nodes);
@@ -547,7 +644,7 @@ export const useDiagram = create<State>((set, get) => {
     const deckIds = new Set(s.decks.map((deck) => deck.id));
     const pasted = copies.map((node) => ({
       ...node,
-      parentId: node.parentId === null ? null : ids.get(node.parentId) ?? null,
+        parentId: node.parentId === null ? null : (ids.get(node.parentId) ?? null),
       position: { x: node.position.x + dx, y: node.position.y + dy },
       pageIds: node.pageIds && [...new Set(node.pageIds)].filter((id) => pageIds.has(id)),
       deckIds: node.deckIds && [...new Set(node.deckIds)].filter((id) => deckIds.has(id)),
@@ -583,6 +680,58 @@ export const useDiagram = create<State>((set, get) => {
   openPage: pages.open,
   createPageForNode: pages.createFor,
   createPage: pages.create,
+  createFolder: (name, parentId) =>
+    set((state) => {
+    const label = name.trim();
+      if (!label || (parentId !== null && !state.wikiFolders.some((folder) => folder.id === parentId)))
+        return state;
+    let id: string;
+      do {
+        id = `folder${Math.random().toString(36).slice(2)}`;
+      } while (state.wikiFolders.some((folder) => folder.id === id));
+    return { wikiFolders: [...state.wikiFolders, { id, name: label, parentId, pageIds: [] }] };
+  }),
+  renameFolder: (id, name) =>
+    set((state) => {
+    const label = name.trim();
+      if (!label || !state.wikiFolders.some((folder) => folder.id === id && folder.name !== label))
+        return state;
+      return {
+        wikiFolders: state.wikiFolders.map((folder) =>
+          folder.id === id ? { ...folder, name: label } : folder,
+        ),
+      };
+  }),
+  moveFolder: (id, parentId) =>
+    set((state) => {
+      const byId = new Map(state.wikiFolders.map((folder) => [folder.id, folder]));
+    const folder = byId.get(id);
+    if (!folder || folder.parentId === parentId || (parentId !== null && !byId.has(parentId))) return state;
+      if (folderTrail(byId, parentId).some((ancestor) => ancestor.id === id)) return state;
+      return {
+        wikiFolders: state.wikiFolders.map((entry) => (entry.id === id ? { ...entry, parentId } : entry)),
+      };
+  }),
+  deleteFolder: (id) =>
+    set((state) => {
+      const removed = state.wikiFolders.find((folder) => folder.id === id);
+    if (!removed) return state;
+      const wikiFolders = state.wikiFolders
+        .filter((folder) => folder.id !== id)
+        .map((folder) => {
+          if (folder.id === removed.parentId)
+            return { ...folder, pageIds: [...folder.pageIds, ...removed.pageIds] };
+      if (folder.parentId === id) return { ...folder, parentId: removed.parentId };
+      return folder;
+    });
+    return { wikiFolders };
+  }),
+  movePageToFolder: (id, folderId) =>
+    set((state) => {
+      if (!state.pages.some((page) => page.id === id)) return state;
+    const wikiFolders = placeWikiPage(state.wikiFolders, id, folderId);
+    return wikiFolders === state.wikiFolders ? state : { wikiFolders };
+  }),
   deletePage: pages.remove,
   linkPage: pages.link,
   unlinkPage: pages.unlink,
@@ -628,9 +777,7 @@ export const useDiagram = create<State>((set, get) => {
       const set$ = new Set(ids);
       return {
         ...styleSnapshot(key),
-        nodes: s.nodes.map((n) =>
-          set$.has(n.id) ? { ...n, style: { ...n.style, ...patch } } : n,
-        ),
+        nodes: s.nodes.map((n) => (set$.has(n.id) ? { ...n, style: { ...n.style, ...patch } } : n)),
       };
     }),
 
@@ -641,9 +788,7 @@ export const useDiagram = create<State>((set, get) => {
       const set$ = new Set(ids);
       return {
         ...styleSnapshot(key),
-        edges: s.edges.map((e) =>
-          set$.has(e.id) ? { ...e, style: { ...e.style, ...patch } } : e,
-        ),
+        edges: s.edges.map((e) => (set$.has(e.id) ? { ...e, style: { ...e.style, ...patch } } : e)),
       };
     }),
 
@@ -680,9 +825,7 @@ export const useDiagram = create<State>((set, get) => {
         return {
           ...hist,
           nodes: s.nodes.map((n) =>
-            inside.has(n.id)
-              ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } }
-              : n,
+            inside.has(n.id) ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n,
           ),
         };
       }
@@ -709,7 +852,8 @@ export const useDiagram = create<State>((set, get) => {
         if (!dx && !dy) continue;
         const inside = new Set(descendants(id, kids));
         for (const node of s.nodes) {
-          if (inside.has(node.id)) positions.set(node.id, { x: node.position.x + dx, y: node.position.y + dy });
+          if (inside.has(node.id))
+            positions.set(node.id, { x: node.position.x + dx, y: node.position.y + dy });
         }
       }
       return {
@@ -717,10 +861,26 @@ export const useDiagram = create<State>((set, get) => {
         nodes: s.nodes.map((node) => {
           const rect = rects.get(node.id);
           const position = positions.get(node.id);
-          if (rect) return { ...node, position: position ?? node.position, size: { width: rect.width, height: rect.height } };
+          if (rect)
+            return {
+              ...node,
+              position: position ?? node.position,
+              size: { width: rect.width, height: rect.height },
+            };
           return position ? { ...node, position } : node;
         }),
       };
+    }),
+
+  growNode: (id, size) =>
+    set((s) => {
+      const node = s.nodes.find((n) => n.id === id);
+      if (!node) return s;
+      const width = Math.max(size.width ?? 0, node.size?.width ?? 0);
+      const height = Math.max(size.height ?? 0, node.size?.height ?? 0);
+      if (!width || !height) return s;
+      if (node.size && width === node.size.width && height === node.size.height) return s;
+      return { nodes: s.nodes.map((n) => (n.id === id ? { ...n, size: { width, height } } : n)) };
     }),
 
   removeNode: (id) =>
@@ -740,18 +900,14 @@ export const useDiagram = create<State>((set, get) => {
       return {
         ...snapshot(),
         nodes: s.nodes.filter((n) => !toRemove.has(n.id)),
-        edges: s.edges.filter(
-          (e) => !toRemove.has(e.source) && !toRemove.has(e.target),
-        ),
+        edges: s.edges.filter((e) => !toRemove.has(e.source) && !toRemove.has(e.target)),
       };
     }),
 
   connect: (source, target, sourceSide, targetSide) =>
     set((s) => {
       if (source === target) return s;
-      const exists = s.edges.some(
-        (e) => e.source === source && e.target === target,
-      );
+      const exists = s.edges.some((e) => e.source === source && e.target === target);
       if (exists) return s;
       return {
         ...snapshot(),
@@ -771,13 +927,10 @@ export const useDiagram = create<State>((set, get) => {
   updateEdgeLabel: (id, label) =>
     set((s) => ({
       ...snapshot(),
-      edges: s.edges.map((e) =>
-        e.id === id ? { ...e, label: label.trim() || undefined } : e,
-      ),
+      edges: s.edges.map((e) => (e.id === id ? { ...e, label: label.trim() || undefined } : e)),
     })),
 
-  removeEdge: (id) =>
-    set((s) => ({ ...snapshot(), edges: s.edges.filter((e) => e.id !== id) })),
+  removeEdge: (id) => set((s) => ({ ...snapshot(), edges: s.edges.filter((e) => e.id !== id) })),
 
   setCollapsed: (ids, collapsed, sizeOf = nodeSize) =>
     set((s) => {
@@ -795,9 +948,7 @@ export const useDiagram = create<State>((set, get) => {
       if (childId === groupId) return s;
       return {
         ...snapshot(),
-        nodes: s.nodes.map((n) =>
-          n.id === childId ? { ...n, parentId: groupId } : n,
-        ),
+        nodes: s.nodes.map((n) => (n.id === childId ? { ...n, parentId: groupId } : n)),
       };
     }),
 
@@ -837,16 +988,27 @@ export const useDiagram = create<State>((set, get) => {
     return id;
   },
 
-  ungroupNodes: (ids) => set((s) => {
+  ungroupNodes: (ids) =>
+    set((s) => {
     const id = ungroupTarget(s.nodes, ids);
     const group = s.nodes.find((node) => node.id === id);
     if (!group) return s;
     const members = s.nodes.filter((node) => node.parentId === id);
-    const preserve = !!(group.label || group.icon || group.image || group.style || group.pageIds?.length || group.deckIds?.length || s.edges.some((edge) => edge.source === id || edge.target === id));
+      const preserve = !!(
+        group.label ||
+        group.icon ||
+        group.image ||
+        group.style ||
+        group.pageIds?.length ||
+        group.deckIds?.length ||
+        s.edges.some((edge) => edge.source === id || edge.target === id)
+      );
     const position = groupOrigin(group.id, s.nodes) ?? group.position;
     return {
       ...snapshot(),
-      nodes: s.nodes.filter((node) => preserve || node.id !== id).map((node) => {
+        nodes: s.nodes
+          .filter((node) => preserve || node.id !== id)
+          .map((node) => {
         if (node.id === id) return { ...node, position, collapsed: false };
         return node.parentId === id ? { ...node, parentId: group.parentId } : node;
       }),
@@ -909,9 +1071,45 @@ export const useDiagram = create<State>((set, get) => {
     set((s) => {
       const pages = mergePages(s.pages, d.pages ?? []);
       const decks = mergePages(s.decks, d.decks ?? []);
+      const remoteFolders = d.wikiFolders ?? [];
+      const wikiFolders =
+        JSON.stringify(s.wikiFolders) === JSON.stringify(remoteFolders) ? s.wikiFolders : remoteFolders;
+      if (d.diagrams) {
+        const entity = d.diagrams.find((item) => item.id === s.activeDiagramId);
+        const flow =
+          entity?.kind === 'flowchart' ? entity : d.diagrams.find((item) => item.kind === 'flowchart');
+        const sequence =
+          entity?.kind === 'sequence' ? entity : d.diagrams.find((item) => item.kind === 'sequence');
+        return {
+          diagrams: d.diagrams,
+          activeDiagramId: entity?.id ?? null,
+          nodes: flow?.nodes ?? [],
+          edges: flow?.edges ?? [],
+          sequence: sequence?.source,
+          pages,
+          decks,
+          wikiFolders,
+          history: [],
+          sequenceHistory: [],
+        };
+      }
+      const sequenceState = d.sequence === s.sequence ? {} : { sequence: d.sequence, sequenceHistory: [] };
       const same = JSON.stringify([s.nodes, s.edges]) === JSON.stringify([d.nodes, d.edges]);
-      if (same && pages === s.pages && decks === s.decks) return s;
-      return same ? { pages, decks } : { nodes: d.nodes, edges: d.edges, pages, decks };
+      if (
+        same &&
+        d.sequence === s.sequence &&
+        pages === s.pages &&
+        decks === s.decks &&
+        wikiFolders === s.wikiFolders
+      )
+        return s;
+      return {
+        ...sequenceState,
+        ...(same ? {} : { nodes: d.nodes, edges: d.edges }),
+        pages,
+        decks,
+        wikiFolders,
+      };
     });
   },
 
@@ -922,17 +1120,43 @@ export const useDiagram = create<State>((set, get) => {
     lastMoveId = null;
     lastStyleKey = null;
     set({
+      diagrams: d.diagrams,
+      activeDiagramId: null,
       history: [],
+      sequenceHistory: [],
+      sequence: d.sequence,
       nodes: d.nodes,
       edges: d.edges,
       pages: d.pages ?? [],
       decks: d.decks ?? [],
+      wikiFolders: d.wikiFolders ?? [],
       selectedNodeIds: [],
       selectedEdgeIds: [],
     });
   },
   };
 });
+
+export function workspaceDiagram(state: Diagram = useDiagram.getState()): Diagram {
+  const { nodes, edges, pages, decks, wikiFolders } = state;
+  const base: Diagram = {
+    nodes,
+    edges,
+    pages,
+    decks,
+    ...(state.sequence !== undefined && { sequence: state.sequence }),
+    ...(wikiFolders?.length && { wikiFolders }),
+  };
+  if (!state.diagrams) return base;
+  const active = 'activeDiagramId' in state ? state.activeDiagramId : null;
+  const diagrams = state.diagrams.map((entity) => {
+    if (entity.id !== active) return entity;
+    return entity.kind === 'flowchart'
+      ? { ...entity, nodes, edges }
+      : { ...entity, source: state.sequence ?? 'sequenceDiagram' };
+  });
+  return projectDiagrams(base, diagrams);
+}
 
 const structuralNodes = structural<DiagramNode>();
 

@@ -1,4 +1,4 @@
-import { useDiagram } from './store.ts';
+import { useDiagram, workspaceDiagram } from './store.ts';
 import type { Diagram } from './types.ts';
 
 export type WorkspaceStatus = { kind: 'saved' | 'saving' | 'offline' | 'conflict' | 'error'; message: string };
@@ -9,11 +9,12 @@ export function subscribeWorkspaceStatus(listener: () => void) { listeners.add(l
 function report(kind: WorkspaceStatus['kind'], message = '') { status = { kind, message }; listeners.forEach(fn => fn()); }
 let live = false;
 export const isLiveWorkspace = () => live;
-const current = (): Diagram => { const { nodes, edges, pages, decks } = useDiagram.getState(); return { nodes, edges, pages, decks }; };
+const current = workspaceDiagram;
 let reload = async () => {};
 export const reloadWorkspace = () => reload();
 export function downloadWorkspaceDraft() {
-  const url = URL.createObjectURL(new Blob([JSON.stringify({ version: 3, diagram: current() }, null, 2)], { type: 'application/json' }));
+  const diagram = current();
+  const url = URL.createObjectURL(new Blob([JSON.stringify({ version: diagram.diagrams ? 5 : diagram.sequence === undefined ? 3 : 4, diagram }, null, 2)], { type: 'application/json' }));
   const link = document.createElement('a'); link.href = url; link.download = 'draft.marmerlade.json'; link.click(); URL.revokeObjectURL(url);
 }
 
@@ -45,7 +46,19 @@ export async function initializeWorkspace() {
   }
   function apply(snapshot: Snapshot) {
     applying = true;
-    useDiagram.setState({ ...snapshot.diagram, pages: snapshot.diagram.pages ?? [], decks: snapshot.diagram.decks ?? [], history: [] });
+    const previous = useDiagram.getState();
+    const incoming = snapshot.diagram;
+    const sequenceOnly = previous.sequence !== incoming.sequence &&
+      JSON.stringify({ ...current(), sequence: undefined }) === JSON.stringify({ ...workspaceDiagram(incoming), sequence: undefined });
+    if(incoming.diagrams) previous.applyRemote(incoming);
+    else useDiagram.setState({
+      ...incoming, diagrams:undefined,
+      activeDiagramId:previous.activeDiagramId==='flowchart' || (previous.activeDiagramId==='sequence' && incoming.sequence!==undefined) ? previous.activeDiagramId : null,
+      sequence: incoming.sequence,
+      sequenceHistory: previous.sequence === incoming.sequence ? previous.sequenceHistory : [],
+      pages: incoming.pages ?? [], decks: incoming.decks ?? [], wikiFolders: incoming.wikiFolders ?? [],
+      history: sequenceOnly ? previous.history : [],
+    });
     revision = snapshot.revision; accepted = JSON.stringify(current()); applying = false; report('saved');
   }
   async function bootstrap(): Promise<Bootstrap> {
@@ -77,7 +90,7 @@ export async function initializeWorkspace() {
   // really differs is decided when the timer fires, not on every drag frame.
   useDiagram.subscribe((state, prev) => {
     if (applying) return;
-    if (state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
+    if (state.diagrams === prev.diagrams && state.sequence === prev.sequence && state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks && state.wikiFolders === prev.wikiFolders) return;
     clearTimeout(timer); timer = setTimeout(() => { void save(); }, 400);
   });
   reload = async () => {
@@ -97,7 +110,7 @@ export async function initializeWorkspace() {
     try {
       const next = await bootstrap(); token = next.token;
       // A new process starts its revision counter again. Treat this as a conflict if a draft exists.
-      if (dirty() && (next.revision !== revision || JSON.stringify(next.diagram) !== accepted)) report('conflict', 'The workspace changed. Download your draft before reloading.');
+      if (dirty() && (next.revision !== revision || JSON.stringify(workspaceDiagram(next.diagram)) !== accepted)) report('conflict', 'The workspace changed. Download your draft before reloading.');
       else if (!dirty()) apply(next);
       else { report('saved'); void save(); }
       connect();

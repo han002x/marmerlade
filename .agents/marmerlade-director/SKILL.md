@@ -12,7 +12,10 @@ continuing an existing project.
 
 Use [marmerlade-docs](../marmerlade-docs/SKILL.md) for entity fields, formats,
 link syntax, and editing contracts. The director chooses the content and order
-of work; the docs skill describes what the product can represent.
+of work; the docs skill describes what the product can represent. To map or
+refresh a repository's architecture, use
+[marmerlade-codebase-map](../marmerlade-codebase-map/SKILL.md), which applies
+steps 2 to 5 and 7 to source code.
 
 ## 1. Establish the brief
 
@@ -56,6 +59,9 @@ browser app's localStorage and an MCP workspace are separate stores.
 
 **Done:** The target workspace, current contents, editing method, and destination
 are known. Do not write the JSON file externally while its MCP server owns it.
+When the workspace already holds a diagram, extend it by ID instead of rebuilding
+it; for code-driven updates follow the refresh recipe in
+[marmerlade-codebase-map](../marmerlade-codebase-map/SKILL.md).
 If MCP is unavailable, do useful offline work where it satisfies the request;
 identify the missing connection when live editing is required.
 
@@ -93,10 +99,15 @@ without making a past project's theme a default for every project.
 
 **Mechanics:** Use `apply_changes` with the latest revision and complete
 `put_node` / `put_edge` values. Include newly referenced documents in the same
-atomic batch. Puts replace whole entities, so retain existing fields that must
-survive. Use `import_mermaid` only when replacing the diagram's entire structure
+atomic batch. Send the batch with `dryRun: true` first; it applies the same
+checks as a commit without writing, so a bad parent or endpoint fails cheaply.
+Then resend it without `dryRun`. A complete minimal batch (a folded group, two
+children, an edge, and a linked page) is in
+[example-batch.json](references/example-batch.json). Puts replace whole
+entities, so retain existing fields that must survive. Use `import_mermaid` only
+when replacing the diagram's entire structure
 is intended; `tidy` defaults to true. It is not an incremental add-nodes tool.
-For an offline deliverable, write the version-3 envelope and validate it.
+For an offline deliverable, write a version-4 envelope when including sequence source or version 3 for a flowchart-only workspace, then validate it.
 
 **Done:** Read back the committed workspace. IDs, parents, endpoints, and document
 references resolve. Requested structure exists and unrelated content remains.

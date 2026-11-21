@@ -4,8 +4,17 @@
 
 ## Infinite canvas
 
-Pan, zoom, minimap, drag nodes, draw edges by dragging
-between handles. Built on [React Flow](https://reactflow.dev) (`@xyflow/react`).
+The workspace canvas holds multiple flowchart and sequence diagram entities.
+Open **Add diagram** in the toolbar. Drag **Flowchart** or **Sequence** onto
+the canvas, or choose a type and click where you want the diagram to start.
+Drag a diagram by its name bar or preview to move it. Rename it in its header
+or resize it when selected. Drag on empty canvas to select several diagrams,
+then move, duplicate, or delete them together.
+
+Double-click a diagram or choose **Edit diagram** to edit it in place.
+Choose **Done** when finished. Drag flowchart nodes and draw edges between
+handles. Pan or zoom anywhere on the workspace, or use the minimap to
+navigate between diagrams. Built on [React Flow](https://reactflow.dev) (`@xyflow/react`).
 
 ## Origami folding
 
@@ -20,9 +29,10 @@ time. Nesting is arbitrary depth.
 
 ## Mermaid interop
 
-The right panel has **Mermaid** and **Tree** tabs.
-Mermaid edits sync live with the canvas. The tree follows subgraph nesting,
-with expandable groups and a connection list. Select nodes or connections in
+The shared right panel edits the active diagram. In **Tree**, expand a diagram
+row to see its contents, or click the row to activate that diagram. Flowcharts
+list their nested node groups and connections. Sequences list participants and
+messages. Edits in **Mermaid** sync live with the active diagram. Select nodes or connections in
 the tree, or double-click their labels to rename them; changes update the
 canvas and Mermaid source. **Copy** exports the source for other renderers.
 
@@ -75,12 +85,13 @@ Every node can link multiple Markdown pages, and pages can
 be shared across nodes. Press `W` (or the page button on a node) to open its
 default page in the side panel's **Page** tab. The picker switches pages;
 **New page**, **Link existing page**, **Unlink**, and **Make default** manage
-the links. The first linked page is the default. Opening a node with no pages
-creates one titled from the node; later node renames leave page titles alone.
+the links. The first linked page is the default. Selecting a node shows its default page title above the shape. Click the title
+to read it beside the diagram. **Add explanation** creates a page titled from
+the node and opens it for editing. Later node renames leave page titles alone.
 ↗ opens the current page in its own window, keeping the node context.
-Pages appear beneath their linked nodes in the canvas tree and the wiki's
-collapsible sidebar. The wiki follows the diagram's group hierarchy and
-lists unlinked pages in a separate section.
+The wiki sidebar lists every page and supports title search. Use **New folder**
+or a folder’s menu to create nested folders. A page’s menu moves it to a folder
+without changing its URL. The canvas tree still lists pages under their linked nodes.
 Both the wiki window and the canvas side panel open a rich-text editor.
 Type `/` for headings, lists, checklists, quotes, code, dividers, tables, and
 diagram embeds. Select text for formatting. **Edit**, **Read**, and
@@ -93,7 +104,9 @@ column; `Tab` moves between cells and
 adds a row at the end, `Shift+Tab` moves back, and `Enter` adds a cell line
 break. Merged cells and resizing are not supported. `[[Node or Page]]` links jump between
 pages (`[[Target|alias]]` supported, `[[` autocompletes), each page lists its
-backlinks, and `{{diagram}}` embeds the node's live sub-diagram. Click a node
+backlinks, and `{{diagram}}` embeds the node's live sub-diagram. In **Edit** mode,
+drag its width handle to resize it. Use the drag grip or the up and down buttons
+to move it between blocks. Click a node
 in it, or **Canvas** in the header, to drill back up: the canvas unfolds
 whatever hides the node and frames it. Both windows share one save, so edits
 and renames show up in the other instantly. The wiki lists a page's linked
@@ -113,21 +126,22 @@ references; use `.marmerlade.json` to include page content.
 
 ## Slides
 
-Every node can also link slide decks, written as code. Press `K`,
-the slides button on a node (beside its page button), or **Slides** on the
-toolbar to open the selected node's deck in the side panel's **Slides** tab
-(created on first use, titled from the node); with nothing selected the tab
-lists every deck. The tab shows the deck as slides or as its Markdown, and
+Press `K` with a node selected or click its **Open slides** button to see the
+node's linked decks in the side panel's **Slides** tab. Choose **New deck** to
+create one. With nothing selected, press `K` to list every deck.
+The tab shows the deck as slides or as its Markdown, and
 its menu switches between a node's decks: **New deck**, **Link existing
 deck**, **Unlink**, **Make default**. ↗ opens the deck in the slides window,
-where the full tools live, and a slide's number presents from that slide; decks appear beneath their nodes in the canvas tree
-and the slides sidebar, and link, unlink and outlive nodes exactly as pages do.
+where the full tools live. The **Slides** sidebar shows numbered thumbnails
+that jump to a slide in the editor. Switch to **Decks** to find and open a deck
+by title. The canvas tree lists decks under their linked nodes.
 A deck is Markdown in the subset [Marp](https://marp.app) and
 [Slidev](https://sli.dev) both read: `---` on its own line starts a new
 slide, an HTML comment (`<!-- … -->`) is a speaker note, and optional front
 matter at the top is kept but not shown. `{{diagram}}` draws the linked
 node's live sub-diagram, `{{diagram:Node}}` draws any node by label or id,
-and ```` ```mermaid ```` fences render as diagrams. `[[wikilinks]]` open the
+and ```` ```mermaid ```` fences render as diagrams. Drag a live diagram on the slide
+canvas to move it. Select it to resize it with the object handles. `[[wikilinks]]` open the
 wiki. The source sits beside its slides, which redraw as you type. The slide
 under the caret is outlined; click a slide to move the caret to its source,
 and its number presents from that slide. Each slide's ⋮ menu adds a slide
@@ -179,7 +193,7 @@ natively; Marp needs a Mermaid plugin, and HTML enabled to show objects. Deck li
 The diagram autosaves to `localStorage` and restores on
 reload, so nothing is lost on refresh. Export / import a `.marmerlade.json` file,
 or clear the canvas, from the toolbar. Older single-page saves and JSON files
-migrate automatically; new saves use version 3.
+migrate automatically. Workspaces containing diagram entities save as version 5, including every diagram and its frame position and size.
 
 ## Paper and ink
 
@@ -227,7 +241,7 @@ shortcuts show their keys in the bottom-right corner of each button and in their
 
 ## Mermaid support
 
-Parses the common `flowchart` / `graph` subset: node declarations in all 14
+The flowchart canvas parses the common `flowchart` / `graph` subset: node declarations in all 14
 classic bracket shapes (`[]` `()` `([])` `[[]]` `[()]` `(())` `((()))` `{}`
 `{{}}` `[//]` `[\\]` `[/\]` `[\/]` `>]`), v11 `@{ shape: … }` / `@{ icon: … }`
 metadata, `-->` / `---` edges with optional `|labels|`, and `subgraph … end`
@@ -242,3 +256,87 @@ The shape table lives in `src/shapes.ts`.
 Inter and JetBrains Mono are self-hosted via `@fontsource` and bundled into the
 build, so there's no Google Fonts network dependency and the app renders
 correctly offline.
+
+### Sequence diagrams
+
+Choose **Add diagram → Sequence** and click the workspace canvas to place it.
+A new diagram is placed beside existing ones, opens for editing and scrolls
+into view. Reopen it later from **Tree** or with **Edit diagram** in its header.
+Each sequence has its own source and participants.
+Paste the following in its Mermaid editor.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant API as Order service
+    Customer->>API: Submit order
+    alt Accepted
+        API-->>Customer: Order number
+    else Invalid
+        API-->>Customer: Check address
+    end
+```
+
+Open **Add element** (the lifeline icon beside **Select**) to browse
+participants, messages, notes, blocks, and advanced Mermaid constructs. Hover
+or focus an element to draw an example of it in your diagram, with what it
+means and how to place it above the canvas. The example goes where the element
+would be inserted and wraps the selected message when one is selected. Elements
+that do not change the drawing, such as links and accessibility text, show a
+card instead. When the list is unavailable, the card says why, for example
+while another element waits for **Insert**. Drag a participant tile onto the canvas to choose its
+lane, or click the tile and then the canvas. Press **R** for participant
+placement. A dashed line follows the pointer to show where it will go.
+
+Choose **Message** and click the sender and receiver, or drag a connection
+handle between participant headers. After the sender, an arrow follows the
+pointer until you click the receiver. Dragging a message tile onto a lane
+chooses the sender and insertion position; then click the receiver. Choose the
+same participant twice for a self-message. The **Arrow** list names each style,
+such as *Reply · dashed arrow*, next to its Mermaid token.
+
+In the element forms, pointing at an option in any list (arrow, shape,
+participant, note position, wrapping) draws the diagram with that option on the
+canvas before you choose it; the arrow keys do the same. Moving off the list
+restores the current preview. This works while inserting and while editing.
+
+Click or drag notes and activation elements onto a lane; a dot marks the lane
+and a line marks the point in time. A note can stretch across a second
+participant. **Activate** also adds the matching **Deactivate** after that
+participant's last message in the branch, because Mermaid draws the bar only
+once it is closed.
+
+For a loop, alternative, parallel, or other message block, select contiguous
+messages in one branch, then place the block to wrap them. Only a selection you
+make counts: the element you just inserted is not wrapped. Without a selection,
+the block is added where you click with one **New step** message inside, since
+Mermaid cannot draw an empty block. **Add else branch** and the other branch
+commands add a step the same way. A **Box** groups the participant you click,
+or the participants you selected first. **Message numbering** and **Title** go
+at the top of the diagram. A block left empty in the Mermaid source is listed
+in **Tree** with its line number.
+
+Every insertion opens editable properties in **Tree** and draws a preview on the
+canvas at the diagram's own scale. Change the fields to update the preview, then
+press **Enter** or choose **Insert** to save one undoable change. Enter pressed
+while the preview is still updating is applied once it is ready. **Cancel** or
+**Escape** discards it. When an element does not change the drawing, such as a
+link, the preview says so. Pending previews are not saved or exported. Changing
+diagrams or opening **Mermaid** also cancels them.
+
+Double-click a participant, message arrow, or note to edit its label. Drag a
+participant header horizontally to reorder its lane. Drag a message vertically
+to change its order within a branch. Drag on the background to select several
+elements. **Delete** removes the selection and **Ctrl/Cmd+Z** undoes an edit.
+
+Expand the sequence in **Tree** to edit existing statement properties. Select a
+block and choose **Add else branch**, **Add and branch**, or **Add option branch**
+to extend it. Use **Mermaid** to edit or copy the complete sequence. During an
+invalid source edit, the panel shows the parser error and the canvas retains the
+last valid drawing.
+
+Use **Export PNG** for an image and **Workspace file** in the Export menu to share the editable
+diagrams and their documents. Insert **Sequence diagram** in a wiki page or a
+slide, or write `{{sequence}}` on its own line. The embed follows the workspace
+sequence, including when the flowchart is open. Standalone deck Markdown includes
+the sequence as a Mermaid code fence.

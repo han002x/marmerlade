@@ -1,6 +1,6 @@
 ---
 name: marmerlade-setup
-description: Install, connect, diagnose, and verify a local Marmerlade workspace for Kiro or Codex. Use for first-run setup, missing dependencies, MCP connection failures, or opening a project on the user's machine.
+description: Install, connect, diagnose, and verify a local Marmerlade workspace for Codex, Kiro, Claude Code, Cursor, or Antigravity. Use for first-run setup, missing dependencies, MCP connection failures, or opening a project on the user's machine.
 ---
 
 # Marmerlade setup
@@ -12,7 +12,20 @@ bootstrap a server that has not been installed or connected yet.
 ## 1. Locate the project and host
 
 Inspect the project, existing MCP configuration, and available local tools.
-Use the user's selected Kiro or Codex host; use `both` when they request both.
+Use the agent the user is running. `both` configures only Codex and Kiro;
+name any other agent explicitly.
+
+| Value | MCP configuration | Skills |
+| --- | --- | --- |
+| `codex` | `.codex/config.toml` | `.agents/skills` |
+| `kiro` | `.kiro/settings/mcp.json` | `.kiro/skills` |
+| `claude` | `.mcp.json` | `.claude/skills` |
+| `cursor` | `.cursor/mcp.json` | `.cursor/skills` |
+| `antigravity` | `~/.gemini/antigravity/mcp_config.json` (user-level) | `.agent/skills` |
+
+Antigravity's MCP file is outside the project and shared by every workspace. Use a
+distinct `--name` per project there.
+
 Confirm the project directory is on the machine where the browser should open.
 A remote container's localhost is not automatically the user's desktop.
 
@@ -26,13 +39,19 @@ that missing capability and continue with editable diagrams and supplied assets.
 
 Use an existing compatible package first. Requirements are Node.js 22.12 or
 newer, npm, and Playwright Chromium for native previews, image import, layout,
-and GIF rendering. The package includes the built web app and three skills.
+and GIF rendering. The package includes the built web app and four skills.
 No local image model, GPU runtime, Python, or FFmpeg is required.
+
+With the npm package installed (`npm install -g marmerlade`):
+
+```bash
+marmerlade setup --project /absolute/project --host claude --file architecture.marmerlade.json
+```
 
 From a built source checkout:
 
 ```bash
-node /absolute/path/to/marmerlade/dist/cli.js setup --project /absolute/project --host both --file architecture.marmerlade.json
+node /absolute/path/to/marmerlade/dist/cli.js setup --project /absolute/project --host kiro --file architecture.marmerlade.json
 ```
 
 If Node or the built package is missing, use the supplied bootstrap script.
@@ -107,4 +126,5 @@ app's localStorage is a separate workspace.
 
 **Done:** provide the local URL, workspace location, connection status, and any
 specific remaining host-only action. Continue with `marmerlade-director` to
-discuss requirements and create the project.
+discuss requirements and create the project, or `marmerlade-codebase-map` to map
+an existing repository.

@@ -256,7 +256,7 @@ function parseCore(src: string): CoreResult {
       issues.push({
         line: idx,
         text: line,
-        reason: 'sequence diagrams are not supported by the canvas editor; use a flowchart or graph',
+        reason: 'expected flowchart or graph in flowchart source',
       });
       break;
     }

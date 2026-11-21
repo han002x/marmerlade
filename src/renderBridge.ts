@@ -1,4 +1,5 @@
-import { useDiagram } from './store.ts';
+import { validateSequence } from './sequence/model.ts';
+import { workspaceDiagram } from './store.ts';
 import { useDock } from './dock.ts';
 import { readImageFile } from './imageUpload.ts';
 import { captureGif } from './gif.ts';
@@ -8,10 +9,6 @@ import { seek, usePlayer } from './flowPlayer.ts';
 import { layoutShown, type Direction } from './layout.ts';
 import type { RenderGifOptions, RenderBridge } from './renderContract.ts';
 
-const diagram = () => {
-  const { nodes, edges, pages, decks } = useDiagram.getState();
-  return { nodes, edges, pages, decks };
-};
 export function measureNodes() {
   return Array.from(document.querySelectorAll<HTMLElement>('.react-flow__node'), element => {
     const rect = element.getBoundingClientRect();
@@ -22,10 +19,11 @@ export function measureNodes() {
 function createBridge(fit: () => Promise<void>) {
   return {
     fit,
-    diagram,
+    diagram: workspaceDiagram,
     measure: measureNodes,
+    validateSequence,
     layout(direction: Direction) {
-      const current = diagram();
+      const current = workspaceDiagram();
       const sizes = Object.fromEntries(measureNodes().map(node => [node.id, { width: node.width, height: node.height }]));
       // Measure in canvas coordinates rather than the fitted screen scale.
       const viewport = document.querySelector<HTMLElement>('.react-flow__viewport');
@@ -44,7 +42,7 @@ function createBridge(fit: () => Promise<void>) {
     async gif(options: RenderGifOptions) {
       const element = document.querySelector<HTMLElement>('.react-flow');
       if (!element) throw new Error('GIF export requires the canvas view');
-      const current = diagram();
+      const current = workspaceDiagram();
       const player = usePlayer.getState();
       const seconds = flowSeconds(player.steps, player.speed);
       const duration = cycleSeconds(current, options.flow ? seconds : 0) || 1;

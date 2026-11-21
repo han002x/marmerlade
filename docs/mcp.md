@@ -22,7 +22,7 @@ command in a terminal alone does not register it with an assistant.
 
 ## Guided local setup
 
-The package includes director, docs, and setup skills. Configure a project with:
+The package includes director, codebase-map, docs, and setup skills. Configure a project with:
 
 ```bash
 node dist/cli.js setup --project /absolute/project --host both --file architecture.marmerlade.json
@@ -177,13 +177,14 @@ as the arguments.
 
 - `get_workspace` returns the complete document, revision, file path and canvas URL.
 - `apply_changes` takes the revision and an atomic `changes` array. Operations are
-  `put_node`, `put_edge`, `put_page`, `put_deck`, `delete_node`, `delete_edge`,
-  `delete_page`, and `delete_deck`. Put operations replace the entity by ID.
-  Document puts take `{id, title, body}`; the server sets `updatedAt`.
-- `import_mermaid` takes `revision`, `source`, and optional `tidy` (default true).
+  `put_diagram`, `put_node`, `put_edge`, `put_page`, `put_deck`, `delete_diagram`,
+  `delete_node`, `delete_edge`, `delete_page`, and `delete_deck`. Put operations
+  replace the entity by ID. Document puts take `{id, title, body}`; the server
+  sets `updatedAt`. Pass `dryRun: true` to validate a batch without writing it.
+- `import_mermaid` takes `revision`, `source`, optional `diagramId`, and optional `tidy` (default true).
   It replaces diagram structure while preserving existing document content and
   surviving nodes' styling. New page/deck references create empty documents.
-- `export_mermaid` returns structure as Mermaid. JSON preserves all content.
+- `export_mermaid` takes optional `diagramKind` and `diagramId`, and returns structure as Mermaid. JSON preserves all content.
 - `open_workspace` accepts `view` (`canvas`, `node`, `wiki`, `slides`) and an optional
   `id` to open a particular item. `node` requires an ID.
 - `diagnose_environment` checks Node, packaged UI, project access, and Chromium.
@@ -202,6 +203,9 @@ as the arguments.
   `get_render_job` with its `jobId` for progress, a completed file, or an error.
 - `marmerlade://guide` describes the model and Markdown syntax;
   `marmerlade://example` contains a complete linked example.
+- Prompts `map_codebase` (`path`, optional `focus`) and `refresh_diagram` (optional
+  `scope`) start the codebase-map workflow. Tools declare read-only or destructive
+  annotations so hosts can ask for approval only where data can change.
 
 Read `get_workspace` before editing and pass its revision to the edit tool.
 All operations in a batch are validated together. Deleting a node removes its
@@ -220,7 +224,7 @@ reference for option bounds and image limits.
 
 Without `--file`, the server uses `./diagram.marmerlade.json` in its working
 directory. One process owns each workspace file; a second writer is rejected.
-The file is created on the first successful edit and saved atomically as version 3.
+The file is created on the first successful edit and saved atomically. Workspaces with diagram entities use version 5. Older version 3 and 4 files remain readable.
 Existing version 1–3 files and bare diagram JSON are accepted. Do not edit the file
 externally while the server owns it. Stop the server first. Locks from a crashed
 process expire automatically after the lock heartbeat becomes stale.
@@ -237,3 +241,34 @@ storage is separate from MCP workspaces. Export a `.marmerlade.json` and pass it
 path with `--file` to bring an existing browser document into the live workspace.
 
 See [development](development.md) for checks and package verification.
+
+### Work with both diagram types
+
+Call `import_mermaid` with the current revision and Mermaid text. A source
+starting with `sequenceDiagram` updates the sequence, while `graph` or
+`flowchart` updates the flowchart. For example, import a flowchart first, read
+its returned revision, then import the following sequence with that revision.
+
+```mermaid
+sequenceDiagram
+    Client->>Gateway: Get status
+    Gateway-->>Client: Ready
+```
+
+Pass `"diagramKind": "sequence"` to `export_mermaid`, `render_preview`, or
+`open_workspace` for the sequence canvas. The default is `flowchart`. A
+`get_workspace` snapshot includes both, and `{{sequence}}` embeds the current
+sequence in a wiki page or deck.
+
+
+### Diagram entities
+
+The shared canvas stores diagram instances in `diagram.diagrams`. Each instance
+has an `id`, `title`, `position`, `size`, and `kind`. A flowchart contains
+`nodes` and `edges`. A sequence contains Mermaid `source`.
+
+Use `put_diagram` with a complete `diagram` entity or `delete_diagram` with its
+`id` in `apply_changes`. Supply `diagramId` to `import_mermaid` or
+`export_mermaid` to address an instance. Import creates an instance if that ID
+does not exist. The original top-level `nodes`, `edges`, and `sequence` fields
+project the first instance of each type for existing tools.

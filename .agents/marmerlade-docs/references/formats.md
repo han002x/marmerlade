@@ -116,10 +116,11 @@ view for overflow. Source validity does not establish visual fit.
 
 ## Mermaid flowchart subset
 
-Only `flowchart` and `graph` input are supported. Do not promise sequence,
-class, or other Mermaid diagram families. `parseMermaid` is the strict parser;
+The workspace also accepts Mermaid `sequenceDiagram` source as `diagram.sequence`. Use `{{sequence}}` for a live wiki or slide embed. Sequence export reproduces the stored source.
+
+For `flowchart` and `graph` input, `parseMermaid` is the strict parser;
 unrecognized lines reject the edit so the live editor keeps its last good state.
-Export always uses `flowchart TD` regardless of imported layout direction.
+Flowchart export uses `flowchart TD` regardless of imported layout direction.
 
 ```mermaid
 flowchart TD

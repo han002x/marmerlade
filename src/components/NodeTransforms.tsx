@@ -13,7 +13,7 @@ type Gesture = {
   selection: string[];
 };
 
-export function NodeTransforms({ nodes, selected, preview, moveGuides, onPreview, onCommit, disabled }: {
+export function NodeTransforms({ nodes, selected, preview, moveGuides, onPreview, onCommit, disabled, minSize }: {
   nodes: ReadonlyMap<string, Rect>;
   selected: string[];
   preview: ResizePreview | null;
@@ -21,6 +21,7 @@ export function NodeTransforms({ nodes, selected, preview, moveGuides, onPreview
   onPreview: (preview: ResizePreview | null) => void;
   onCommit: Gesture['commit'];
   disabled: boolean;
+  minSize?: Pick<Rect, 'width' | 'height'>;
 }) {
   const [x, y, zoom] = useStore((s) => s.transform);
   const selecting = useStore((s) => s.userSelectionActive);
@@ -54,7 +55,7 @@ export function NodeTransforms({ nodes, selected, preview, moveGuides, onPreview
     gesture.current = {
       pointerId: e.pointerId,
       start: point(e),
-      geometry: { bounds, selected: members, others: others(), handle },
+      geometry: { bounds, selected: members, others: others(), handle, minSize },
       commit: onCommit,
       selection: selected,
     };
@@ -116,7 +117,7 @@ export function NodeTransforms({ nodes, selected, preview, moveGuides, onPreview
                 if (!dx && !dy) return;
                 e.preventDefault();
                 e.stopPropagation();
-                onCommit(resizeSelection({ bounds, selected: members, others: [], handle, delta: { x: dx, y: dy }, zoom }).rects);
+                onCommit(resizeSelection({ bounds, selected: members, others: [], handle, delta: { x: dx, y: dy }, zoom, minSize }).rects);
               }}
             />
           ))}

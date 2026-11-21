@@ -4,7 +4,7 @@ import { useDock } from '../dock';
 import { nodesOfPage, pageOf, pathTo } from '../pages';
 import { splitSlides } from '../slides';
 import { deckHref, nodeHref, openSlides } from '../route';
-import { write } from '../persist';
+import { saveForNavigation } from '../persist';
 import Menu from '../wiki/Menu';
 import Navigation from '../wiki/Navigation';
 import SourceEditor from '../wiki/SourceEditor';
@@ -13,10 +13,6 @@ import '../wiki/wiki.css';
 import '../slides/slides.css';
 
 const useSlides = (body: string) => useMemo(() => splitSlides(body).slides, [body]);
-const saveForWindow = () => {
-  const { nodes, edges, pages, decks } = useDiagram.getState();
-  write({ nodes, edges, pages, decks });
-};
 
 /** The selected node's slide deck beside the canvas: its slides, or its Markdown. */
 export default function SlidesPanel() {
@@ -62,7 +58,11 @@ export default function SlidesPanel() {
 
   const ids = node?.deckIds ?? [];
   const available = decks.filter((d) => !ids.includes(d.id)).sort((a, b) => a.title.localeCompare(b.title));
-  const create = () => node && setDeck(useDiagram.getState().createDeckForNode(node.id));
+  const create = () => {
+    if (!node) return;
+    const st = useDiagram.getState();
+    setDeck(deck ? st.createDeckForNode(node.id) : st.openDeck(node.id));
+  };
   const link = (id: string) => {
     if (!node) return;
     useDiagram.getState().linkDeck(id, node.id);
@@ -143,8 +143,12 @@ export default function SlidesPanel() {
             ))}
           </Menu>
         )}
+        <button className="wk-btn" onClick={() => {
+          saveForNavigation();
+          window.location.hash = deckHref(deck.id, deckNode?.id, 1);
+        }}>Present</button>
         <button className="wk-icon" onClick={() => {
-          saveForWindow();
+          saveForNavigation();
           openSlides(deck.id, deckNode?.id);
         }} title="Open in slides" aria-label="Open in slides">
           ↗
@@ -167,7 +171,7 @@ export default function SlidesPanel() {
               <div className="sl-tools">
                 {/* a slide's number presents from that slide, in the slides window */}
                 <a className="sl-number" href={deckHref(deck.id, deckNode?.id, i + 1)} target="marmerlade-slides"
-                  onClick={saveForWindow}
+                  onClick={saveForNavigation}
                   title="Present from here" aria-label={`Present from slide ${i + 1}`}>
                   {i + 1}
                 </a>

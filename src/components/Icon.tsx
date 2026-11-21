@@ -19,8 +19,11 @@ type IconName =
   | 'palette'
   | 'moon'
   | 'code'
+  | 'pencil'
+  | 'check'
   | 'close'
   | 'plus'
+  | 'insert'
   | 'export'
   | 'import'
   | 'film'
@@ -28,6 +31,9 @@ type IconName =
   | 'group'
   | 'more'
   | 'shapes'
+  | 'product-diagrams'
+  | 'product-wiki'
+  | 'product-slides'
   | 'pumpkin'
   | 'ghost'
   | 'bat'
@@ -36,6 +42,7 @@ type IconName =
   | 'notebook'
   | 'monitor'
   | 'page'
+  | 'folder'
   | 'deck'
   | 'grid'
   | 'expand'
@@ -46,6 +53,13 @@ type IconName =
   | 'step-fwd'
   | 'tree'
   | 'image';
+
+const JAR_COLORS = {
+  ink: '#3a352e',
+  amber: '#f2a23a',
+  cream: '#fbf8f1',
+  accent: '#d0532f',
+};
 
 const PATHS: Record<IconName, React.ReactNode> = {
   pumpkin: <><path d="M12 7C5 2 1 8 3 15c1 5 6 7 9 5 3 2 8 0 9-5 2-7-2-13-9-8ZM12 7c-1-3 0-5 2-5" /><path d="m6 11 3 1-2 2Zm12 0-3 1 2 2Z" fill="currentColor" stroke="none" /><path d="m7 16 2 2 3-1 3 1 2-2" /></>,
@@ -65,6 +79,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M14 3v4h4M10 12h5M10 16h5" />
     </>
   ),
+  folder: <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
   deck: (
     <>
       <rect x="6" y="3" width="16" height="14" rx="1.5" />
@@ -115,8 +130,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
   moon: <path d="M20 13A8 8 0 1 1 11 4a6 6 0 0 0 9 9Z" />,
   tree: <path d="M4 5h6M4 12h6M4 19h6M14 5h6M14 12h6M14 19h6M7 5v14" />,
   code: <path d="m8 7-5 5 5 5M16 7l5 5-5 5" />,
+  pencil: <path d="m16 3 5 5L8 21H3v-5ZM13 6l5 5" />,
+  check: <path d="m5 12 4 4L19 6" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  // Two lifelines with a message between them: adds a sequence element.
+  insert: <path d="M5 4v16M19 4v16M5 11h11m-3-3 3 3-3 3" />,
   export: (
     <>
       <path d="M12 3v12" />
@@ -166,6 +185,31 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M7 13.5l3.8 6.5H3.2z" />
       <rect x="13.5" y="13.5" width="7" height="7" rx="3.5" />
     </>
+  ),
+  'product-diagrams': (
+    <>
+      <path d="M12 10v3.25M6 16v-2.75h12V16" />
+      <g stroke={JAR_COLORS.ink}>
+        <path d="m12 3 3.5 3.5-3.5 3.5-3.5-3.5Z" fill={JAR_COLORS.amber} />
+        <rect x="3" y="16" width="6" height="5" rx="1.2" fill={JAR_COLORS.cream} />
+        <rect x="15" y="16" width="6" height="5" rx="1.2" fill={JAR_COLORS.cream} />
+      </g>
+    </>
+  ),
+  'product-wiki': (
+    <g stroke={JAR_COLORS.ink}>
+      <path d="M12 6C9 4 6 3.5 3 4.5v14c3-.8 6-.3 9 1.5 3-1.8 6-2.3 9-1.5v-14c-3-1-6-.5-9 1.5Z" fill={JAR_COLORS.cream} />
+      <path d="M12 6v14M6 9c1.1 0 2.1.2 3 .6M6 13c1.1 0 2.1.2 3 .6M15 13.6c.9-.4 1.9-.6 3-.6" />
+      <path d="M15.5 4.5v6l1.5-1 1.5 1V4.1" fill={JAR_COLORS.amber} strokeWidth="1.4" />
+    </g>
+  ),
+  'product-slides': (
+    <g stroke={JAR_COLORS.ink}>
+      <rect x="3" y="8" width="14.5" height="12" rx="1.5" fill={JAR_COLORS.amber} />
+      <rect x="6.5" y="4" width="14.5" height="12" rx="1.5" fill={JAR_COLORS.cream} />
+      <path d="M10 8.5h7.5" stroke={JAR_COLORS.accent} />
+      <path d="M10 12h4.5" />
+    </g>
   ),
   play: <path d="M7 4.5v15l12-7.5z" />,
   stop: <rect x="6" y="6" width="12" height="12" rx="1.5" />,

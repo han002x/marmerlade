@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { deckHref } from '../route';
 import type { Slide as SlideData } from '../slides';
+import BrandMark from '../components/BrandMark';
 import { Icon } from '../components/Icon';
 import Slide from './Slide';
 import './print.css';
@@ -39,6 +40,7 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
   presenter?: boolean;
 }) {
   const at = Math.min(slide, slides.length);
+  const current = slides[at - 1];
   const [notes, setNotes] = useState(presenter);
   // which way the deck last moved, so a slide can enter from the right side
   const [seen, setSeen] = useState({ at, back: false });
@@ -88,6 +90,7 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const { go, exit } = latest.current;
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if ((key === 'Enter' || key === ' ') && e.target instanceof Element && e.target.closest('button, a')) return;
       if (blank) {
         // any key brings the slide back
         e.preventDefault();
@@ -136,7 +139,6 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
     return () => window.removeEventListener('keydown', onKey);
   }, [at, slides.length, blank, overview]);
 
-  const current = slides[at - 1];
   const tool = (label: string, key: string, icon: Parameters<typeof Icon>[0]['name'], run: () => void, on?: boolean) => (
     <button className="wk-icon" title={`${label}  ·  ${key}`} aria-label={label} aria-pressed={on} onClick={run}>
       <Icon name={icon} size={15} />
@@ -150,6 +152,7 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
         <div className="sl-progress" role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={slides.length}
           aria-valuenow={at} style={{ width: `${(at / slides.length) * 100}%` }} />
         <footer className="sl-controls">
+          <BrandMark size={20} />
           {tool('Previous slide', '←', 'step-back', () => go(at - 1))}
           <span aria-label="Slide number">{at} / {slides.length}</span>
           {tool('Next slide', '→', 'step-fwd', () => go(at + 1))}

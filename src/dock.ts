@@ -42,20 +42,21 @@ useDiagram.subscribe((state, previous) => {
   if (state.selectedNodeIds[0] !== previous.selectedNodeIds[0]) useDock.setState({ page: null, deck: null });
 });
 
-/** Select a node and show its slide deck in the panel, creating the deck first. */
+/** Inspect the links on a node. Only an explicit authoring action creates a document. */
 export function showDeck(nodeId: string, deckId?: string) {
   const st = useDiagram.getState();
-  const id = st.openDeck(nodeId, deckId);
-  if (!id) return;
+  const node = st.nodes.find((n) => n.id === nodeId);
+  if (!node || (deckId && !node.deckIds?.includes(deckId))) return;
+  const id = deckId ?? node.deckIds?.[0];
   st.setSelection([nodeId], []);
-  useDock.setState({ open: true, view: 'slides', deck: { selection: nodeId, id } });
+  useDock.setState({ open: true, view: 'slides', deck: id ? { selection: nodeId, id } : null });
 }
 
-/** Select a node and show its page in the panel, creating the page first. */
 export function showPage(nodeId: string, pageId?: string) {
   const st = useDiagram.getState();
-  const id = st.openPage(nodeId, pageId);
-  if (!id) return;
+  const node = st.nodes.find((n) => n.id === nodeId);
+  if (!node || (pageId && !node.pageIds?.includes(pageId))) return;
+  const id = pageId ?? node.pageIds?.[0];
   st.setSelection([nodeId], []);
-  useDock.setState({ open: true, view: 'page', page: { selection: nodeId, id } });
+  useDock.setState({ open: true, view: 'page', page: id ? { selection: nodeId, id } : null });
 }

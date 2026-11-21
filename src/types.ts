@@ -133,6 +133,13 @@ export interface Page {
 /** A slide deck: Markdown with `---` between slides. Linked to nodes like a page. */
 export type Deck = Page;
 
+export interface WikiFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  pageIds: string[];
+}
+
 /** A side of a node where an edge attaches. */
 export type Side = 'top' | 'right' | 'bottom' | 'left';
 
@@ -151,10 +158,25 @@ export interface DiagramEdge {
 }
 
 export interface Diagram {
+  diagrams?: DiagramEntity[];
+  /** Mermaid sequence source, independent of the flowchart. */
+  sequence?: string;
   nodes: DiagramNode[];
   edges: DiagramEdge[];
   /** wiki pages; absent in diagrams saved before the wiki existed */
   pages?: Page[];
   /** slide decks; absent in diagrams saved before slides existed */
   decks?: Deck[];
+  wikiFolders?: WikiFolder[];
 }
+
+/** A diagram placed on the shared workspace canvas. */
+export type DiagramEntity = {
+  id: string;
+  title: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+} & (
+  | { kind: 'flowchart'; nodes: DiagramNode[]; edges: DiagramEdge[] }
+  | { kind: 'sequence'; source: string }
+);

@@ -215,6 +215,12 @@
   max-width: 100% !important;
   max-height: 32cqw;
 }
+/* Give a slide with one diagram the available space. */
+.sl-slide .wk-preview > [data-embed]:only-child svg,
+.sl-slide .wk-preview > :is(h1, h2, h3):first-child + [data-embed]:last-child svg {
+  width: 100%;
+  height: 32cqw;
+}
 .sl-slide .wk-preview .embed[data-mermaid]:not(:has(svg)) {
   justify-content: flex-start;
   color: var(--mf-muted);
@@ -402,7 +408,9 @@
   position: absolute;
   right: 10px;
   bottom: 8px;
+  max-width: calc(100% - 20px);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
   padding: 2px 4px;
@@ -596,3 +604,66 @@
 }
 
 .sl-slide .wk-preview { font-family: var(--mf-content-font); }
+
+.sl-thumbnails {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+}
+.sl-thumbnail {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+  position: relative;
+  padding: 4px 4px 6px 0;
+}
+.sl-thumbnail-number {
+  padding-top: 4px;
+  text-align: end;
+  color: var(--mf-muted);
+  font: 11px var(--mf-mono);
+}
+.sl-thumbnail-preview {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mf-radius);
+  overflow: hidden;
+  background: var(--mf-bg);
+}
+.sl-thumbnail-select {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mf-radius);
+  background: transparent;
+  cursor: pointer;
+}
+.sl-thumbnail-select:focus-visible {
+  outline: 2px solid var(--mf-accent);
+  outline-offset: -2px;
+}
+.sl-thumbnail:has(.sl-thumbnail-select[aria-current]) .sl-thumbnail-preview,
+.sl-thumbnail:hover .sl-thumbnail-preview { box-shadow: 0 0 0 2px var(--mf-accent); }
+.sl-thumbnail:has(.sl-thumbnail-select[aria-current]) .sl-thumbnail-number { color: var(--mf-accent); }
+
+.sl-sheet .wk-preview > [data-embed] { cursor: move; touch-action: none; }
+.sl-sheet .wk-preview > [data-embed]:hover { outline: 1px dashed var(--mf-accent); }
+.sl-sheet .wk-preview > [data-embed] .node,
+.sl-sheet .box.diagram .node { cursor: move; }
+.sl-slide .box.diagram {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+.sl-slide .box.diagram .embed {
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.sl-slide .box.diagram .embed svg {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}

@@ -3,7 +3,7 @@ import { COLORS, DOCUMENT_SYMBOLS, FONTS, PRESETS, documentIcon, type Appearance
 import { activeAppearance, saveAppearance, useAppearance } from '../theme';
 import { useDiagram } from '../store';
 import type { Diagram } from '../types';
-import { write } from '../persist';
+import { saveForNavigation } from '../persist';
 import { Icon } from './Icon';
 import './appearance.css';
 
@@ -13,8 +13,8 @@ export function AppearanceSettings() {
   const lastRestyled = useRef<Pick<Diagram, 'nodes' | 'edges' | 'decks'> | null>(null);
   const choose = (selected: string, custom = settings.custom) => {
     useDiagram.getState().restyleAppearance();
-    const { nodes, edges, pages, decks } = useDiagram.getState();
-    write({ nodes, edges, pages, decks });
+    const { nodes, edges, decks } = useDiagram.getState();
+    saveForNavigation();
     lastRestyled.current = { nodes, edges, decks };
     saveAppearance(selected, custom);
   };
@@ -44,7 +44,7 @@ export function AppearanceSettings() {
         if (preset) choose('custom', preset.style);
       }}><option value="" disabled>Choose preset</option>{PRESETS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
       <fieldset><legend>Colors</legend><div className="mf-appearance-colors">
-        {COLORS.map((key) => <label key={key}>{({ bg: 'Canvas', panel: 'Panels', border: 'Borders', text: 'Text', muted: 'Muted text', ink: 'Ink', pencil: 'Grid', accent: 'Accent', seal: 'Brand', node: 'Nodes', group: 'Groups', input: 'Inputs' })[key]}
+        {COLORS.map((key) => <label key={key}>{({ bg: 'Canvas', diagram: 'Diagram canvas', panel: 'Panels', border: 'Borders', text: 'Text', muted: 'Muted text', ink: 'Ink', pencil: 'Grid', accent: 'Accent', seal: 'Brand', node: 'Nodes', group: 'Groups', input: 'Inputs' })[key]}
           <input type="color" value={style.colors[key]} onInput={(e) => patch({ colors: { ...style.colors, [key]: e.currentTarget.value } })} />
         </label>)}
       </div></fieldset>

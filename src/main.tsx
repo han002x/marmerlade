@@ -11,13 +11,30 @@ import '@fontsource/kalam/400.css'
 import '@fontsource/kalam/700.css'
 import './index.css'
 import Root from './Root.tsx'
-import { initializeWorkspace } from './liveWorkspace.ts'
+import { initializeWorkspace, isLiveWorkspace } from './liveWorkspace.ts'
+import { readSaved, startAutosave, startSync } from './persist.ts'
+import { parseRoute } from './route.ts'
+import { useDiagram } from './store.ts'
+import { SAMPLE } from './sample.ts'
+import { isFirstRun } from './components/Welcome.tsx'
 
 async function start() {
   await initializeWorkspace();
+  let showWelcome = false;
+  if (!window.__marmerladeRender && !isLiveWorkspace()) {
+    const saved = readSaved();
+    if (saved) useDiagram.getState().load(saved);
+    startAutosave();
+    startSync();
+    const { kind } = parseRoute(window.location.hash);
+    if (!saved && (kind === 'canvas' || kind === 'node')) {
+      useDiagram.getState().load(SAMPLE);
+      showWelcome = isFirstRun();
+    }
+  }
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <Root />
+      <Root showWelcome={showWelcome} />
     </StrictMode>,
   );
 }

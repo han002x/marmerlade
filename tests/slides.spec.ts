@@ -45,6 +45,7 @@ test('edit a deck as Markdown beside its slides', async ({ page }) => {
   await expect.poll(() => savedBody(page)).toContain('Thanks');
   await page.reload();
   await expect(page.getByRole('list', { name: 'Slides' }).locator('.sl-slide')).toHaveCount(4);
+  await page.getByRole('group', { name: 'Sidebar view' }).getByRole('button', { name: 'Decks' }).click();
   await expect(page.getByRole('navigation', { name: 'Slide decks' }).getByRole('link', { name: 'Launch' })).toHaveAttribute('aria-current', 'page');
 });
 

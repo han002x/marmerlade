@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { Marked } from 'marked';
 import DOMPurify from 'dompurify';
+import BrandMark from '../components/BrandMark';
 import source from '../../ONTOLOGY.md?raw';
 import './docs.css';
 import '../wiki/wiki.css';
@@ -67,7 +68,7 @@ export default function DocsApp() {
     <div className="dk" onClick={onClick}>
       <header className="dk-head">
         <a href="#/">← Canvas</a>
-        <strong>Docs</strong>
+        <strong><BrandMark size={20} /> Docs</strong>
       </header>
       <div className="dk-body">
         <nav className="dk-toc" aria-label="Contents">

@@ -1,4 +1,4 @@
-// Hash routes. `#/` is the canvas; the wiki lives in its own window.
+//   #/diagrams        diagram canvas (also the default at #/)
 //   #/wiki            page index
 //   #/wiki/<pageId>   one page
 //   #/node/<nodeId>   canvas, focused on a node
@@ -17,6 +17,7 @@ export type Route =
   | { kind: 'slides'; id: string | null; nodeId?: string; slide?: number; presenter?: boolean };
 
 export function parseRoute(hash: string): Route {
+  if (hash === '#/diagrams') return { kind: 'canvas' };
   const [, kind, id] = hash.match(/^#\/(wiki|node|slides|docs)(?:\/([^/?]+))?/) ?? [];
   const decoded = id ? decodeURIComponent(id) : null;
   if (kind === 'docs') return { kind: 'docs' };
@@ -54,31 +55,31 @@ export function useHash(): string {
   return useSyncExternalStore(subscribe, () => window.location.hash);
 }
 
-const CANVAS = 'marmerlade-canvas';
-const WIKI = 'marmerlade-wiki';
-const SLIDES = 'marmerlade-slides';
+const windows = { canvas: 'marmerlade-canvas', wiki: 'marmerlade-wiki', slides: 'marmerlade-slides', docs: 'marmerlade-docs' };
 
-/** Name the canvas window so the wiki can navigate it instead of opening more. */
-export function nameCanvasWindow() {
-  if (!window.name) window.name = CANVAS;
+/** Keep named links pointing at the product currently open in this window. */
+export function nameProductWindow(product: keyof typeof windows) {
+  if (!window.name || Object.values(windows).includes(window.name)) {
+    window.name = windows[product];
+  }
 }
 
 /** Open (or reuse) the wiki window at a page. */
 export function openWiki(pageId: string, nodeId?: string) {
-  window.open(pageHref(pageId, nodeId), WIKI)?.focus();
+  window.open(pageHref(pageId, nodeId), windows.wiki)?.focus();
 }
 
 /** Open (or reuse) the slides window at a deck, or at the list of decks. */
 export function openSlides(deckId?: string, nodeId?: string) {
-  window.open(deckId ? deckHref(deckId, nodeId) : '#/slides', SLIDES)?.focus();
+  window.open(deckId ? deckHref(deckId, nodeId) : '#/slides', windows.slides)?.focus();
 }
 
 /** Open (or reuse) the canvas window focused on a node. */
 export function openNode(nodeId: string) {
-  window.open(`${window.location.pathname}${nodeHref(nodeId)}`, CANVAS)?.focus();
+  window.open(`${window.location.pathname}${nodeHref(nodeId)}`, windows.canvas)?.focus();
 }
 
 /** Open (or reuse) the docs window. */
 export function openDocs() {
-  window.open('#/docs', 'marmerlade-docs')?.focus();
+  window.open('#/docs', windows.docs)?.focus();
 }

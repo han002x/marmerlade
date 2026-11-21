@@ -1,17 +1,17 @@
 # Live workspace contract
 
 Discover the installed Marmerlade tool names; the client may prefix these names
-with its server namespace. The current server exposes twelve tools and two
-resources. Validate calls against that server's registered input schemas.
+with its server namespace. The current server exposes twelve tools, two
+resources, and two prompts. Validate calls against that server's registered input schemas.
 
 ## Tools
 
 | Tool | Input | Result or effect |
 | --- | --- | --- |
 | `get_workspace` | No arguments | `{revision, diagram, file, url}` |
-| `apply_changes` | `{revision, changes}` | Atomically commits changes and returns `{revision, diagram}` |
-| `import_mermaid` | `{revision, source, tidy?}` | Replaces structural content and returns a committed snapshot; `tidy` defaults true |
-| `export_mermaid` | No arguments | `{source}` with Mermaid structure |
+| `apply_changes` | `{revision, changes, dryRun?}` | Atomically commits changes and returns `{revision, diagram}`. With `dryRun: true` it validates the batch and returns `{ok, revision, counts}` or the error, and writes nothing |
+| `import_mermaid` | `{revision, source, diagramId?, tidy?}` | Replaces structural content and returns a committed snapshot; `tidy` defaults true |
+| `export_mermaid` | `{diagramKind?, diagramId?}` | `{source}` with Mermaid structure; `diagramId` selects one diagram entity |
 | `diagnose_environment` | `{probe?}` | Runtime checks and actionable failures; probe defaults true |
 | `list_icons` | `{query?, group?, offset?, limit?}` | Supported icon IDs, names, groups, and pagination |
 | `import_image` | `{revision, nodeId, path}` | Embed a normalized project image on an existing node; returns new revision and original path |
@@ -19,7 +19,7 @@ resources. Validate calls against that server's registered input schemas.
 | `render_preview` | `{revision, ...renderOptions}` | PNG image, local file, revision, and diagnostics |
 | `export_gif` | `{revision, ...renderOptions, fps?, maxWidth?, flow?}` | Queues native GIF; returns `jobId` and pinned revision |
 | `get_render_job` | `{jobId}` | Queued/running/complete/failed job status |
-| `open_workspace` | `{view?, id?}` | Opens the requested view and returns `{url}`; `view` defaults to `canvas` |
+| `open_workspace` | `{view?, id?, diagramKind?}` | Opens the requested view and returns `{url}`; `view` defaults to `canvas` |
 
 `revision` is a nonnegative integer for the current server process. A successful
 commit increments it. Use the revision from the latest snapshot; it is not the
@@ -34,6 +34,8 @@ saved file's version and does not persist across server restarts.
 | `put_edge` | `edge` | Complete DiagramEdge; replaces the entity with that ID |
 | `put_page` | `document` | `{id, title, body}`; server assigns `updatedAt` |
 | `put_deck` | `document` | `{id, title, body}`; server assigns `updatedAt` |
+| `put_diagram` | `diagram` | Complete diagram entity (`flowchart` with nodes and edges, or `sequence` with source); replaces the entity with that ID |
+| `delete_diagram` | `id` | Removes that diagram entity |
 | `delete_node` | `id` | Removes node, descendants, and their incident edges; retains documents |
 | `delete_edge` | `id` | Removes that edge |
 | `delete_page` | `id` | Removes page and unlinks it from all nodes |
@@ -69,7 +71,9 @@ intended change, and create a reconciled batch. Do not blindly retry a stale
 replacement. If the user or another writer changed the same meaning in a way
 that cannot be reconciled, report that specific conflict.
 
-`import_mermaid` replaces nodes and edges with the parsed structure while
+For a sequence import, `import_mermaid` updates only `diagram.sequence`. Set `diagramKind` to `sequence` on export, preview, or canvas opening. The default is `flowchart`.
+
+For a flowchart import, `import_mermaid` replaces nodes and edges with the parsed structure while
 preserving existing document collections and mergeable visual state. Newly
 referenced pages/decks get empty documents. `tidy: true` repositions nodes; it
 does not preserve authored geometry. Use `apply_changes` for incremental edits.
@@ -123,12 +127,32 @@ browser work. A concurrent edit can cause a conflict; reread before retrying.
 Read-only previews and GIF jobs pin a snapshot and may finish after a newer
 revision exists. They report the revision they actually rendered.
 
+## Annotations and dry runs
+
+Tools carry MCP annotations. `get_workspace`, `export_mermaid`, `list_icons`,
+`diagnose_environment`, `render_preview`, `get_render_job`, and `open_workspace`
+are read-only. `apply_changes` and `import_mermaid` are destructive: they replace
+or delete data. `import_image`, `layout_diagram`, and `export_gif` write files or
+state without deleting workspace content.
+
+Run `apply_changes` with `dryRun: true` before a large batch. It applies the same
+revision check and full validation as a commit, so a missing parent, endpoint, or
+document link fails here without changing the workspace or its revision.
+
 ## Resources
 
 - `marmerlade://guide` contains the installed document-model guide.
 - `marmerlade://example` contains a complete linked workspace example.
 
-Read these through the connected MCP resource mechanism when available. They
+## Prompts
+
+- `map_codebase` takes `path` and optional `focus`. It starts the
+  `marmerlade-codebase-map` workflow.
+- `refresh_diagram` takes an optional `scope`. It updates an existing map after code changes.
+
+Hosts show prompts differently. Skills never depend on them.
+
+Read the resources through the connected MCP resource mechanism when available. They
 are resource URIs, not HTTP URLs or local file paths.
 
 ## Workspace and browser boundaries

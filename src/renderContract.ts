@@ -2,7 +2,9 @@ import { z } from 'zod';
 import { PRESETS } from './appearance.ts';
 import type { Diagram, NodeImage } from './types.ts';
 
+export const diagramKindSchema = z.enum(['flowchart', 'sequence']).default('flowchart');
 export const renderOptionsSchema = z.object({
+  diagramKind: diagramKindSchema,
   view: z.enum(['canvas', 'wiki', 'slides']).default('canvas'),
   id: z.string().min(1).optional(),
   nodeId: z.string().min(1).optional(),
@@ -24,6 +26,7 @@ export const gifRequestSchema = previewRequestSchema.extend(gifOptionsSchema.sha
 
 export interface RenderBridge {
   fit(): Promise<void>;
+  validateSequence(source: string): Promise<void>;
   diagram(): Diagram;
   measure(): Array<{ id: string; x: number; y: number; width: number; height: number }>;
   layout(direction: 'TB' | 'LR'): Diagram;

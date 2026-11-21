@@ -2,7 +2,7 @@
 
 ## Document envelope
 
-New saves use `.marmerlade.json` and the following version-3 envelope:
+Flowchart-only saves use `.marmerlade.json` and the following version-3 envelope:
 
 ```json
 {
@@ -16,9 +16,8 @@ arrays at the runtime schema boundary. The file contains a flat collection;
 nesting is expressed with IDs, not nested JSON objects. See
 [example.marmerlade.json](example.marmerlade.json) for a linked workspace.
 
-The server also accepts version 1-3 envelopes and bare diagram objects. The
-browser file importer accepts an envelope or bare diagram. Author new files as
-version 3.
+The server also accepts version 1–5 envelopes and bare diagram objects. The
+browser file importer accepts an envelope or bare diagram. Use version 5 for workspaces containing `diagram.diagrams` entities. Versions 3 and 4 remain readable.
 Normalization migrates a legacy node `pageId` to `pageIds` when no `pageIds`
 exists. New output uses `pageIds` only.
 
@@ -175,11 +174,17 @@ JS
 ```
 
 This validates the contained diagram, not envelope-version compatibility or
-rendered content. Current authoring uses version 3; the server rejects explicitly
+rendered content. Current authoring uses version 5 for diagram collections and versions 3 and 4 for legacy content; the server rejects explicitly
 unsupported file versions. Browser file import performs fewer checks, so a file
 opening in the browser is not proof that it meets the live schema.
 
 The regular app saves its envelope in `localStorage["marmerlade.diagram"]`.
-The MCP server saves an atomic version-3 JSON file and owns a per-file lock.
+The MCP server saves the JSON file atomically and owns a per-file lock.
 Never edit that file externally while the server owns it. Revisions and access
 tokens are connection state, not fields in the saved workspace.
+
+
+Diagram entities in `diagram.diagrams` share one canvas. Each has an ID,
+title, position, size, and a discriminated `kind`. Flowcharts store nodes and
+edges. Sequences store source. The top-level graph and sequence fields project
+the first entity of each type for existing callers.

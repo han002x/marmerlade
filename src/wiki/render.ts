@@ -7,6 +7,7 @@ import DOMPurify from 'dompurify';
 import type { DiagramNode, Page } from '../types';
 import { resolveLink } from '../pages.ts';
 import { pageHref } from '../route.ts';
+import { readDiagramEmbed } from '../diagramEmbed.ts';
 
 export interface RenderContext {
   nodes: DiagramNode[];
@@ -43,12 +44,18 @@ const marked = new Marked({
     {
       name: 'embed',
       level: 'block',
-      start: (src) => src.indexOf('{{diagram'),
+      start: (src) => src.search(/\{\{(?:diagram|sequence)/),
       tokenizer(src) {
-        const m = /^\{\{diagram(?::([^}\n]+))?\}\}[ \t]*(?:\n|$)/.exec(src);
-        return m ? { type: 'embed', raw: m[0], target: (m[1] ?? '').trim() } : undefined;
+        const embed = readDiagramEmbed(src);
+        return embed && { type: 'embed', ...embed };
       },
-      renderer: (token) => `<div class="embed" data-embed="${esc((token as unknown as { target: string }).target)}"></div>\n`,
+      renderer(token) {
+        const embed = readDiagramEmbed(token.raw);
+        if (!embed) return '';
+        const width = embed.width === null ? '' : ` data-embed-width="${embed.width}" style="width:${embed.width}%"`;
+        if (embed.sequence) return `<div class="embed" data-sequence=""${width}></div>\n`;
+        return `<div class="embed" data-embed="${esc(embed.target)}"${width}></div>\n`;
+      },
     },
   ],
   renderer: {

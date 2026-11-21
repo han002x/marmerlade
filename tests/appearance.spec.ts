@@ -61,6 +61,7 @@ test('custom edits persist across presets and synchronize to wiki and slides', a
   await expect(wikiIcon).toHaveAttribute('data-icon', 'notebook');
   await expect(wikiIcon).toHaveCSS('color', 'rgb(69, 215, 190)');
   const slides = await context.newPage(); await slides.goto('/#/slides/d');
+  await slides.getByRole('group', { name: 'Sidebar view' }).getByRole('button', { name: 'Decks' }).click();
   const slidesIcon = slides.getByRole('navigation', { name: 'Slide decks' }).locator('[data-document-icon="slides"]');
   await expect(slidesIcon).toHaveAttribute('data-icon', 'film');
   await expect(slidesIcon).toHaveCSS('color', 'rgb(238, 119, 170)');

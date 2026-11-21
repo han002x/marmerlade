@@ -2,7 +2,7 @@ import { useDiagram } from '../store';
 import { showDeck } from '../dock';
 import { Icon } from './Icon';
 
-/** Open the node's default slide deck in the side panel, creating it first. */
+/** Open the node's default slide deck in the side panel. */
 export function DeckButton({ nodeId }: { nodeId: string }) {
   const has = useDiagram((s) => !!s.nodes.find((n) => n.id === nodeId)?.deckIds?.length);
   return (

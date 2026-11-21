@@ -1,0 +1,11 @@
+{
+  "revision": 0,
+  "dryRun": true,
+  "changes": [
+    { "kind": "put_node", "node": { "id": "backend", "label": "Backend", "shape": "rect", "parentId": null, "collapsed": true, "position": { "x": 0, "y": 0 }, "pageIds": ["backend"] } },
+    { "kind": "put_node", "node": { "id": "api", "label": "API", "shape": "round", "parentId": "backend", "collapsed": false, "position": { "x": 0, "y": 0 } } },
+    { "kind": "put_node", "node": { "id": "db", "label": "Database", "shape": "cylinder", "parentId": "backend", "collapsed": false, "position": { "x": 0, "y": 160 } } },
+    { "kind": "put_edge", "edge": { "id": "api_db", "source": "api", "target": "db", "label": "queries" } },
+    { "kind": "put_page", "document": { "id": "backend", "title": "Backend", "body": "# Backend\n\n{{diagram:backend}}\n\nThe API reads and writes the database." } }
+  ]
+}

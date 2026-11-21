@@ -3,6 +3,7 @@
 // No store or DOM here, so scripts/pages.ts can exercise it directly.
 
 import type { Diagram, DiagramNode, Page } from './types';
+import { validateWikiFolders } from './wikiFolders.ts';
 
 /** The node field holding links to pages or to decks. */
 export type LinkKey = 'pageIds' | 'deckIds';
@@ -16,9 +17,12 @@ export function parsePageIds(value: unknown): string[] {
 
 /** Read old single-page diagrams without retaining a second source of truth. */
 export function normalizeDiagram(diagram: Diagram): Diagram {
+  if (diagram.sequence !== undefined && typeof diagram.sequence !== 'string') throw new Error('Sequence source must be text');
+  const pages = Array.isArray(diagram.pages) ? diagram.pages : [];
   return {
     ...diagram,
-    pages: Array.isArray(diagram.pages) ? diagram.pages : [],
+    pages,
+    ...(diagram.wikiFolders !== undefined && { wikiFolders: validateWikiFolders(diagram.wikiFolders, pages) }),
     decks: Array.isArray(diagram.decks) ? diagram.decks : [],
     nodes: diagram.nodes.map((node) => {
       const legacy = 'pageId' in node ? node.pageId : undefined;

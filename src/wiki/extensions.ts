@@ -7,6 +7,7 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Image from '@tiptap/extension-image';
 import { Marked } from 'marked';
+import { diagramMarkdown, readDiagramEmbed } from '../diagramEmbed.ts';
 
 export const WikiLink = Node.create({
   name: 'wikiLink', group: 'inline', inline: true, atom: true,
@@ -33,18 +34,29 @@ export const WikiLink = Node.create({
 });
 
 export const DiagramEmbed = Node.create({
-  name: 'diagramEmbed', group: 'block', atom: true,
-  parseHTML: () => [{ tag: 'div[data-diagram]' }],
-  renderHTML: () => ['div', { 'data-diagram': '', class: 'wk-diagram-block' }, 'Diagram'],
+  name: 'diagramEmbed', group: 'block', atom: true, draggable: true,
+  addAttributes: () => ({
+    target: { default: '' },
+    sequence: { default: false },
+    width: { default: null },
+  }),
+  parseHTML: () => [{
+    tag: 'div[data-diagram]',
+    getAttrs: element => {
+      const width = Number(element.getAttribute('data-width'));
+      return { sequence: element.hasAttribute('data-sequence'), target: element.getAttribute('data-diagram') ?? '', width: width > 0 && width <= 100 ? width : null };
+    },
+  }],
+  renderHTML: ({ node }) => ['div', { 'data-diagram': node.attrs.target, 'data-width': node.attrs.width, 'data-sequence': node.attrs.sequence ? '' : null }, 'Diagram'],
   markdownTokenizer: {
-    name: 'diagramEmbed', level: 'block', start: (src) => src.indexOf('{{diagram}}'),
+    name: 'diagramEmbed', level: 'block', start: src => src.search(/\{\{(?:diagram|sequence)/),
     tokenize(src) {
-      const m = /^\{\{diagram\}\}[ \t]*(?:\n|$)/.exec(src);
-      return m ? { type: 'diagramEmbed', raw: m[0] } : undefined;
+      const embed = readDiagramEmbed(src);
+      return embed && { type: 'diagramEmbed', ...embed };
     },
   },
-  parseMarkdown: () => ({ type: 'diagramEmbed' }),
-  renderMarkdown: () => '{{diagram}}',
+  parseMarkdown: token => ({ type: 'diagramEmbed', attrs: { target: token.target, width: token.width, sequence: token.sequence } }),
+  renderMarkdown: node => diagramMarkdown(node.attrs?.target, node.attrs?.width ?? null, node.attrs?.sequence),
 });
 
 export function editorExtensions(diagram: typeof DiagramEmbed = DiagramEmbed) {

@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useEditor, EditorContent, ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
+import { useEditor, EditorContent, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { type ChainedCommands } from '@tiptap/core';
 import { closeHistory } from '@tiptap/pm/history';
 import { EditorState, TextSelection } from '@tiptap/pm/state';
 import Placeholder from '@tiptap/extension-placeholder';
 import { DiagramEmbed, editorExtensions } from './extensions';
-import Preview from './Preview';
+import DiagramView from './DiagramView';
 import TableControls from './TableControls';
 import { resolveLink } from '../pages';
 import { useDiagram } from '../store';
@@ -21,15 +21,12 @@ interface Props {
   onNode?: (id: string) => void;
 }
 const EmbedContext = createContext<Pick<Props, 'nodeId' | 'onPage' | 'onNode'> | null>(null);
-function DiagramView() {
+function ContextDiagram(props: NodeViewProps) {
   const context = useContext(EmbedContext);
-  return <NodeViewWrapper contentEditable={false} className="wk-diagram-block">
-    {context?.nodeId ? <Preview body="{{diagram}}" nodeId={context.nodeId} onPage={context.onPage} onNode={context.onNode} />
-      : <span className="wk-empty-links">Link this page to a node to show its diagram.</span>}
-  </NodeViewWrapper>;
+  return <DiagramView {...props} {...context} />;
 }
 const RichDiagram = DiagramEmbed.extend({
-  addNodeView: () => ReactNodeViewRenderer(DiagramView),
+  addNodeView: () => ReactNodeViewRenderer(ContextDiagram),
 });
 const bubbleOptions = { placement: 'top', offset: 8, flip: true, shift: true } as const;
 type Choice = { label: string; aliases: string; run: (chain: ChainedCommands) => ChainedCommands };
@@ -43,6 +40,7 @@ const commands: Choice[] = [
   { label: 'Code block', aliases: 'pre snippet', run: (e: ChainedCommands) => e.toggleCodeBlock() },
   { label: 'Divider', aliases: 'horizontal rule hr', run: (e: ChainedCommands) => e.setHorizontalRule() },
   { label: 'Table', aliases: 'grid cells', run: (e: ChainedCommands) => e.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) },
+  { label: 'Sequence diagram', aliases: 'embed lifelines', run: (e: ChainedCommands) => e.insertContent({ type: 'diagramEmbed', attrs: { sequence: true } }) },
   { label: 'Diagram', aliases: 'embed canvas', run: (e: ChainedCommands) => e.insertContent({ type: 'diagramEmbed' }) },
 ];
 type Suggestion = { from: number; to: number; query: string; kind: 'slash' | 'wiki'; x: number; y: number };

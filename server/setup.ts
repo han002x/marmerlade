@@ -14,7 +14,7 @@ import { diagnoseEnvironment, playwrightCli } from './environment.ts';
 
 const run = promisify(execFile);
 const table = z.record(z.string(), z.unknown());
-const skills = ['marmerlade-director', 'marmerlade-docs', 'marmerlade-setup'];
+const skills = ['marmerlade-director', 'marmerlade-codebase-map', 'marmerlade-docs', 'marmerlade-setup'];
 
 export const hostNames = ['codex', 'kiro', 'claude', 'cursor', 'antigravity'] as const;
 export type Host = typeof hostNames[number];

@@ -1,90 +1,26 @@
-/* Palettes: paper and ink. :root is the night-paper default; [data-theme] on
-   <html> overrides it. Every surface reads these variables, so theming is a
-   single attribute flip.
-   - paper: bg is the white canvas, panel the card stock of the chrome, node the stock
-     a shape is cut from, group the kraft of a folded sheet
-   - ink: what is drawn on the paper (outlines, edges, handwriting)
-   - seal: the one vermilion mark (brand, fold count) */
-:root,
-:root[data-theme='dark'] {
-  --mf-bg: #1a1916;
-  --mf-panel: #22201c;
-  --mf-border: #3a362f;
-  --mf-text: #ece5d8;
-  --mf-muted: #9b9384;
-  --mf-ink: #d9d1c3;
-  --mf-pencil: #3d3932;
-  --mf-accent: #8fa8dc;
-  --mf-seal: #e9764f;
-  --mf-node: #27241f;
-  --mf-group: #2d2a24;
-  --mf-input: #161512;
-  --mf-glow: rgba(143, 168, 220, 0.4);
-  --mf-shadow: rgba(0, 0, 0, 0.5);
-  --mf-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .3 0 0 0 -.13'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-}
-
-:root[data-theme='light'] {
-  --mf-bg: #ffffff;
-  --mf-panel: #fbfaf7;
-  --mf-border: #e6e1d7;
-  --mf-text: #2a2723;
-  --mf-muted: #8a857c;
-  --mf-ink: #3a352e;
-  --mf-pencil: #e2ddd2;
-  --mf-accent: #3b5b9a;
-  --mf-seal: #d0532f;
-  --mf-node: #ffffff;
-  --mf-group: #f6f2ea;
-  --mf-input: #ffffff;
-  --mf-glow: rgba(59, 91, 154, 0.28);
-  --mf-shadow: rgba(74, 58, 32, 0.16);
-  --mf-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3  0 0 0 0 .3  0 0 0 0 .3  .35 0 0 0 -.14'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-}
-
-* {
-  box-sizing: border-box;
-}
-
-:root {
-  --mf-sans:
-    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --mf-mono:
-    'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  --mf-hand: 'Kalam', 'Segoe Print', 'Bradley Hand', cursive;
-  --mf-radius: 6px;
-  /* paper sits on the desk (contact) and lifts off it (lift) */
-  --mf-contact: 0 1px 1.5px color-mix(in srgb, var(--mf-shadow) 90%, transparent);
-  --mf-lift:
-    0 1px 1.5px color-mix(in srgb, var(--mf-shadow) 90%, transparent),
-    0 8px 22px -6px var(--mf-shadow);
-}
-
-body,
-#root {
-  margin: 0;
-  height: 100vh;
-  background: var(--mf-grain), var(--mf-bg);
-  color: var(--mf-text);
-  font-family: var(--mf-ui-font, var(--mf-sans));
-  font-feature-settings: 'cv05', 'ss01';
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  transition:
-    background 200ms ease,
-    color 200ms ease;
-}
-
 .mf-app {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  position: relative;
+  height: 100%;
+  width: 100%;
 }
 
 .mf-canvas {
   position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.mf-toolbar .product-switcher {
+  margin-left: auto;
+  padding-left: 4px;
+  border-left: 1px solid var(--mf-border);
+}
+
+.mf-toolbar .product-trigger {
+  min-height: 30px;
+  gap: 4px;
+  padding: 0 4px;
 }
 
 .mf-export-overlay {
@@ -112,7 +48,11 @@ body,
   top: 14px;
   left: 50%;
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 12px);
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
   align-items: center;
   background: var(--mf-grain), var(--mf-panel);
@@ -120,6 +60,11 @@ body,
   border-radius: 8px;
   padding: 6px;
   box-shadow: var(--mf-lift);
+}
+
+/* Wrapped toolbar buttons can land at the left edge. Open their menus below the whole toolbar. */
+.mf-toolbar.is-compact > .mf-menu-wrap {
+  position: static;
 }
 
 .mf-sep {
@@ -318,10 +263,6 @@ body,
   color: var(--mf-seal);
 }
 
-.mf-svg {
-  display: block;
-}
-
 /* panel buttons share the wiki's quiet button; wiki controls style themselves */
 .mf-panel button:where(:not([class*='wk-'])) {
   background: transparent;
@@ -495,15 +436,45 @@ body,
   letter-spacing: -0.01em;
 }
 
+/* long labels wrap instead of stretching the node */
+.mf-node:not(.is-sized, .is-icon, .is-image) .mf-node-label {
+  max-width: 240px;
+  overflow-wrap: anywhere;
+}
+/* fixed-footprint shapes wrap inside their box */
+.mf-node:is(.mf-shape-circle, .mf-shape-dbl-circle, .mf-shape-diamond) > .mf-node-body {
+  max-width: 100%;
+  min-width: 0;
+}
+.mf-node:is(.mf-shape-circle, .mf-shape-dbl-circle, .mf-shape-diamond) .mf-node-label {
+  overflow-wrap: anywhere;
+}
+
+/* the editor reads as the label itself, in place */
 .mf-node-input {
-  background: var(--mf-input);
-  color: var(--mf-text);
-  border: 1px solid var(--mf-accent);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 13px;
-  width: 120px;
-  resize: vertical;
+  display: block;
+  box-sizing: content-box;
+  width: auto;
+  field-sizing: content;
+  min-width: 8ch;
+  max-width: min(240px, 100%);
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: center;
+  line-height: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  resize: none;
+  caret-color: var(--mf-accent);
 }
 
 .mf-transforms {
@@ -566,11 +537,19 @@ body,
   gap: 10px;
 }
 
+@media (max-width: 640px) {
+  .mf-app:has(> .mf-reopen) .mf-toolbar {
+    left: 6px;
+    transform: none;
+    max-width: calc(100% - 64px);
+  }
+}
+
 @media (max-width: 540px) {
   .mf-toolbar { gap: 2px; padding: 3px; }
   .mf-toolbar .mf-tool { width: 30px; }
   .mf-toolbar .mf-sep { margin: 4px 1px; }
-  .mf-app { flex-direction: column; height: 100dvh; }
+  .mf-app { flex-direction: column; }
   .mf-panel { min-width: 100%; height: 50%; border-left: 0; border-top: 1px solid var(--mf-border); }
   .mf-panel .mf-panel-resize { display: none; }
 }
@@ -2253,4 +2232,11 @@ body,
     animation: none;
     stroke-dashoffset: 0;
   }
+}
+
+.mf-selbar-btn span {
+  max-width: min(200px, 24vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

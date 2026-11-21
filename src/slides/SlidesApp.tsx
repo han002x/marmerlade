@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDiagram } from '../store';
-import { restore, startAutosave, startSync } from '../persist';
 import { openAppearance, activeAppearance } from '../theme';
 import { nodesOfPage, pathTo } from '../pages';
 import {
   addBox, BLOCKS, boxCaret, deckFileName, duplicateBox, editSlides, insertBlock, removeBox, setBox, setBoxContent, setDeckStyle, setSlideStyle,
-  hasText, LAYOUTS, moveSlide, orderBox, slideAt, slideBoxes, slideCaret, splitSlides, toMarkdown,
+  hasText, LAYOUTS, moveSlide, orderBox, positionDiagram, slideAt, slideBoxes, slideCaret, splitSlides, toMarkdown,
   type Box, type SlideEdit,
 } from '../slides';
 import { EMBED_MAX_SIDE, readImageFile } from '../imageUpload';
@@ -13,9 +12,13 @@ import { dragged, dragMode, RESIZE_HANDLES, type DragMode, type Point } from './
 import { isTyping } from '../useHotkeys';
 import { BoxBar, StylePanel } from './Design';
 import { deckHref, openNode } from '../route';
+import BrandMark from '../components/BrandMark';
+import ProductNav from '../components/ProductNav';
 import { Icon } from '../components/Icon';
 import Menu from '../wiki/Menu';
-import Navigation from '../wiki/Navigation';
+import LibrarySearch from '../wiki/LibrarySearch';
+import { byLibraryTitle, libraryTitle, matchesTitle } from '../wiki/libraryTitles';
+import SlideThumbnails from './SlideThumbnails';
 import NodeLinks from '../wiki/NodeLinks';
 import SourceEditor, { type SourceHistory } from '../wiki/SourceEditor';
 import ObjectSelection from './ObjectSelection';
@@ -32,12 +35,14 @@ const SHAPE_TOOLS = [
   { shape: 'arrow', label: 'Arrow', icon: 'arrow' },
 ] as const;
 const BLOCK_TOOLS = [
-  { name: 'Diagram', icon: 'shapes' },
+  { name: 'Sequence diagram', icon: 'shapes' },
   { name: 'Mermaid', icon: 'group' },
   { name: 'Table', icon: 'grid' },
   { name: 'Code', icon: 'code' },
   { name: 'Speaker note', icon: 'page' },
 ] as const;
+
+const ignoreDiagramLink = () => {};
 
 const useSlides = (body: string) => useMemo(() => splitSlides(body).slides, [body]);
 
@@ -49,27 +54,25 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   /** this window is the speaker's view of a presentation running in another */
   presenter?: boolean;
 }) {
-  // load the saved diagram before the first paint, then follow the canvas window
-  useState(() => restore());
-  useEffect(() => {
-    const stops = [startAutosave(), startSync()];
-    return () => stops.forEach((stop) => stop());
-  }, []);
-
   const nodes = useDiagram((s) => s.nodes);
   const decks = useDiagram((s) => s.decks);
   const deck = decks.find((d) => d.id === deckId);
   const deckNodes = deck ? nodesOfPage(nodes, deck.id, 'deckIds') : [];
   const node = deckNodes.find((n) => n.id === nodeId) ?? deckNodes[0];
-  const body = deck?.body ?? '';
+  const [positioning, setPositioning] = useState<{ deckId: string; body: string }>();
+  const body = positioning && positioning.deckId === deck?.id ? positioning.body : deck?.body ?? '';
   const slides = useSlides(body);
   // the narrow-screen index closes itself once a deck is chosen
   const [index, setIndex] = useState<{ at: string | null } | null>(null);
   const indexOpen = index !== null && index.at === deckId;
+  const [sidebar, setSidebar] = useState<{ at: string | null; view: 'slides' | 'decks' }>({ at: deckId, view: 'slides' });
+  const [deckQuery, setDeckQuery] = useState('');
+  const showDecks = !deck || sidebar.view === 'decks' && sidebar.at === deckId;
+  const filteredDecks = useMemo(() => decks.filter(deck => matchesTitle(libraryTitle(deck), deckQuery)).sort(byLibraryTitle), [deckQuery, decks]);
   const where = (id: string) => pathTo(nodes, id).map((n) => n.label || 'Untitled').join(' › ');
 
   useEffect(() => {
-    document.title = deck ? `${deck.title || 'Untitled'} · marmerlade` : 'Slides · marmerlade';
+    document.title = deck ? `${deck.title || 'Untitled'} · Slide decks · marmerlade` : 'Slide decks · marmerlade';
   }, [deck]);
 
   const targets = useCallback(() => {
@@ -102,7 +105,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   const strip = useRef<HTMLOListElement>(null);
   useEffect(() => {
     strip.current?.children[current]?.scrollIntoView({ block: 'nearest' });
-  }, [current]);
+  }, [current, deckId]);
 
   // the text box or shape picked on the current slide, by its place among the slide's objects
   const [picked, setPicked] = useState<{ slide: number; box: number }>();
@@ -192,17 +195,27 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   /** a drag in progress: where it began and what it has made of the object */
   const drag = useRef<{
     el: HTMLElement; stage: Element; mode: DragMode; start: Point; frame: DOMRect;
-    from: Box; others: Box[]; to?: Partial<Box>; guides: HTMLElement[]; slide: number; box: number; controls: HTMLElement | null;
+    from: Box; others: Box[]; to?: Partial<Box>; placement?: { original: string; body: string }; guides: HTMLElement[]; slide: number; box: number; controls: HTMLElement | null;
   }>(undefined);
   /** the slide being dragged to a new place in the strip, and the slide it is over */
   const [moving, setMoving] = useState<{ from: number; over: number }>();
   const file = useRef<HTMLInputElement>(null);
 
   const held = useRef(false);
+  if (sidebar.at !== deckId) {
+    setSidebar({ at: deckId, view: 'slides' });
+    setCaret(0);
+    setJump(undefined);
+    setPicked(undefined);
+    setEditing(false);
+    setMoving(undefined);
+    setPositioning(undefined);
+  }
 
   if (deck && slide) return <Present deckId={deck.id} nodeId={node?.id} slides={slides} slide={slide} presenter={presenter} />;
 
   const create = () => {
+    setIndex(null);
     window.location.hash = deckHref(useDiagram.getState().createDeck(''));
   };
 
@@ -239,21 +252,41 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
     if (!(e.target instanceof Element) || e.target.closest('.editing')) return;
     const handle = e.target.closest<HTMLElement>('[data-drag]')?.dataset.drag;
     const stage = e.currentTarget.querySelector('.sl-slide');
-    const el = handle ? stage?.querySelector<HTMLElement>('.box.selected') : e.target.closest<HTMLElement>('.box');
-    if (!el || !stage || e.button !== 0) return;
-    const all = slideBoxes(body, at);
-    const k = [...stage.querySelectorAll('.box')].indexOf(el);
+    if (!stage || !deck || e.button !== 0) return;
+    let el = handle ? stage.querySelector<HTMLElement>('.box.selected') : e.target.closest<HTMLElement>('.box');
+    const frame = stage.getBoundingClientRect();
+    let source = body;
+    let k: number;
+    if (!el) {
+      const diagrams = [...stage.querySelectorAll<HTMLElement>('.wk-preview > [data-embed]')];
+      const embed = e.target.closest<HTMLElement>('[data-embed]');
+      if (!embed || !diagrams.includes(embed) || !frame.width || !frame.height) return;
+      const bounds = (embed.querySelector('svg') ?? embed).getBoundingClientRect();
+      const positioned = positionDiagram(body, at, diagrams.indexOf(embed), embed.dataset.embed ?? '', {
+        left: (bounds.left - frame.left) * 100 / frame.width,
+        top: (bounds.top - frame.top) * 100 / frame.height,
+        width: Math.max(1, bounds.width * 100 / frame.width),
+        height: Math.max(12, bounds.height * 100 / frame.height),
+      });
+      if (!positioned) return;
+      source = positioned.body;
+      k = positioned.box;
+      el = embed;
+      setPositioning({ deckId: deck.id, body: source });
+    } else {
+      k = [...stage.querySelectorAll('.box')].indexOf(el);
+    }
+    const all = slideBoxes(source, at);
     const from = all[k];
     if (!from) return;
     e.preventDefault();
     e.currentTarget.focus({ preventScroll: true });
     if (at !== current) {
-      const offset = slideCaret(body, at);
+      const offset = slideCaret(source, at);
       setCaret(offset);
       setJump({ offset, focus: false });
     }
     setPicked({ slide: at, box: k });
-    const frame = stage.getBoundingClientRect();
     const start = { x: e.clientX - frame.left, y: e.clientY - frame.top };
     const guides = ['v', 'h'].map((side) => {
       const line = document.createElement('i');
@@ -263,6 +296,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
     });
     drag.current = {
       el, stage, start, frame, from, guides, slide: at, box: k,
+      ...(source !== body && { placement: { original: body, body: source } }),
       controls: e.currentTarget.querySelector<HTMLElement>('.sl-selection'),
       mode: handle === 'rotate' ? 'rotate' : RESIZE_HANDLES.find((h) => h === handle)
         ?? dragMode(from, { w: frame.width, h: frame.height }, start, el.classList.contains('selected')),
@@ -308,19 +342,40 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
         for (const key of ['left', 'top', 'width', 'height'] as const) target.style.setProperty(key, `${next[key]}%`);
         target.style.transform = next.rotate ? `rotate(${next.rotate}deg)` : '';
       }
-      if (e.type === 'pointerup') write(setBox(body, d.slide, d.box, d.to));
     }
+    const placed = d.placement;
+    if (placed) setPositioning(undefined);
+    if (e.type !== 'pointerup' || !deck) {
+      if (placed) setPicked(undefined);
+      return;
+    }
+    const latest = useDiagram.getState().decks.find(entry => entry.id === deck.id);
+    if (!latest || (placed && latest.body !== placed.original)) {
+      if (placed) setPicked(undefined);
+      return;
+    }
+    if (d.to) write(setBox(placed?.body ?? latest.body, d.slide, d.box, d.to));
+    else if (placed) write(placed.body);
   };
-  const select = (at: number) => {
+  const select = (at: number, focusSource = panel === 'source') => {
+    const offset = slideCaret(body, at);
     setEditing(false);
-    setCaret(slideCaret(body, at));
-    setJump({ offset: slideCaret(body, at), focus: panel === 'source' });
+    setCaret(offset);
+    setJump({ offset, focus: focusSource });
+  };
+  const pickThumbnail = (at: number) => {
+    setPicked(undefined);
+    select(at, false);
+    setIndex(null);
+    const selected = strip.current?.children[at];
+    selected?.scrollIntoView({ block: 'nearest' });
+    if (indexOpen) selected?.querySelector<HTMLElement>('.sl-sheet')?.focus({ preventScroll: true });
   };
 
   const download = () => {
     if (!deck) return;
-    const { nodes, edges } = useDiagram.getState();
-    const url = URL.createObjectURL(new Blob([toMarkdown(deck, { nodes, edges }, node?.id, activeAppearance())], { type: 'text/markdown' }));
+    const { nodes, edges, sequence } = useDiagram.getState();
+    const url = URL.createObjectURL(new Blob([toMarkdown(deck, { nodes, edges, sequence }, node?.id, activeAppearance())], { type: 'text/markdown' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = deckFileName(deck);
@@ -329,26 +384,59 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   };
 
   return (
-    <div className={`wk${indexOpen ? ' nav-open' : ''}`}>
-      <aside className="wk-index">
+    <div className={`wk${indexOpen ? ' nav-open' : ''}`} onKeyDown={event => {
+      if (event.key === 'Escape' && indexOpen && !document.querySelector('dialog[open]')) {
+        setIndex(null);
+        event.currentTarget.querySelector<HTMLButtonElement>('.wk-nav-toggle')?.focus();
+      }
+    }}>
+      <aside className="wk-index" id="deck-sidebar">
         <div className="wk-index-head">
-          <a className="wk-brand" href="#/slides">Slides</a>
+          <ProductNav current="slides" onNavigate={() => setIndex(null)} />
           <button className="wk-icon" onClick={openAppearance} title="Appearance" aria-label="Appearance">
             <Icon name={'shapes'} size={15} />
           </button>
-          <button className="wk-icon" onClick={create} title="New deck" aria-label="New deck">
+          {showDecks && <button className="wk-icon" onClick={create} title="New deck" aria-label="New deck">
             <Icon name="plus" size={15} />
-          </button>
+          </button>}
         </div>
-        <Navigation kind="deckIds" nodes={nodes} pages={decks} pageId={deckId} nodeId={node?.id} empty="No decks yet" />
+        {deck && <div className="wk-library-views" role="group" aria-label="Sidebar view">
+          <button className="wk-btn" aria-pressed={showDecks} onClick={() => setSidebar({ at: deckId, view: 'decks' })}>Decks</button>
+          <button className="wk-btn" aria-pressed={!showDecks} onClick={() => setSidebar({ at: deckId, view: 'slides' })}>Slides</button>
+        </div>}
+        {showDecks ? <>
+          <LibrarySearch label="Search decks" value={deckQuery} onChange={setDeckQuery} />
+          <nav className="wk-navigation" aria-label="Slide decks">
+            {filteredDecks.length > 0 ? <ul className="wk-tree-list">
+              {filteredDecks.map(entry => <li key={entry.id}>
+                <a className={`wk-item${entry.id === deckId ? ' on' : ''}`} title={libraryTitle(entry)}
+                  href={deckHref(entry.id, entry.id === deckId ? nodeId : undefined)}
+                  aria-current={entry.id === deckId ? 'page' : undefined}
+                  onClick={event => {
+                    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    setIndex(null);
+                    setSidebar({ at: deckId, view: 'slides' });
+                  }}>
+                  <Icon name="deck" size={14} /><span>{libraryTitle(entry)}</span>
+                </a>
+              </li>)}
+            </ul> : <p className="wk-index-empty" role="status">{deckQuery.trim() ? 'No matching decks' : 'No decks yet'}</p>}
+          </nav>
+        </> : <SlideThumbnails key={deckId} slides={slides} nodeId={node?.id} current={current} onSelect={pickThumbnail} />}
       </aside>
       <button className="wk-scrim" aria-label="Close decks" onClick={() => setIndex(null)} />
 
       <main className="wk-main">
         <header className="wk-bar">
-          <button className="wk-btn wk-nav-toggle" aria-expanded={indexOpen}
-            onClick={() => setIndex(indexOpen ? null : { at: deckId })}>
-            Decks
+          <button className="wk-btn wk-nav-toggle" aria-expanded={indexOpen} aria-controls="deck-sidebar"
+            onClick={event => {
+              setIndex(indexOpen ? null : { at: deckId });
+              const app = event.currentTarget.closest('.wk');
+              if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>(
+                showDecks ? '.product-trigger' : '.sl-thumbnail-select[aria-current]',
+              )?.focus());
+            }}>
+            <BrandMark size={20} decorative /> {showDecks ? 'Decks' : 'Slides'}
           </button>
           <nav className="wk-crumbs" aria-label="Linked nodes">
             {deck && <NodeLinks kind="deckIds" id={deck.id} nodeId={nodeId} />}
@@ -417,6 +505,9 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                   </button>
                 </div>
                 <div className="sl-tool-group" role="group" aria-label="Content">
+                  <button type="button" className="wk-icon" aria-label="Diagram" title="Diagram" onClick={() => place('diagram')}>
+                    <Icon name="shapes" />
+                  </button>
                   {BLOCK_TOOLS.map(({ name, icon }) => (
                     <button key={name} type="button" className="wk-icon" aria-label={name} title={name}
                       onClick={() => rewrite(insertBlock(body, caret, BLOCKS[name]))}>
@@ -493,7 +584,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                           setPicked(undefined);
                           select(i);
                         }}>
-                        <Slide slide={s} nodeId={node?.id} />
+                        <Slide slide={s} nodeId={node?.id} onNode={ignoreDiagramLink} />
                         {i === current && box && <ObjectSelection key={`${deck.id}:${i}:${boxAt}`} box={box} index={boxAt} editing={editing}
                           onCommit={(html) => {
                             setEditing(false);

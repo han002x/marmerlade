@@ -114,12 +114,12 @@ export function BoxBar({ box, editable, onChange, onOrder, onText, onSource, onD
   onRemove: () => void;
 }) {
   return (
-    <div className="sl-boxbar" role="toolbar" aria-label={!box.shape ? 'Text box' : box.shape === 'image' ? 'Image' : 'Shape'}>
+    <div className="sl-boxbar" role="toolbar" aria-label={!box.shape ? 'Text box' : box.shape === 'image' ? 'Image' : box.shape === 'diagram' ? 'Diagram' : 'Shape'}>
       <Menu label="Object style" className="wk-btn" button={<>
         <span className="sl-dot" style={{ background: box.background, borderColor: box.stroke }} />
         Style
       </>}>
-        {box.shape !== 'image' && <Swatches label="Fill" colors={editable ? FILLS : INKS} value={box.background}
+        {box.shape !== 'image' && box.shape !== 'diagram' && <Swatches label="Fill" colors={editable ? FILLS : INKS} value={box.background}
           onPick={(c) => onChange({ background: c ?? undefined })} />}
         {editable && <>
           {box.shape && <Swatches label="Border" colors={INKS} value={box.stroke} onPick={(c) => onChange({ stroke: c ?? undefined })} />}

@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { EditorSlots } from './diagrams/editorSlots';
+import DiagramBoard from './diagrams/DiagramBoard';
+import { useWorkspaceZoom } from './diagrams/useWorkspaceZoom';
+import { ToolButton } from './components/ToolButton';
+import { Activity, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -47,30 +52,27 @@ import { DiagramEdge } from './components/DiagramEdge';
 import { JoinPreview } from './components/JoinPreview';
 import { MermaidPanel } from './components/MermaidPanel';
 import { StylePanel } from './components/StylePanel';
+import ProductNav from './components/ProductNav';
 import { Icon } from './components/Icon';
 import { Welcome, WELCOME_EVENT, FIRST_RUN_FIT, isFirstRun } from './components/Welcome';
 import { ShapePicker, type Placement } from './components/ShapePicker';
 import { ImagePicker } from './components/ImagePicker';
 import { CatalogIcon, ShapeOutline } from './components/ShapeOutline';
 import { useTheme, activeAppearance } from './theme';
-import { foldedAncestors } from './pages.ts';
-import { nameCanvasWindow, openDocs, parseRoute } from './route';
+import { foldedAncestors, pageOf } from './pages.ts';
+import { deckHref, openDocs, parseRoute, useHash } from './route';
 import { showDeck, showPage, useDock } from './dock';
 import { isTyping, useHotkeys } from './useHotkeys';
 import { copyNodes, imagesFromClipboard, nodesFromClipboard, snapshotClipboard } from './clipboard';
 import {
-  startAutosave,
-  startSync,
-  restore,
   exportFile,
   importFile,
-  clearSaved,
+  saveForNavigation,
 } from './persist';
 import { exportGif, exportImage } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
 import type { DiagramNode as DNode, Side } from './types';
-import { SAMPLE } from './sample';
 import { hasOutline, shapeDef } from './shapes';
 import { installRenderBridge } from './renderBridge';
 import './App.css';
@@ -101,44 +103,18 @@ function placeHalf({ shape, icon, image }: Placement): { x: number; y: number } 
   return side ? { x: side / 2, y: side / 2 } : { x: 60, y: 24 };
 }
 
-/** A toolbar button with its keyboard shortcut in the bottom-right corner. */
-function ToolButton({
-  label,
-  hotkey,
-  active,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  hotkey?: string;
-  /** show the current tool pressed */
-  active?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      className={active ? 'mf-tool is-active' : 'mf-tool'}
-      aria-label={label}
-      aria-pressed={active}
-      disabled={disabled}
-      title={hotkey ? `${label}  ·  ${hotkey}` : label}
-      onClick={onClick}
-    >
-      {children}
-      {hotkey && <kbd className="mf-tool-key" aria-hidden="true">{hotkey}</kbd>}
-    </button>
-  );
-}
-
 function openAppearancePanel() {
   useDock.setState({ open: true, view: 'appearance' });
   requestAnimationFrame(() => document.getElementById('mf-tab-appearance')?.focus());
 }
 
-function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () => void; exporting: 'gif' | 'png' | null; setExporting: (format: 'gif' | 'png' | null) => void }) {
+function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
+  slots?: EditorSlots;
+  onTogglePanel: () => void;
+  exporting: 'gif' | 'png' | null;
+  setExporting: (format: 'gif' | 'png' | null) => void;
+  welcome: boolean;
+}) {
   const nodes = useDiagram((s) => s.nodes);
   const edges = useDiagram((s) => s.edges);
   const addNode = useDiagram((s) => s.addNode);
@@ -152,6 +128,9 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const autoLayout = useDiagram((s) => s.autoLayout);
   const undo = useDiagram((s) => s.undo);
   const { fitView, screenToFlowPosition, getZoom, setViewport } = useReactFlow();
+  useWorkspaceZoom(slots?.workspaceZoom);
+  const embedded = Boolean(slots);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const flowStore = useStoreApi();
   const selectionRect = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const selectingBox = useRef(false);
@@ -159,16 +138,19 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
     if (state.userSelectionRect) selectionRect.current = state.userSelectionRect;
   }), [flowStore]);
   // Keep the canvas centered on the same point as the dock opens, resizes, or closes.
-  useEffect(() => flowStore.subscribe((state, previous) => {
-    if (state.width === previous.width && state.height === previous.height) return;
-    if (!previous.width || !previous.height || !state.width || !state.height) return;
-    const [x, y, zoom] = state.transform;
-    void setViewport({
-      x: x + (state.width - previous.width) / 2,
-      y: y + (state.height - previous.height) / 2,
-      zoom,
+  useEffect(() => {
+    if (embedded) return;
+    return flowStore.subscribe((state, previous) => {
+      if (state.width === previous.width && state.height === previous.height) return;
+      if (!previous.width || !previous.height || !state.width || !state.height) return;
+      const [x, y, zoom] = state.transform;
+      void setViewport({
+        x: x + (state.width - previous.width) / 2,
+        y: y + (state.height - previous.height) / 2,
+        zoom,
+      });
     });
-  }), [flowStore, setViewport]);
+  }, [flowStore, setViewport, embedded]);
   useEffect(() => installRenderBridge(async () => {
     await document.fonts.ready;
     if (!useDiagram.getState().nodes.length) return;
@@ -190,6 +172,9 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const theme = useTheme();
   const selected = useDiagram((s) => s.selectedNodeIds);
   const selectedEdges = useDiagram((s) => s.selectedEdgeIds);
+  const single = selected.length === 1 && !selectedEdges.length ? nodes.find((n) => n.id === selected[0]) : undefined;
+  const explanation = useDiagram((s) => pageOf(single, s.pages));
+  const linkedDeck = useDiagram((s) => pageOf(single, s.decks, 'deckIds'));
   const setSelection = useDiagram((s) => s.setSelection);
   const groupNodes = useDiagram((s) => s.groupNodes);
   const ungroupNodes = useDiagram((s) => s.ungroupNodes);
@@ -197,10 +182,10 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
 
   // a new user's demo diagram is framed below the first-run notes
   useEffect(() => {
-    if (!isFirstRun() || localStorage.getItem('marmerlade.diagram')) return;
+    if (!welcome) return;
     const t = window.setTimeout(() => fitView(FIRST_RUN_FIT), 80);
     return () => window.clearTimeout(t);
-  }, [fitView]);
+  }, [welcome, fitView]);
 
   /** shape awaiting placement, and the live cursor position for its preview */
   const [pending, setPending] = useState<Placement | null>(null);
@@ -228,6 +213,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   const [exportWidth, setExportWidth] = useState(900);
   const canvasWidth = useStore((state) => state.width);
   const canvasHeight = useStore((state) => state.height);
+  const compactToolbar = canvasWidth < 600;
 
   useEffect(() => {
     if (!menuOpen && !exportOpen) return;
@@ -241,6 +227,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (menuOpen) menuRef.current?.querySelector('button')?.focus();
         if (exportOpen) exportRef.current?.querySelector('button')?.focus();
         setMenuOpen(false);
         setExportOpen(false);
@@ -270,8 +257,11 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   );
 
   const clearCanvas = useCallback(() => {
-    clearSaved();
-    load({ nodes: [], edges: [] });
+    const state = useDiagram.getState();
+    if(state.activeDiagramId)state.loadMermaid('flowchart TD');
+    else load({ ...state, nodes: [], edges: [] });
+    useDiagram.setState({ sequenceHistory: state.sequenceHistory });
+    saveForNavigation();
     useDock.getState().setOpen(false);
     window.dispatchEvent(new Event(WELCOME_EVENT));
   }, [load]);
@@ -291,7 +281,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   // selection so no outline bleeds into the capture, then record the viewport.
   const saveExport = useCallback(async (format: 'gif' | 'png') => {
     if (exporting) return;
-    const el = document.querySelector<HTMLElement>('.react-flow');
+    const el = canvasRef.current;
     if (!el) return;
     setExporting(format);
     setSelection([], []);
@@ -785,8 +775,9 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
 
   const onPaneMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (!pending) return;
-      setCursor({ x: e.clientX, y: e.clientY });
+      const bounds = canvasRef.current?.getBoundingClientRect();
+      if (!pending || !bounds) return;
+      setCursor({ x: e.clientX - bounds.left, y: e.clientY - bounds.top });
     },
     [pending],
   );
@@ -870,6 +861,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
 
   // #/node/<id> (from the wiki): unfold what hides the node, select it, frame it
   useEffect(() => {
+    let frameTimer: number;
     const goto = () => {
       const route = parseRoute(window.location.hash);
       if (route.kind !== 'node') return;
@@ -882,7 +874,8 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
       setSelection([node.id], []);
       const sheet = !node.collapsed && all.some((n) => n.parentId === node.id);
       const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      window.setTimeout(
+      window.clearTimeout(frameTimer);
+      frameTimer = window.setTimeout(
         () =>
           fitView({
             nodes: [{ id: sheet ? `${SHEET_PREFIX}${node.id}` : node.id }],
@@ -893,11 +886,11 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         closed.length ? 320 : 60,
       );
     };
-    // after App's mount effect has restored the saved diagram
     const first = window.setTimeout(goto, 0);
     window.addEventListener('hashchange', goto);
     return () => {
       window.clearTimeout(first);
+      window.clearTimeout(frameTimer);
       window.removeEventListener('hashchange', goto);
     };
   }, [unfold, setSelection, fitView]);
@@ -953,7 +946,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
       if (!readNodes && !clip) return;
       e.preventDefault();
       // at the pointer when it is over the canvas, else the middle of the view
-      const pane = document.querySelector('.react-flow')?.getBoundingClientRect();
+      const pane = canvasRef.current?.getBoundingClientRect();
       const p = pointer.current;
       const inside = p && pane && p.x >= pane.left && p.x <= pane.right && p.y >= pane.top && p.y <= pane.bottom;
       const screen = inside ? p : pane ? { x: pane.left + pane.width / 2, y: pane.top + pane.height / 2 } : { x: 0, y: 0 };
@@ -988,22 +981,8 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
     };
   }, [addNode, screenToFlowPosition, setSelection, flash]);
 
-  return (
-    <div
-      className={`mf-canvas ${connecting ? 'is-connecting' : ''} ${pending ? 'is-placing' : ''}${resizePreview || moveGuides ? ' is-transforming' : ''}`}
-      onPointerDownCapture={() => {
-        if (!draggingNodes.current) return;
-        draggingNodes.current = false;
-        setMoveGuides(null);
-      }}
-      onPointerMove={(e) => {
-        pointer.current = { x: e.clientX, y: e.clientY };
-      }}
-      onPointerLeave={() => {
-        pointer.current = null;
-      }}
-    >
-      <div className="mf-toolbar">
+  const toolbar=(
+    <>
         <div className="mf-group-btns">
           <ToolButton label="Rectangle" hotkey="R" onClick={() => arm({ shape: 'rect' })}>
             <Icon name="rect" />
@@ -1118,7 +1097,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
           )}
         </div>
         <div className="mf-menu-wrap" ref={menuRef}>
-          <ToolButton label="More actions" onClick={() => setMenuOpen((v) => !v)}>
+          <ToolButton label="More actions" expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
             <Icon name="more" />
           </ToolButton>
           {menuOpen && (
@@ -1128,7 +1107,8 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
                 role="menuitem"
                 onClick={() => {
                   setMenuOpen(false);
-                  fileInput.current?.click();
+                  if(slots)slots.onImport();
+                  else fileInput.current?.click();
                 }}
               >
                 <Icon name="import" />
@@ -1157,6 +1137,7 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
                 <Icon name="book" />
                 <span>Docs</span>
               </button>
+              {slots && <div onClick={()=>setMenuOpen(false)}>{slots.workspaceActions}</div>}
               <span className="mf-menu-sep" />
               <button
                 className="mf-menu-item mf-menu-danger"
@@ -1172,15 +1153,32 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
             </div>
           )}
         </div>
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".json,application/json"
-          hidden
-          onChange={onPickFile}
-        />
-      </div>
-      <ReactFlow
+        {!slots && <ProductNav current="canvas" iconOnly={compactToolbar} />}
+        {!slots && (
+          <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={onPickFile} />
+        )}
+    </>
+  );
+
+  return (
+    <div
+      className={`mf-canvas${connecting ? ' is-connecting' : ''}${pending ? ' is-placing' : ''}${resizePreview || moveGuides ? ' is-transforming' : ''}`}
+      onPointerDownCapture={() => {
+        if (!draggingNodes.current) return;
+        draggingNodes.current = false;
+        setMoveGuides(null);
+      }}
+      onPointerMove={(e) => {
+        pointer.current = { x: e.clientX, y: e.clientY };
+      }}
+      onPointerLeave={() => {
+        pointer.current = null;
+      }}
+    >
+      {slots ? (slots.toolbar && createPortal(toolbar,slots.toolbar)) : (
+        <div className={compactToolbar ? 'mf-toolbar is-compact' : 'mf-toolbar'}>{toolbar}</div>
+      )}
+      <ReactFlow ref={canvasRef}
         nodes={rfNodesWithGhost}
         edges={rfEdges}
         nodeTypes={nodeTypes}
@@ -1240,17 +1238,39 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
         deleteKeyCode={null}
         // Drag on empty canvas selects; middle/right drag or Space + drag pans.
         selectionOnDrag
-        panOnDrag={[1, 2]}
+        panOnDrag={slots ? false : [1, 2]}
+        panActivationKeyCode={slots ? null : 'Space'}
+        zoomOnScroll={!slots}
+        zoomOnPinch={!slots}
+        zoomOnDoubleClick={!slots}
+        zoomActivationKeyCode={slots ? null : undefined}
+        preventScrolling={!slots}
+        autoPanOnNodeDrag={!slots}
+        autoPanOnConnect={!slots}
+        minZoom={slots ? 0.05 : undefined}
+        fitViewOptions={slots ? { maxZoom: slots.workspaceZoom, padding: 0.18 } : undefined}
         fitView
       >
         <NodeToolbar
-          nodeId={selected}
-          isVisible={groupAction !== null}
+          nodeId={selected.map(shown.endOf)}
+          isVisible={groupAction !== null || !!single}
           position={Position.Top}
           offset={30}
         >
           <div className="mf-selbar">
-            <button
+            {single && <button className="mf-selbar-btn" title={explanation ? explanation.title || 'Untitled page' : 'Add explanation'} onClick={() => {
+              const id = explanation?.id ?? useDiagram.getState().openPage(single.id);
+              if (!id) return;
+              showPage(single.id, id);
+              useDock.getState().setMode(explanation ? 'read' : 'edit');
+            }}>
+              <Icon name="page" size={15} /><span>{explanation ? explanation.title || 'Untitled page' : 'Add explanation'}</span>
+            </button>}
+            {single && linkedDeck && <button className="mf-selbar-btn" title={`Present ${linkedDeck.title}`} onClick={() => {
+              saveForNavigation();
+              window.location.hash = deckHref(linkedDeck.id, single.id, 1);
+            }}><Icon name="play" size={14} /><span>{linkedDeck.title || 'Untitled deck'}</span></button>}
+            {groupAction && <button
               className="mf-selbar-btn"
               title={`${groupAction === 'ungroup' ? 'Ungroup' : groupAction === 'join' ? 'Add to group' : 'Group'}  ·  G`}
               onClick={groupSelection}
@@ -1258,12 +1278,19 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
               <Icon name="group" />
               <span>{groupAction === 'ungroup' ? 'Ungroup' : groupAction === 'join' ? 'Add to group' : 'Group'}</span>
               <kbd className="mf-tool-key" aria-hidden="true">G</kbd>
-            </button>
+            </button>}
           </div>
         </NodeToolbar>
-        <Background gap={activeAppearance().texture === 'grid' ? 24 : 18} variant={activeAppearance().texture === 'grid' ? BackgroundVariant.Lines : BackgroundVariant.Dots} />
-        <Controls />
-        <MiniMap pannable zoomable />
+        {!embedded && (
+          <>
+            <Background
+              gap={activeAppearance().texture === 'grid' ? 24 : 18}
+              variant={activeAppearance().texture === 'grid' ? BackgroundVariant.Lines : BackgroundVariant.Dots}
+            />
+            <Controls />
+            <MiniMap pannable zoomable />
+          </>
+        )}
       </ReactFlow>
 
       <NodeTransforms nodes={nodeRects} selected={selected} preview={resizePreview} moveGuides={moveGuides ?? []}
@@ -1310,9 +1337,16 @@ function Canvas({ onTogglePanel, exporting, setExporting }: { onTogglePanel: () 
   );
 }
 
-export default function App() {
+const SequenceEditor = lazy(() => import('./sequence/SequenceEditor'));
+const AppearanceDialog = lazy(() => import('./components/AppearanceDialog'));
+
+function DiagramEditor({ showWelcome, diagramKind, slots }: { showWelcome: boolean; diagramKind?:'flowchart'|'sequence'; slots?:EditorSlots }) {
   const panelOpen = useDock((s) => s.open);
   const setPanelOpen = useDock((s) => s.setOpen);
+  const hash=useHash();
+  const sequenceView = diagramKind ? diagramKind==='sequence' : hash === '#/diagrams/sequence';
+  const [visited, setVisited] = useState(sequenceView);
+  if (sequenceView && !visited) setVisited(true);
   const [panelWidth, setPanelWidth] = useState(360);
   const [exporting, setExporting] = useState<'gif' | 'png' | null>(null);
 
@@ -1327,9 +1361,7 @@ export default function App() {
       for (const type of ['keydown', 'keyup', 'copy', 'cut', 'paste']) window.removeEventListener(type, block, true);
     };
   }, [exporting]);
-  const load = useDiagram((s) => s.load);
-
-  const [welcome, setWelcome] = useState(false);
+  const [welcome, setWelcome] = useState(() => showWelcome && isFirstRun());
 
   // Clear canvas returns to the first-run view
   useEffect(() => {
@@ -1338,49 +1370,43 @@ export default function App() {
     return () => window.removeEventListener(WELCOME_EVENT, show);
   }, []);
 
-  // on first mount: restore the saved diagram, or seed the sample (a new user
-  // also gets the panel closed and the first-run notes); then begin
-  // autosaving every change back to localStorage
-  useEffect(() => {
-    if (!window.__marmerladeRender && useDiagram.getState().nodes.length === 0 && !restore()) {
-      load(SAMPLE);
-      if (isFirstRun()) {
-        setPanelOpen(false);
-        setWelcome(true);
-      }
-    }
-    nameCanvasWindow();
-    const stops = [startAutosave(), startSync()];
-    return () => stops.forEach((stop) => stop());
-  }, [load, setPanelOpen]);
-
   return (
     <ReactFlowProvider>
-      {welcome && <Welcome onDone={() => setWelcome(false)} />}
-      <div className="mf-app" inert={exporting === 'gif'}>
-        <Canvas onTogglePanel={() => setPanelOpen(!useDock.getState().open)} exporting={exporting} setExporting={setExporting} />
-        {panelOpen ? (
-          <MermaidPanel
-            width={panelWidth}
-            onWidthChange={setPanelWidth}
-            onClose={() => setPanelOpen(false)}
-          />
-        ) : (
-          <button
-            className="mf-reopen"
-            title="Mermaid  ·  M"
-            aria-label="Open Mermaid panel"
-            onClick={() => setPanelOpen(true)}
-          >
-            <Icon name="code" />
-          </button>
-        )}
-      </div>
-      {exporting === 'gif' && (
-        <div className="mf-export-overlay" role="status" aria-live="polite">
-          <span>Exporting GIF…</span>
+      <Activity mode={sequenceView ? 'hidden' : 'visible'}>
+        {welcome && <Welcome onDone={() => setWelcome(false)} />}
+        <div className={slots ? 'mf-frame-editor' : 'mf-app'} inert={exporting === 'gif'}>
+          <Canvas slots={slots} welcome={welcome} onTogglePanel={() => setPanelOpen(!useDock.getState().open)} exporting={exporting} setExporting={setExporting} />
+          {!slots && (panelOpen ? (
+            <MermaidPanel
+              width={panelWidth}
+              onWidthChange={setPanelWidth}
+              onClose={() => setPanelOpen(false)}
+            />
+          ) : (
+            <button
+              className="mf-reopen"
+              title="Mermaid  ·  M"
+              aria-label="Open Mermaid panel"
+              onClick={() => setPanelOpen(true)}
+            >
+              <Icon name="code" />
+            </button>
+          ))}
         </div>
-      )}
+        {exporting === 'gif' && (
+          <div className="mf-export-overlay" role="status" aria-live="polite">
+            <span>Exporting GIF…</span>
+          </div>
+        )}
+      </Activity>
+      {(sequenceView || visited) && <Activity mode={sequenceView ? 'visible' : 'hidden'}>
+        <Suspense fallback={null}><SequenceEditor /><AppearanceDialog /></Suspense>
+      </Activity>}
     </ReactFlowProvider>
   );
+}
+
+export default function App({showWelcome}:{showWelcome:boolean}) {
+  if(window.__marmerladeRender)return <DiagramEditor showWelcome={showWelcome}/>;
+  return <DiagramBoard Editor={DiagramEditor}/>;
 }

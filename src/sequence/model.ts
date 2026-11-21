@@ -242,11 +242,31 @@ export function referencedActors(row: Statement): string[] {
 }
 
 const reserved =
-  /^(participant|actor|create|destroy|box|loop|alt|else|opt|par|par_over|and|critical|option|break|rect|end|note|activate|deactivate|autonumber|title|links?|properties|details)\b/i;
-/** Mermaid reads a name that starts with a keyword as that keyword, so it cannot name a participant. */
-export function nameIssue(id: string) {
-  const word = reserved.exec(id.trim())?.[1];
-  return word ? `“${word}” is a Mermaid keyword. Start the name with another word, such as “P2”.` : undefined;
+  /^(?:participant|actor|create|destroy|box|loop|alt|else|opt|par|par_over|and|critical|option|break|rect|end|note|activate|deactivate|autonumber|title|links?|properties|details)(?=\s|$)/i;
+
+/**
+ * Mermaid reads a name that starts with a keyword and a space, such as `Participant 2`,
+ * as that keyword. Rename such participants to `Participant_2` and keep the typed name as the label.
+ */
+export function safeNames(source: string, at?: number) {
+  let rows = statements(source);
+  const index = at === undefined ? -1 : rows.findIndex((row) => row.start >= at);
+  for (const id of participants(rows)) {
+    if (!reserved.test(id.trim())) continue;
+    const ids = participants(rows);
+    let next = id.trim().replace(/\s+/g, '_');
+    if (reserved.test(next)) next += '_';
+    while (ids.includes(next)) next += '_';
+    const declared = rows.find((row) => row.kind === 'participant' && row.values[0] === id);
+    const values = declared ? [...declared.values] : [];
+    if (declared) {
+      values[0] = next;
+      values[1] ||= id.trim();
+    }
+    source = renameReferences(rows, id, next, source, declared ?? ({} as Statement), format('participant', values));
+    rows = statements(source);
+  }
+  return { source, at: index < 0 ? at : rows[index]?.start };
 }
 
 export function participants(rows: Statement[]) {

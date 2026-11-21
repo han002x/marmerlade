@@ -90,6 +90,8 @@ interface Props {
   onSource: () => void;
   /** A pending insertion, drawn in place of the diagram at the same scale. */
   previewSvg?: string;
+  /** The position, among the preview's messages, of a palette sample to draw dotted. */
+  sampleMessage?: number;
   /** Whether the single selected statement was picked by the user and may be wrapped by a block. */
   wrapSelected: boolean;
 }
@@ -150,6 +152,7 @@ export default function SequenceCanvas({
   onError,
   onSource,
   previewSvg,
+  sampleMessage,
   wrapSelected,
 }: Props) {
   const root = useRef<HTMLDivElement>(null);
@@ -335,6 +338,11 @@ export default function SequenceCanvas({
       ? { x: view[0], y: view[1], width: view[2], height: view[3] }
       : undefined;
   }, [previewSvg]);
+  const previewRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const lines = previewRef.current?.querySelectorAll('[data-et="message"]') ?? [];
+    lines.forEach((line, i) => line.classList.toggle('sq-sample', i === sampleMessage));
+  }, [previewSvg, previewBox, sampleMessage]);
   // Keep a growing preview in view; the committed drawing keeps the same scale otherwise.
   useLayoutEffect(() => {
     const area = root.current;
@@ -820,6 +828,7 @@ export default function SequenceCanvas({
           </div>
           {previewSvg && previewBox && (
             <div
+              ref={previewRef}
               className="sq-artboard sq-preview-artboard"
               aria-label="Insertion preview drawing"
               style={{ left: previewBox.x, top: previewBox.y, width: previewBox.width, height: previewBox.height }}

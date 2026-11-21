@@ -548,3 +548,4 @@
     min-height: 40px;
   }
 }
+.sq-preview-artboard .sq-sample { stroke-dasharray: 0.5 5 !important; stroke-linecap: round; stroke-width: 2px !important; }

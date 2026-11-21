@@ -28,7 +28,7 @@ import {
   referencedActors,
   descriptions,
   lifetimeIssue,
-  nameIssue,
+  safeNames,
   placementInstruction,
   statements,
   validateSequence,
@@ -269,7 +269,14 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     setCandidate(undefined);
     setProposal(undefined);
     setPreviewError('');
-    setPending(value);
+    setPending({
+      ...value,
+      build: (text) => {
+        const edit = value.build(text);
+        const safe = safeNames(edit.source, edit.at);
+        return { source: safe.source, at: safe.at ?? edit.at };
+      },
+    });
     setPlacementKind(undefined);
     setTool('select');
     useDock.setState({ open: true, view: 'tree' });
@@ -355,27 +362,41 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   const [trial, setTrial] = useState<{ owner: object; base: string; source: string }>();
   const owner = pending ?? action;
   // A palette tile under the pointer, drawn as an example in this diagram.
-  const [sample, setSample] = useState<{ kind: string; base: string; source: string }>();
+  const [sample, setSample] = useState<{ kind: string; base: string; source: string; message?: number }>();
   const sampleSource = sample && sample.base === source && !pending ? sample.source : undefined;
   const trialSource =
     (trial && trial.owner === owner && trial.base === source ? trial.source : undefined) ?? sampleSource;
   // The last drawn trial stays up while the next option renders, so hovering down a list does not flicker.
-  const [trialDrawing, setTrialDrawing] = useState<string>();
+  const [trialDrawing, setTrialDrawing] = useState<{ source: string; svg: string }>();
+  // A sample Mermaid cannot draw falls back to the palette's hover card.
+  const [failedSample, setFailedSample] = useState<string>();
   useEffect(() => {
     if (trialSource === undefined) return;
     let live = true;
     const timer = setTimeout(() => {
       void diagramSvg(trialSource, appearance).then(
-        (value) => live && setTrialDrawing(value || undefined),
-        () => live && setTrialDrawing(undefined),
+        (value) => live && setTrialDrawing(value ? { source: trialSource, svg: value } : undefined),
+        () => {
+          if (!live) return;
+          setTrialDrawing(undefined);
+          if (trialSource === sampleSource) {
+            setFailedSample(trialSource);
+            setSample(undefined);
+          }
+        },
       );
     }, 60);
     return () => {
       live = false;
       clearTimeout(timer);
     };
-  }, [trialSource, appearance]);
-  const trialSvg = trialSource === undefined ? undefined : trialDrawing;
+  }, [trialSource, sampleSource, appearance]);
+  const trialSvg = trialSource === undefined ? undefined : trialDrawing?.svg;
+  // A message sample is drawn dotted so it reads as a preview, not as part of the diagram.
+  const sampleMessage =
+    sampleSource !== undefined && trialSource === sampleSource && trialDrawing?.source === sampleSource
+      ? sample?.message
+      : undefined;
   const offer = (next?: string) =>
     setTrial(next === undefined || !owner ? undefined : { owner, base: source, source: next });
   const trialInsertion = (text: string | undefined) => {
@@ -447,12 +468,11 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
 
   function save(text: string) {
     if (!action) return;
+    const apply = (value: string, at?: number) => {
+      const safe = safeNames(value, at);
+      return commit(safe.source, safe.at);
+    };
     const inserted = statements(header + '\n' + text)[0];
-    const issue = inserted?.kind === 'participant' ? nameIssue(inserted.values[0]) : undefined;
-    if (issue) {
-      setError(issue);
-      return;
-    }
     if (
       !action.edit &&
       inserted?.kind === 'participant' &&
@@ -475,7 +495,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       const prefix = sender !== id && !preceding.includes(sender) ? 'participant ' + sender + '\n  ' : '';
       const renamed = nextId === id ? source : renameReferences(rows, id, nextId, source, action.edit, text);
       const at = first.start;
-      void commit(renamed.slice(0, at) + prefix + text + '\n  ' + renamed.slice(at), at + prefix.length);
+      void apply(renamed.slice(0, at) + prefix + text + '\n  ' + renamed.slice(at), at + prefix.length);
       return;
     }
     if (action.edit) {
@@ -486,8 +506,8 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           setError('This participant identifier is already in use.');
           return;
         }
-        void commit(renameReferences(rows, row.values[0], id, source, row, text), row.start);
-      } else void commit(source.slice(0, row.start) + text + source.slice(row.end), row.start);
+        void apply(renameReferences(rows, row.values[0], id, source, row, text), row.start);
+      } else void apply(source.slice(0, row.start) + text + source.slice(row.end), row.start);
     } else {
       const at = action.at ?? source.length;
       const following = rows.find((r) => r.start === at);
@@ -511,7 +531,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
         body +
         (after || source.endsWith('\n') ? '\n' : '') +
         after;
-      void commit(next, cut);
+      void apply(next, cut);
     }
   }
   function move(direction: number) {
@@ -645,14 +665,27 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     if (pending || !clean) return undefined;
     try {
       const at = kind === 'destroy' ? source.length : placeAt(kind);
-      return sampleEdit(source, kind, at, explicit && selected ? [selected] : [])?.source;
+      const edit = sampleEdit(source, kind, at, explicit && selected ? [selected] : []);
+      if (!edit) return undefined;
+      const safe = safeNames(edit.source, edit.at);
+      return safe.source === failedSample ? undefined : { source: safe.source, at: safe.at ?? edit.at };
     } catch {
       return undefined;
     }
   };
   const showSample = (kind?: string) => {
-    const next = kind && sampleFor(kind);
-    setSample(kind && next ? { kind, base: source, source: next } : undefined);
+    const next = kind ? sampleFor(kind) : undefined;
+    const message =
+      kind === 'message' && next
+        ? statements(next.source)
+            .filter((row) => row.kind === 'message')
+            .findIndex((row) => row.start === next.at)
+        : -1;
+    setSample(
+      kind && next
+        ? { kind, base: source, source: next.source, message: message < 0 ? undefined : message }
+        : undefined,
+    );
   };
   const toolbar = (
     <>
@@ -928,6 +961,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               placementKind={placementKind}
               onPlace={beginInsertion}
               previewSvg={trialSvg || candidate?.svg}
+              sampleMessage={trialSvg ? sampleMessage : undefined}
               wrapSelected={explicit}
               onPropose={proposeEdit}
               workspaceZoom={slots?.workspaceZoom}

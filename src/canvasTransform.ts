@@ -68,13 +68,14 @@ export function snapMove(bounds: Rect, others: Rect[], zoom: number) {
   return { offset, guides };
 }
 
-export function resizeSelection({ bounds, selected, others, handle, delta, zoom }: {
+export function resizeSelection({ bounds, selected, others, handle, delta, zoom, minSize = { width: 48, height: 32 } }: {
   bounds: Rect;
   selected: ReadonlyMap<string, Rect>;
   others: Rect[];
   handle: ResizeHandle;
   delta: Point;
   zoom: number;
+  minSize?: Pick<Rect, 'width' | 'height'>;
 }) {
   const rects = new Map<string, Rect>();
   const guides: Guide[] = [];
@@ -82,8 +83,8 @@ export function resizeSelection({ bounds, selected, others, handle, delta, zoom 
 
   let minScale = 0;
   for (const node of selected.values()) {
-    if (handle.y) minScale = Math.max(minScale, Math.min(1, 32 / node.height));
-    if (handle.x) minScale = Math.max(minScale, Math.min(1, 48 / node.width));
+    if (handle.y) minScale = Math.max(minScale, Math.min(1, minSize.height / node.height));
+    if (handle.x) minScale = Math.max(minScale, Math.min(1, minSize.width / node.width));
   }
 
   const anchorX = bounds.x + (handle.x < 0 ? bounds.width : 0);

@@ -275,28 +275,39 @@ sequenceDiagram
     end
 ```
 
-Drag **Place participant** from the toolbar onto the canvas. Drop it between
-two headers to insert a lane there. You can also press **R**, click the canvas,
-type a participant label, and press **Enter**.
+Open **Add element** in the toolbar to browse a compact list of participants,
+messages, notes, blocks, and advanced Mermaid constructs. Hover or focus an
+element to show its preview beside the list. The picker opens at the left edge
+of the page. Drag a participant
+tile onto the canvas to choose its lane, or click the tile and then the canvas.
+Press **R** for participant placement.
 
-Drag a connection handle onto a receiving participant to create a message on
-drop. With **Connect participants** active, you can drag directly from one
-header to another. You can also click the sender and receiver, then enter a
-label. Click the same participant twice for a self-message.
+Choose **Message** and click the sender and receiver, or drag a connection
+handle between participant headers. Dragging a message tile onto a lane chooses
+the sender and insertion position; then click the receiver. Choose the same
+participant twice for a self-message.
+
+Drag notes or activation elements onto a lane and sequence position. For a loop,
+alternative, parallel, or other message block, select contiguous messages in one
+branch to wrap them, then place the block. Without a selection, placement creates
+an empty block. A **Box** groups participant declarations instead of messages.
+Advanced settings and metadata open their properties directly from the palette.
+
+Every insertion opens editable properties in **Tree** and a diagram **Preview**.
+Change the fields to update the preview, then choose **Insert** to save one
+undoable change. **Cancel** or **Escape** discards it. Pending previews are not
+saved or exported. Changing diagrams or opening **Mermaid** also cancels them.
 
 Double-click a participant, message arrow, or note to edit its label. Drag a
-participant header horizontally to reorder its lane. Its lifeline, incoming
-arrows, and outgoing arrows follow the drag. Drag a message vertically to
-change its order within a branch. Drag on the background
-to select several elements. **Delete** removes the selection and **Ctrl/Cmd+Z**
-undoes the edit.
+participant header horizontally to reorder its lane. Drag a message vertically
+to change its order within a branch. Drag on the background to select several
+elements. **Delete** removes the selection and **Ctrl/Cmd+Z** undoes an edit.
 
-Expand the sequence in **Tree** to edit statement properties or insert a note, block,
-or other Mermaid construct. Select a statement, edit its fields, and choose **Apply edit**. Select a block and choose
-**Add else branch**, **Add and branch**, or **Add option branch** to extend it.
-**Clear selection** places new elements at the end of the sequence. Use
-**Mermaid** to edit or copy the complete sequence. During an invalid edit
-the source panel shows the parser error and the canvas retains the last valid drawing.
+Expand the sequence in **Tree** to edit existing statement properties. Select a
+block and choose **Add else branch**, **Add and branch**, or **Add option branch**
+to extend it. Use **Mermaid** to edit or copy the complete sequence. During an
+invalid source edit, the panel shows the parser error and the canvas retains the
+last valid drawing.
 
 Use **Export PNG** for an image and **Workspace file** in the Export menu to share the editable
 diagrams and their documents. Insert **Sequence diagram** in a wiki page or a

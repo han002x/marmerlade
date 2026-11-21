@@ -35,7 +35,6 @@ import { JoinPreview } from '../components/JoinPreview';
 import { activeAppearance, useAppearance } from '../theme';
 import { useHotkeys } from '../useHotkeys';
 import {
-  appendMessage,
   changeLabel,
   insertParticipant,
   moveLane,
@@ -43,12 +42,19 @@ import {
   removeSelection,
   type CanvasEdit,
 } from './canvasEdits';
+import { insertElement } from './insertion';
 import { sequenceDragPreview } from './dragPreview';
 import { bindSelection } from './selection';
-import type { Statement } from './model';
+import { nameOf, type Statement } from './model';
 
 export type Tool = 'select' | 'participant' | 'message';
-type Item = { connectFromBody?: boolean; actor?: string; start?: number; label: string; kind: string };
+type Item = {
+  connectFromBody?: boolean;
+  actor?: string;
+  start?: number;
+  label: string;
+  kind: string;
+};
 type HitNode = Node<Item & Record<string, unknown>, 'sequenceItem'>;
 type Editor = {
   point: XYPosition;
@@ -58,9 +64,16 @@ type Editor = {
   source: string;
   edit: (value: string) => CanvasEdit;
 };
-export type ParticipantDrop = (client: XYPosition) => void;
+export interface PlacementHandle {
+  move: (kind: string, point: XYPosition) => void;
+  drop: (kind: string, point: XYPosition) => void;
+  cancel: () => void;
+}
 interface Props {
-  ref: React.Ref<ParticipantDrop>;
+  ref: React.Ref<PlacementHandle>;
+  placementKind?: string;
+  onPlace: (kind: string, at: number, selected: Statement[], actor?: string) => void;
+  onPropose: (edit: CanvasEdit) => void;
   workspaceZoom?: number;
   svg: string;
   source: string;
@@ -92,6 +105,7 @@ function Hit({ id, data, dragging, isConnectable }: NodeProps<HitNode>) {
         (data.connectFromBody ? ' connect-from-body' : '')
       }
     >
+      {data.kind === 'emptyBlock' && <span className="sq-empty-block-label">{data.label}</span>}
       {data.actor && (
         <Handle
           id="body"
@@ -114,6 +128,9 @@ const centreY = (n: HitNode) => n.position.y + (n.height ?? 0) / 2;
 
 export default function SequenceCanvas({
   ref,
+  placementKind,
+  onPlace,
+  onPropose,
   workspaceZoom,
   svg,
   source,
@@ -133,13 +150,22 @@ export default function SequenceCanvas({
   const viewport = useViewport();
   useWorkspaceZoom(workspaceZoom);
   const appearance = activeAppearance(useAppearance());
-  const [geometry, setGeometry] = useState<{ source: string; nodes: HitNode[]; box: typeof emptyBox }>({
+  const [geometry, setGeometry] = useState<{
+    source: string;
+    nodes: HitNode[];
+    box: typeof emptyBox;
+  }>({
     source: '',
     nodes: [],
     box: emptyBox,
   });
   const [drag, setDrag] = useState<{ id: string; position: XYPosition } | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [placementGuide, setPlacementGuide] = useState<{
+    kind: string;
+    point: XYPosition;
+  }>();
+  const [messageAt, setMessageAt] = useState<number>();
   const [sender, setSender] = useState<string>();
   const [actorSelected, setActorSelected] = useState<string>();
   const [joining, setJoining] = useState(false);
@@ -161,7 +187,14 @@ export default function SequenceCanvas({
     (box: typeof emptyBox) => {
       if (root.current)
         void setViewport(
-          getViewportForBounds(box, root.current.clientWidth, root.current.clientHeight, 0.05, workspaceZoom ?? 1, 0.3),
+          getViewportForBounds(
+            box,
+            root.current.clientWidth,
+            root.current.clientHeight,
+            0.05,
+            workspaceZoom ?? 1,
+            0.3,
+          ),
         );
     },
     [setViewport, workspaceZoom],
@@ -176,7 +209,12 @@ export default function SequenceCanvas({
     }
     bindSelection(drawing, rows);
     const view = drawing.viewBox.baseVal;
-    const box = { x: view.x, y: view.y, width: view.width, height: view.height };
+    const box = {
+      x: view.x,
+      y: view.y,
+      width: view.width,
+      height: view.height,
+    };
     Object.assign(portal.style, {
       left: box.x + 'px',
       top: box.y + 'px',
@@ -242,6 +280,16 @@ export default function SequenceCanvas({
         add(elements, 'row:' + row.start, { start: row.start, label, kind: row.kind }, description);
       }
     }
+    for (const row of rows) {
+      if (!row.close || rows.some((child) => child.parent === row && child.kind !== 'end')) continue;
+      const element = drawing.querySelector('[data-statement="' + row.start + '"]');
+      if (element)
+        add([element], 'empty:' + row.start, {
+          start: row.start,
+          label: 'Add inside ' + nameOf(row.kind),
+          kind: 'emptyBlock',
+        });
+    }
     setGeometry({ source, nodes, box });
     if (!hasFitted.current) {
       hasFitted.current = true;
@@ -255,14 +303,19 @@ export default function SequenceCanvas({
   }, [editor?.point]);
   useEffect(() => {
     setEditor(null);
-    setSender(undefined);
     setActorSelected(undefined);
     setDrag(null);
     setGroup(undefined);
   }, [source, tool]);
+  useEffect(() => {
+    setSender(undefined);
+    setMessageAt(undefined);
+  }, [source]);
   const canEdit = editable && source === geometry.source;
   const actors = geometry.nodes.filter((n) => n.data.actor).sort((a, b) => centreX(a) - centreX(b));
-  const messages = geometry.nodes.filter((n) => n.data.kind === 'message');
+  const messages = geometry.nodes
+    .filter((n) => n.data.kind === 'message')
+    .sort((a, b) => centreY(a) - centreY(b));
   const activeActor =
     selectedActor ??
     (selected?.kind === 'participant'
@@ -291,11 +344,16 @@ export default function SequenceCanvas({
           : n.data.actor
             ? n.data.actor === activeActor
             : !selectedActor && n.data.start === selected?.start,
-        draggable: canEdit && tool === 'select' && n.data.kind !== 'note' && !editor,
+        draggable:
+          canEdit &&
+          !placementKind &&
+          tool === 'select' &&
+          ['Participant', 'message'].includes(n.data.kind) &&
+          !editor,
         connectable: canEdit && tool !== 'participant' && !editor,
         ...(drag?.id === n.id && { position: drag.position, dragging: true }),
       })),
-    [geometry, drag, selected, selectedActor, activeActor, tool, canEdit, editor, group],
+    [geometry, drag, selected, selectedActor, activeActor, tool, canEdit, editor, group, placementKind],
   );
 
   async function apply(edit: () => CanvasEdit) {
@@ -330,29 +388,103 @@ export default function SequenceCanvas({
       (value) => changeLabel(source, rows, row, data.actor, value),
     );
   }
-  function message(from: string, to: string, point: XYPosition) {
+  function proposeMessage(from: string, to: string) {
+    const text = from + '->>' + to + ': ';
+    const at =
+      messageAt ??
+      (selected?.kind === 'participant'
+        ? source.length
+        : (selected?.close?.start ?? selected?.end ?? source.length));
+    onPropose(insertElement(source, text, 'message', at));
     setSender(undefined);
-    begin(point, 'Message label', '', (value) => appendMessage(source, from, to, value));
+    setMessageAt(undefined);
+    onTool('select');
   }
   const laneAfter = (point: XYPosition) => actors.find((n) => centreX(n) > point.x)?.data.actor;
-  useImperativeHandle(ref, () => (client) => {
-    const el = document.elementFromPoint(client.x, client.y);
-    const board = root.current?.closest('.sq-board');
-    if (
-      !canEdit ||
-      !board?.contains(el) ||
-      !el?.closest('.react-flow,.sq-empty') ||
-      el.closest('.react-flow__panel')
-    )
-      return;
-    apply(() => insertParticipant(source, rows, laneAfter(screenToFlowPosition(client)), ''));
-    onTool('select');
-  });
+  const selectedRows = () =>
+    rows.filter((row) =>
+      group
+        ? group.includes('row:' + row.start) ||
+          (row.kind === 'participant' && group.includes('actor:' + row.values[0]))
+        : row === selected,
+    );
+  function slot(point: XYPosition) {
+    for (const row of rows) {
+      if (!row.close || rows.some((child) => child.parent === row && child.kind !== 'end')) continue;
+      const element = portal?.querySelector<SVGGraphicsElement>('[data-statement="' + row.start + '"]');
+      const box = element?.getBBox();
+      if (box && point.y >= box.y && point.y <= box.y + box.height) return row.close.start;
+    }
+    const next = messages.find((node) => centreY(node) > point.y);
+    if (next) return next.data.start ?? source.length;
+    if (selected?.close) return selected.close.start;
+    return source.length;
+  }
+  function placeElement(kind: string, point: XYPosition) {
+    if (!canEdit) return;
+    const actor = actors.reduce<HitNode | undefined>(
+      (best, node) =>
+        !best || Math.abs(centreX(node) - point.x) < Math.abs(centreX(best) - point.x) ? node : best,
+      undefined,
+    )?.data.actor;
+    if (kind === 'participant') onPropose(insertParticipant(source, rows, laneAfter(point), ''));
+    else if (kind === 'message') {
+      setMessageAt(slot(point));
+      setSender(actor);
+      onTool('message');
+    } else onPlace(kind, slot(point), selectedRows(), actor);
+  }
+  useImperativeHandle(ref, () => ({
+    move(kind, client) {
+      if (!root.current?.contains(document.elementFromPoint(client.x, client.y))) {
+        setPlacementGuide(undefined);
+        return;
+      }
+      const point = screenToFlowPosition(client);
+      const next = messages.find((node) => centreY(node) > point.y);
+      const previous = messages.filter((node) => centreY(node) <= point.y).at(-1);
+      const before = actors.find((node) => centreX(node) > point.x);
+      const left = actors.filter((node) => centreX(node) <= point.x).at(-1);
+      setPlacementGuide({
+        kind,
+        point: {
+          x: before
+            ? left
+              ? (centreX(left) + centreX(before)) / 2
+              : centreX(before) - 90
+            : left
+              ? centreX(left) + 90
+              : point.x,
+          y: next
+            ? previous
+              ? (centreY(previous) + centreY(next)) / 2
+              : centreY(next) - 20
+            : previous
+              ? centreY(previous) + 30
+              : point.y,
+        },
+      });
+    },
+    cancel() {
+      setPlacementGuide(undefined);
+    },
+    drop(kind, client) {
+      const el = document.elementFromPoint(client.x, client.y);
+      if (!canEdit || !root.current?.contains(el) || el?.closest('.react-flow__panel')) return;
+      placeElement(kind, screenToFlowPosition(client));
+      setPlacementGuide(undefined);
+    },
+  }));
   function place(point: XYPosition) {
-    const before = laneAfter(point);
-    begin(point, 'Participant label', '', (value) => insertParticipant(source, rows, before, value));
+    placeElement('participant', point);
   }
   function clickItem(data: Item, point: XYPosition) {
+    if (placementKind && canEdit) {
+      const block = rows.find((row) => row.start === data.start);
+      if (data.kind === 'emptyBlock' && block?.close) onPlace(placementKind, block.close.start, []);
+      else placeElement(placementKind, point);
+      return;
+    }
     if (!canEdit) {
       selectItem(data);
       return;
@@ -362,7 +494,7 @@ export default function SequenceCanvas({
       return;
     }
     if (tool === 'message' && data.actor) {
-      if (sender) message(sender, data.actor, point);
+      if (sender) proposeMessage(sender, data.actor);
       else {
         setSender(data.actor);
         selectItem(data);
@@ -417,7 +549,10 @@ export default function SequenceCanvas({
     },
     { key: 'v', run: () => onTool('select') },
     { key: 'r', run: () => canEdit && onTool('participant') },
-    { key: 't', run: () => useDock.setState({ open: true, view: 'appearance' }) },
+    {
+      key: 't',
+      run: () => useDock.setState({ open: true, view: 'appearance' }),
+    },
     { key: 'm', run: onSource },
   ]);
 
@@ -437,7 +572,7 @@ export default function SequenceCanvas({
         nodesConnectable={canEdit}
         nodesFocusable
         elementsSelectable
-        selectionOnDrag={tool === 'select'}
+        selectionOnDrag={tool === 'select' && !placementKind}
         zoomOnDoubleClick={false}
         minZoom={0.05}
         panOnDrag={workspaceZoom ? false : [1, 2]}
@@ -477,14 +612,17 @@ export default function SequenceCanvas({
           const a = actors.find((n) => n.id === from),
             b = actors.find((n) => n.id === to);
           if (a?.data.actor && b?.data.actor) {
-            apply(() => appendMessage(source, a.data.actor!, b.data.actor!, ''));
+            proposeMessage(a.data.actor, b.data.actor);
             setSender(undefined);
             onTool('select');
           }
         }}
         onPaneClick={(e) => {
+          if (!canEdit) return;
           if (editor) return;
-          if (tool === 'participant') place(screenToFlowPosition({ x: e.clientX, y: e.clientY }));
+          if (placementKind)
+            placeElement(placementKind, screenToFlowPosition({ x: e.clientX, y: e.clientY }));
+          else if (tool === 'participant') place(screenToFlowPosition({ x: e.clientX, y: e.clientY }));
           else {
             setGroup(undefined);
             setActorSelected(undefined);
@@ -571,8 +709,12 @@ export default function SequenceCanvas({
                   .closest('[data-sequence-actor]')
                   ?.getAttribute('data-sequence-actor');
                 const lane = actors.find((n) => n.data.actor === actor);
-                const point = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+                const point = screenToFlowPosition({
+                  x: e.clientX,
+                  y: e.clientY,
+                });
                 if (lane) clickItem(lane.data, point);
+                else if (placementKind) placeElement(placementKind, point);
                 else if (tool === 'participant') place(point);
                 else {
                   setGroup(undefined);
@@ -585,6 +727,20 @@ export default function SequenceCanvas({
             <Drawing svg={svg} />
           </div>
         </ViewportPortal>
+        {placementGuide && (
+          <ViewportPortal>
+            <svg className="sq-placement-guide" style={{ overflow: 'visible' }} aria-hidden="true">
+              <path
+                d={
+                  'M' +
+                  (placementGuide.kind === 'participant'
+                    ? placementGuide.point.x + ' 0v' + geometry.box.height
+                    : '0 ' + placementGuide.point.y + 'h' + geometry.box.width)
+                }
+              />
+            </svg>
+          </ViewportPortal>
+        )}
         {!workspaceZoom && (
           <>
             <Background

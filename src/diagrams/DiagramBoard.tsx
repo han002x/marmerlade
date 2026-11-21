@@ -1,6 +1,7 @@
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -13,7 +14,6 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
-  NodeResizer,
   ReactFlow,
   ReactFlowProvider,
   ViewportPortal,
@@ -36,6 +36,7 @@ import { useHash, parseRoute, openDocs } from '../route';
 import ProductNav from '../components/ProductNav';
 import { DragPlacement } from '../components/DragPlacement';
 import { Icon } from '../components/Icon';
+import { NodeTransforms, type ResizePreview } from '../components/NodeTransforms';
 import './diagrams.css';
 
 import { MermaidPanel, FlowchartSource } from '../components/MermaidPanel';
@@ -53,11 +54,10 @@ type EntityNode = Node<
     open: (id: string) => void;
     close: () => void;
     rename: (id: string, title: string) => void;
-    snapshot: () => void;
   },
   'diagram'
 >;
-function DiagramFrame({ data, selected }: NodeProps<EntityNode>) {
+function DiagramFrame({ data }: NodeProps<EntityNode>) {
   const { entity, editing } = data;
   const appearance = activeAppearance(useAppearance());
   const [svg, setSvg] = useState('');
@@ -88,12 +88,6 @@ function DiagramFrame({ data, selected }: NodeProps<EntityNode>) {
   }, [source, appearance, editing]);
   return (
     <article className={'diagram-entity' + (editing ? ' is-editing' : '')} aria-label={entity.title} data-diagram-id={entity.id}>
-      <NodeResizer
-        minWidth={400}
-        minHeight={300}
-        isVisible={selected && !editing}
-        onResizeStart={data.snapshot}
-      />
       <header className="diagram-title">
         <input
           className="nodrag workspace-nopan"
@@ -149,7 +143,13 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
   const [placement, setPlacement] = useState<DiagramEntity['kind']>();
   const [cursor, setCursor] = useState<XYPosition>();
   const [dragPositions, setDragPositions] = useState<Map<string, XYPosition>>();
-  const opened = entities.find((entity) => entity.id === active);
+  const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null);
+  const displayEntities = entities.map((entity) => {
+    const rect = resizePreview?.rects.get(entity.id);
+    return rect ? { ...entity, position: { x: rect.x, y: rect.y }, size: { width: rect.width, height: rect.height } } : entity;
+  });
+  const opened = displayEntities.find((entity) => entity.id === active);
+  const diagramRects = useMemo(() => new Map(entities.map((entity) => [entity.id, { ...entity.position, ...entity.size }])), [entities]);
   const titleHeight = 40;
   const [expansion, setExpansion] = useState(new Map<string, boolean>());
   const [selection, setSelection] = useState<string[]>([]);
@@ -160,10 +160,18 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     null,
   );
 
-  function save(next: DiagramEntity[]) {
+  const setDiagrams = state.setDiagrams;
+  const save = useCallback((next: DiagramEntity[]) => {
     setHistory((past) => [...past.slice(-99), entities]);
-    state.setDiagrams(next);
-  }
+    setDiagrams(next);
+  }, [entities, setDiagrams]);
+  const commitResize = useCallback((rects: ResizePreview['rects']) => {
+    if (!rects.size) return;
+    save(entities.map((entity) => {
+      const rect = rects.get(entity.id);
+      return rect ? { ...entity, position: { x: rect.x, y: rect.y }, size: { width: rect.width, height: rect.height } } : entity;
+    }));
+  }, [entities, save]);
   function rememberExpanded(id: string) {
     setExpansion((previous) => (previous.has(id) ? previous : new Map(previous).set(id, true)));
   }
@@ -327,7 +335,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   });
-  const nodes: EntityNode[] = entities.map((entity) => ({
+  const nodes: EntityNode[] = displayEntities.map((entity) => ({
     id: entity.id,
     type: 'diagram',
     position: dragPositions?.get(entity.id) ?? entity.position,
@@ -342,7 +350,6 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
       editing: active === entity.id,
       open,
       close,
-      snapshot: () => setHistory((past) => [...past.slice(-99), entities]),
       rename: (id, title) => save(entities.map((item) => (item.id === id ? { ...item, title } : item))),
     },
   }));
@@ -567,19 +574,6 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
                 }
                 return [...next];
               });
-            const resizing = changes
-              .filter((change) => change.type === 'dimensions')
-              .filter((change) => change.resizing);
-            if (resizing.length) {
-              const positions = changes.filter((change) => change.type === 'position');
-              state.setDiagrams(
-                entities.map((entity) => {
-                  const size = resizing.find((change) => change.id === entity.id)?.dimensions;
-                  const position = positions.find((change) => change.id === entity.id)?.position;
-                  return size ? { ...entity, size, position: position ?? entity.position } : entity;
-                }),
-              );
-            }
           }}
           onNodeDrag={(_, node, group) => {
             setDragPositions(new Map((group.length ? group : [node]).map((item) => [item.id, item.position])));
@@ -672,6 +666,16 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
             </ViewportPortal>
           )}
         </ReactFlow>
+        <NodeTransforms
+          nodes={diagramRects}
+          selected={selection}
+          preview={resizePreview}
+          moveGuides={[]}
+          onPreview={setResizePreview}
+          onCommit={commitResize}
+          disabled={Boolean(placement || panning || dragPositions)}
+          minSize={{ width: 400, height: 300 }}
+        />
         {placement && cursor && (
           <div
             className="diagram-placement-preview"

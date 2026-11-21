@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { arrows, nameOf, format, type Statement } from './model';
 
 const fields: Record<string, string[]> = {
@@ -171,11 +171,15 @@ export function StatementForm({
   save,
   cancel,
   busy,
+  inserting = false,
+  onDraft,
 }: {
   kind: string;
   row?: Statement;
   ids: string[];
   busy: boolean;
+  inserting?: boolean;
+  onDraft?: (text: string) => void;
   save: (statement: string) => void;
   cancel: () => void;
 }) {
@@ -188,10 +192,15 @@ export function StatementForm({
       return copy;
     });
   const statement = format(kind, values);
-  const lifecycle = !row && (kind === 'destroy' || (kind === 'participant' && values[4] === 'create'));
+  const lifecycle =
+    (!row || inserting) && (kind === 'destroy' || (kind === 'participant' && values[4] === 'create'));
   const preview =
     statement +
     (lifecycle ? '\n' + partner + '->>' + values[0] + ': ' + (kind === 'destroy' ? 'Close' : 'Create') : '');
+  const reportDraft = useEffectEvent((text: string) => onDraft?.(text));
+  useEffect(() => {
+    reportDraft(preview);
+  }, [preview]);
   return (
     <form
       className="sq-form"
@@ -201,7 +210,7 @@ export function StatementForm({
       }}
     >
       <h3>
-        {row ? 'Edit' : 'Add'} {nameOf(kind).toLowerCase()}
+        {row && !inserting ? 'Edit' : 'Add'} {nameOf(kind).toLowerCase()}
       </h3>
       {guidance[kind] && <p>{guidance[kind]}</p>}
       <datalist id="sq-participants">
@@ -305,7 +314,10 @@ export function StatementForm({
             value={/^(wrap|nowrap):/i.exec(values[kind === 'message' ? 3 : 2])?.[1]?.toLowerCase() ?? ''}
             onChange={(e) => {
               const i = kind === 'message' ? 3 : 2;
-              change(i, (e.target.value && e.target.value + ':') + values[i].replace(/^(?:wrap|nowrap):/i, ''));
+              change(
+                i,
+                (e.target.value && e.target.value + ':') + values[i].replace(/^(?:wrap|nowrap):/i, ''),
+              );
             }}
           >
             <option value="">Diagram default</option>
@@ -317,13 +329,18 @@ export function StatementForm({
       {lifecycle && (
         <label>
           Sender of lifecycle message
-          <input required list="sq-participants" value={partner} onChange={(e) => setPartner(e.target.value)} />
+          <input
+            required
+            list="sq-participants"
+            value={partner}
+            onChange={(e) => setPartner(e.target.value)}
+          />
         </label>
       )}
       <pre aria-label="Statement preview">{preview}</pre>
       <div>
         <button disabled={busy} type="submit">
-          {row ? 'Apply edit' : 'Insert'}
+          {row && !inserting ? 'Apply edit' : 'Insert'}
         </button>
         <button type="button" onClick={cancel}>
           Cancel

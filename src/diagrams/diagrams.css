@@ -6,6 +6,9 @@
   background: var(--mf-bg);
   color: var(--mf-text);
 }
+.diagram-board > .mf-transforms {
+  z-index: 5;
+}
 .mf-workspace > .diagram-board {
   flex: 1;
   width: auto;

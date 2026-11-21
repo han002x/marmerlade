@@ -7,19 +7,30 @@ export function DragPlacement({
   disabled,
   onDrop,
   previewLabel,
+  previewContent,
+  onMove,
+  onCancel,
   children,
 }: {
   disabled?: boolean;
   onDrop: (point: XYPosition) => void;
   previewLabel: string;
+  previewContent?: ReactNode;
+  onMove?: (point: XYPosition) => void;
+  onCancel?: () => void;
   children: ReactNode;
 }) {
-  const origin = useRef<{ id: number; point: XYPosition; moved: boolean } | null>(null);
+  const origin = useRef<{
+    id: number;
+    point: XYPosition;
+    moved: boolean;
+  } | null>(null);
   const suppressClick = useRef(false);
   const [preview, setPreview] = useState<XYPosition | null>(null);
   function cancel() {
     origin.current = null;
     setPreview(null);
+    onCancel?.();
   }
   function move(event: PointerEvent) {
     const start = origin.current;
@@ -29,6 +40,7 @@ export function DragPlacement({
     if (start.moved) {
       suppressClick.current = true;
       setPreview(point);
+      onMove?.(point);
     }
   }
   return (
@@ -44,7 +56,11 @@ export function DragPlacement({
       onPointerDown={(event) => {
         if (disabled || !event.isPrimary || event.button !== 0) return;
         suppressClick.current = false;
-        origin.current = { id: event.pointerId, point: { x: event.clientX, y: event.clientY }, moved: false };
+        origin.current = {
+          id: event.pointerId,
+          point: { x: event.clientX, y: event.clientY },
+          moved: false,
+        };
         (event.target as Element).closest('button')?.setPointerCapture(event.pointerId);
       }}
       onPointerMove={move}
@@ -66,7 +82,7 @@ export function DragPlacement({
       {preview &&
         createPortal(
           <div aria-hidden className="drag-placement-preview" style={{ left: preview.x, top: preview.y }}>
-            {previewLabel}
+            {previewContent ?? previewLabel}
           </div>,
           document.body,
         )}

@@ -235,3 +235,5 @@ export function renameReferences(
   }
   return source;
 }
+
+export const spatial = (kind: string) => ['participant', 'message', 'note', 'activate', 'deactivate', 'destroy', ...blocks].includes(kind);

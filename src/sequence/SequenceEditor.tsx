@@ -6,7 +6,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { ToolButton } from '../components/ToolButton';
 import { Icon } from '../components/Icon';
 import { ElementPalette } from './ElementPalette';
-import { insertElement } from './insertion';
+import { closeActivation, insertElement, sampleEdit } from './insertion';
 import type { CanvasEdit } from './canvasEdits';
 import SequenceCanvas, { type PlacementHandle, type Tool } from './SequenceCanvas';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
@@ -17,6 +17,7 @@ import { exportFile } from '../persist';
 import { exportImage } from '../gif';
 import {
   blocks,
+  emptyBlocks,
   spatial,
   branches,
   nameOf,
@@ -25,7 +26,9 @@ import {
   isSequence,
   participants,
   referencedActors,
+  descriptions,
   lifetimeIssue,
+  placementInstruction,
   statements,
   validateSequence,
   type Statement,
@@ -53,7 +56,20 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   const appearance = activeAppearance(useAppearance());
   const rows = useMemo(() => statements(source), [source]);
   const ids = useMemo(() => participants(rows), [rows]);
-  const [index, select] = useState(-1);
+  const [index, setIndex] = useState(-1);
+  // Inserting selects the new statement for editing. Only a selection the user made may be wrapped.
+  const [explicit, setExplicit] = useState(false);
+  const select = (i: number, chosen = false) => {
+    setIndex(i);
+    setExplicit(chosen && i >= 0);
+  };
+  const names = useMemo(
+    () =>
+      Object.fromEntries(
+        rows.filter((r) => r.kind === 'participant' && r.values[1]).map((r) => [r.values[0], r.values[1]]),
+      ),
+    [rows],
+  );
   const selected = rows[index];
   const [action, setAction] = useState<Action>();
   const [placementKind, setPlacementKind] = useState<string>();
@@ -63,6 +79,14 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     row?: Statement;
     build: (text: string) => CanvasEdit;
   }>();
+  const pendingSection = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!pending) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() =>
+      pendingSection.current?.scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' }),
+    );
+  }, [pending]);
   const [candidate, setCandidate] = useState<{ source: string; svg: string }>();
   const [proposal, setProposal] = useState<string>();
   const [previewError, setPreviewError] = useState('');
@@ -284,7 +308,10 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       base: source,
       kind,
       row,
-      build: (text) => insertElement(source, text, kind, at, selection),
+      build: (text) => {
+        const edit = insertElement(source, text, kind, at, selection, actor);
+        return kind === 'activate' ? closeActivation(edit) : edit;
+      },
     });
   }
   const draftInsertion = (text: string) => {
@@ -322,6 +349,72 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       previewRevision.current++;
     };
   }, [pending, proposal, appearance]);
+  // The option under the pointer in an open dropdown, drawn in place until the pointer leaves.
+  // Owned by the open form, so a trial left behind by a closed form is never drawn.
+  const [trial, setTrial] = useState<{ owner: object; base: string; source: string }>();
+  const owner = pending ?? action;
+  // A palette tile under the pointer, drawn as an example in this diagram.
+  const [sample, setSample] = useState<{ kind: string; base: string; source: string }>();
+  const sampleSource = sample && sample.base === source && !pending ? sample.source : undefined;
+  const trialSource =
+    (trial && trial.owner === owner && trial.base === source ? trial.source : undefined) ?? sampleSource;
+  // The last drawn trial stays up while the next option renders, so hovering down a list does not flicker.
+  const [trialDrawing, setTrialDrawing] = useState<string>();
+  useEffect(() => {
+    if (trialSource === undefined) return;
+    let live = true;
+    const timer = setTimeout(() => {
+      void diagramSvg(trialSource, appearance).then(
+        (value) => live && setTrialDrawing(value || undefined),
+        () => live && setTrialDrawing(undefined),
+      );
+    }, 60);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [trialSource, appearance]);
+  const trialSvg = trialSource === undefined ? undefined : trialDrawing;
+  const offer = (next?: string) =>
+    setTrial(next === undefined || !owner ? undefined : { owner, base: source, source: next });
+  const trialInsertion = (text: string | undefined) => {
+    if (text === undefined || !pending || pending.base !== source) return offer();
+    try {
+      offer(pending.build(text).source);
+    } catch {
+      offer();
+    }
+  };
+  const trialEdit = (text: string | undefined) => {
+    const row = action?.edit;
+    if (text === undefined || !row || action.implicitId || !clean) return offer();
+    offer(source.slice(0, row.start) + text + source.slice(row.end));
+  };
+  const quiet = useMemo(() => {
+    if (!pending || proposal === undefined) return undefined;
+    const kind = pending.kind;
+    const next = statements(proposal);
+    const added = next.find(
+      (row) => row.kind === kind && !rows.some((old) => old.text === row.text && old.line === row.line),
+    );
+    const actor = added?.values[0];
+    if (kind === 'activate' && added) {
+      const later = next.slice(next.indexOf(added) + 1);
+      const stop = later.findIndex((row) => row.kind === 'deactivate' && row.values[0] === actor);
+      const span = stop < 0 ? later : later.slice(0, stop);
+      if (!span.some((row) => row.kind === 'message' && row.values.slice(0, 2).includes(actor!)))
+        return 'Nothing to draw yet: the bar appears once a later message reaches ' + (names[actor!] ?? actor) + '.';
+    }
+    if (kind === 'autonumber' && added && !next.slice(next.indexOf(added)).some((row) => row.kind === 'message'))
+      return 'Numbers appear on messages added after this point.';
+    if (['link', 'links'].includes(kind))
+      return 'The drawing does not change. Viewers open these links from ' + (names[actor!] ?? actor ?? 'the participant') + '’s menu in exported SVGs and embeds.';
+    if (['properties', 'details'].includes(kind))
+      return 'The drawing does not change. This data is stored with the participant for tools that read it.';
+    if (['acctitle', 'accdescr'].includes(kind))
+      return 'The drawing does not change. Screen readers announce this text.';
+    return undefined;
+  }, [pending, proposal, rows, names]);
   async function insertPending(text: string) {
     if (!pending || pending.base !== source || !candidate) return;
     try {
@@ -444,7 +537,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     void commit(next, direction < 0 ? first.start : toEnd - (end - selected.start));
   }
   function pick(i: number) {
-    select(i);
+    select(i, true);
     setAction(undefined);
     const row = rows[i];
     if (row && textarea.current && draft === source) textarea.current.setSelectionRange(row.start, row.end);
@@ -503,6 +596,12 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   }
   const status = (showSource: boolean) => (
     <>
+      {emptyBlocks(rows).map((row) => (
+        <p key={row.start} className="sq-note" role="note">
+          {nameOf(row.kind)} on line {row.line} has nothing inside, so it cannot be drawn. Add a message
+          inside it or remove it.
+        </p>
+      ))}
       {(error || renderError) && (
         <div className="mf-err" role="alert">
           <pre>{error || renderError}</pre>
@@ -524,6 +623,31 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       {busy && <small role="status">Checking sequence…</small>}
     </>
   );
+  /** Where a palette element goes when it is not placed by clicking the canvas. */
+  const placeAt = (kind: string) => {
+    if (!['autonumber', 'title', 'acctitle', 'accdescr'].includes(kind)) return insertion ?? source.length;
+    // These apply from where they appear, so they go before the first message.
+    const first =
+      kind === 'autonumber'
+        ? rows.find(
+            (r) => r.depth === 0 && !['title', 'acctitle', 'accdescr', 'participant', 'box', 'end'].includes(r.kind),
+          )
+        : rows[0];
+    return first?.start ?? source.length;
+  };
+  const sampleFor = (kind: string) => {
+    if (pending || !clean) return undefined;
+    try {
+      const at = kind === 'destroy' ? source.length : placeAt(kind);
+      return sampleEdit(source, kind, at, explicit && selected ? [selected] : [])?.source;
+    } catch {
+      return undefined;
+    }
+  };
+  const showSample = (kind?: string) => {
+    const next = kind && sampleFor(kind);
+    setSample(kind && next ? { kind, base: source, source: next } : undefined);
+  };
   const toolbar = (
     <>
       <div className="mf-group-btns">
@@ -536,17 +660,28 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           <Icon name="cursor" />
         </ToolButton>
         <ElementPalette
-          disabled={!clean || !!pending}
+          disabledReason={
+            pending
+              ? 'Insert or cancel the ' + nameOf(pending.kind).toLowerCase() + ' you are adding first.'
+              : draft !== source
+                ? 'Fix or restore the Mermaid source first.'
+                : busy
+                  ? 'Updating the diagram…'
+                  : undefined
+          }
           hasActors={!!ids.length}
           choose={(kind) => {
+            setAction(undefined);
             if (kind === 'participant' || kind === 'message') {
               setPlacementKind(undefined);
               setTool(kind);
             } else if (spatial(kind)) {
               setPlacementKind(kind);
               setTool('select');
-            } else beginInsertion(kind);
+            } else beginInsertion(kind, placeAt(kind));
           }}
+          sample={showSample}
+          hasSample={(kind) => !!sampleFor(kind)}
           move={(kind, point) => placement.current?.move(kind, point)}
           drop={(kind, point) => placement.current?.drop(kind, point)}
           cancel={() => placement.current?.cancel()}
@@ -644,7 +779,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     </>
   );
   const outlineContent = (
-    <div className="sq-panel sq-inspector">
+    <div className="sq-inspector">
       {implicit.length > 0 && (
         <ul className="mf-tree-list" aria-label="Implicit participants">
           {implicit.map((id) => (
@@ -678,16 +813,19 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
         ))}
       </ol>
       {pending && (
-        <section className="sq-pending" aria-label="Pending element properties">
-          <strong>Preview · {nameOf(pending.kind)}</strong>
+        <section className="sq-pending" aria-label="Pending element properties" ref={pendingSection}>
+          <strong>Preview on the canvas · {nameOf(pending.kind)}</strong>
           <StatementForm
             key={pending.kind + ':' + (pending.row?.start ?? 'new')}
             kind={pending.kind}
             row={pending.row}
             inserting
             ids={ids}
+            names={names}
+            note={quiet}
             busy={busy || !candidate || candidate.source !== proposal}
             onDraft={draftInsertion}
+            onTrial={trialInsertion}
             save={(text) => void insertPending(text)}
             cancel={discardInsertion}
           />
@@ -704,7 +842,9 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           kind={action.kind}
           row={action.edit}
           ids={ids}
+          names={names}
           busy={busy}
+          onTrial={trialEdit}
           save={save}
           cancel={() => {
             cancel();
@@ -713,7 +853,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           }}
         />
       )}
-      {selected && (
+      {selected && !pending && (
         <div className="sq-commands">
           {branches[selected.kind] && (
             <button
@@ -726,10 +866,10 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           {!isBranch && (
             <>
               <button disabled={!clean} onClick={() => move(-1)}>
-                Move up
+                {selected.kind === 'participant' ? 'Move left' : 'Move up'}
               </button>
               <button disabled={!clean} onClick={() => move(1)}>
-                Move down
+                {selected.kind === 'participant' ? 'Move right' : 'Move down'}
               </button>
             </>
           )}
@@ -744,17 +884,15 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           >
             Remove
           </button>
+          <button
+            onClick={() => {
+              select(-1);
+              setAction(undefined);
+            }}
+          >
+            Clear selection
+          </button>
         </div>
-      )}
-      {selected && (
-        <button
-          onClick={() => {
-            select(-1);
-            setAction(undefined);
-          }}
-        >
-          Clear selection
-        </button>
       )}
       {status(false)}
     </div>
@@ -783,6 +921,8 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               ref={placement}
               placementKind={placementKind}
               onPlace={beginInsertion}
+              previewSvg={trialSvg || candidate?.svg}
+              wrapSelected={explicit}
               onPropose={proposeEdit}
               workspaceZoom={slots?.workspaceZoom}
               svg={svg}
@@ -794,6 +934,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               tool={tool}
               onTool={(tool) => {
                 setPlacementKind(undefined);
+                if (tool !== 'select') setAction(undefined);
                 setTool(tool);
               }}
               onError={setError}
@@ -811,17 +952,32 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               }}
             />
           </ReactFlowProvider>
-          {pending && (
-            <div className="sq-proposal" aria-label="Insertion preview">
-              <span className="sq-preview-badge">Preview · Confirm with Insert or cancel with Escape</span>
-              {candidate && (
-                <div className="sq-proposal-drawing" dangerouslySetInnerHTML={{ __html: candidate.svg }} />
+          {trialSvg && !pending && (
+            <div className="sq-proposal" aria-label="Option preview" role="status">
+              <span className="sq-preview-badge">
+                {sampleSource !== undefined && trialSource === sampleSource
+                  ? 'Example · ' + nameOf(sample!.kind) + ' · choose it to place your own'
+                  : 'Preview of the highlighted option · click it to apply'}
+              </span>
+              {sampleSource !== undefined && trialSource === sampleSource && (
+                <span className="sq-preview-note">
+                  {descriptions[sample!.kind]} {placementInstruction(sample!.kind)}
+                </span>
               )}
             </div>
           )}
-          {placementKind && !pending && (
-            <div className="sq-hint" role="status">
-              Click a sequence position to place {nameOf(placementKind).toLowerCase()}. Escape cancels.
+          {pending && (
+            <div className="sq-proposal" aria-label="Insertion preview" role="status">
+              <span className="sq-preview-badge">
+                {trialSvg
+                  ? 'Preview of the highlighted option · click it to choose'
+                  : previewError
+                  ? 'Preview unavailable · see the form for details'
+                  : candidate
+                    ? 'Preview · Insert to keep it, Escape to cancel'
+                    : 'Preparing preview…'}
+              </span>
+              {quiet && <span className="sq-preview-note">{quiet}</span>}
             </div>
           )}
           {!pending && !rows.length && tool === 'select' && (

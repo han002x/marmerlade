@@ -21,6 +21,7 @@ type IconName =
   | 'code'
   | 'close'
   | 'plus'
+  | 'insert'
   | 'export'
   | 'import'
   | 'film'
@@ -129,6 +130,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
   code: <path d="m8 7-5 5 5 5M16 7l5 5-5 5" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  // Two lifelines with a message between them: adds a sequence element.
+  insert: <path d="M5 4v16M19 4v16M5 11h11m-3-3 3 3-3 3" />,
   export: (
     <>
       <path d="M12 3v12" />

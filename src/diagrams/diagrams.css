@@ -45,11 +45,7 @@
   padding-inline-start: 16px;
 }
 .mf-tree .sq-inspector {
-  width: auto;
-  border: 0;
-  background: transparent;
   padding: 5px 0 5px 8px;
-  overflow: visible;
 }
 .diagram-entity {
   height: 100%;

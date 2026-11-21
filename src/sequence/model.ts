@@ -134,6 +134,83 @@ const names: Record<string, string> = {
   autonumber: 'Message numbering',
 };
 export const nameOf = (kind: string) => names[kind] ?? kind[0].toUpperCase() + kind.slice(1);
+
+/** What each element means in a diagram, in plain words. */
+export const descriptions: Record<string, string> = {
+  participant: 'A person or system that sends and receives messages.',
+  message: 'One step: a call, reply or event between two participants.',
+  note: 'A comment beside or across lanes. It is not a step.',
+  box: 'Groups participants that belong together, such as one service.',
+  loop: 'Repeats the wrapped messages while a condition holds.',
+  opt: 'Runs the wrapped messages only if a condition is true.',
+  alt: 'Chooses one of several paths, like if / else.',
+  par: 'Runs branches at the same time.',
+  par_over: 'Parallel branches that may share participants and overlap.',
+  critical: 'Must complete as a unit. Options list what happens on failure.',
+  break: 'Stops the sequence here when its condition holds.',
+  rect: 'Shades messages to draw attention. Adds no meaning.',
+  activate: 'Starts a bar showing the participant is busy handling work.',
+  deactivate: 'Ends the participant’s activation bar.',
+  destroy: 'Ends the participant’s lifeline with a cross.',
+  autonumber: 'Numbers every message so steps can be referenced.',
+  link: 'Adds a link to the participant’s click menu.',
+  links: 'Adds several links to the participant’s click menu.',
+  properties: 'Stores extra data on a participant for other tools.',
+  details: 'Points the participant at a details element in the host page.',
+  title: 'A heading drawn above the diagram.',
+  acctitle: 'A title for screen readers. Not drawn.',
+  accdescr: 'A description for screen readers. Not drawn.',
+};
+
+const halfName = (token: string) => {
+  const reverse = token.startsWith('/') || token.startsWith('\\');
+  const filled = token.includes('|');
+  const top = /^-+\|?\\|^-+\\\\|^\/\|?-|^\/\/-/.test(token);
+  return (
+    (filled ? 'Half arrowhead' : 'Half line arrowhead') +
+    (top ? ', upper' : ', lower') +
+    (reverse ? ', pointing back' : '') +
+    (token.includes('--') ? ', dashed' : '')
+  );
+};
+/** Human names for Mermaid arrow tokens, grouped for a picker. */
+export const arrowGroups: { label: string; arrows: [string, string][] }[] = [
+  {
+    label: 'Common',
+    arrows: [
+      ['->>', 'Request · solid arrow'],
+      ['-->>', 'Reply · dashed arrow'],
+      ['-)', 'Async · solid open arrow'],
+      ['--)', 'Async reply · dashed open arrow'],
+      ['-x', 'Failed · solid with cross'],
+      ['--x', 'Failed reply · dashed with cross'],
+    ],
+  },
+  {
+    label: 'Lines',
+    arrows: [
+      ['->', 'Solid line, no arrowhead'],
+      ['-->', 'Dashed line, no arrowhead'],
+      ['<<->>', 'Both ways · solid'],
+      ['<<-->>', 'Both ways · dashed'],
+    ],
+  },
+  {
+    label: 'Half arrowheads',
+    arrows: arrows.filter((a) => /[|/\\]/.test(a)).map((a) => [a, halfName(a)] as [string, string]),
+  },
+];
+export const arrowName = (token: string) =>
+  arrowGroups.flatMap((g) => g.arrows).find(([a]) => a === token)?.[1] ?? token;
+
+/** Blocks whose only content is their closing `end` cannot be drawn by Mermaid. */
+export const emptyBlocks = (rows: Statement[]) =>
+  rows.filter(
+    (row) =>
+      row.close &&
+      row.kind !== 'box' &&
+      !rows.some((child) => child.parent === row && !['end', 'else', 'and', 'option'].includes(child.kind)),
+  );
 export const kinds = [
   'participant',
   'message',
@@ -237,3 +314,17 @@ export function renameReferences(
 }
 
 export const spatial = (kind: string) => ['participant', 'message', 'note', 'activate', 'deactivate', 'destroy', ...blocks].includes(kind);
+
+/** How to place an element once it is chosen from the palette. */
+export const placementInstruction = (kind: string) =>
+  kind === 'participant'
+    ? 'Click the canvas where the lane should go, or drag it there.'
+    : kind === 'message'
+      ? 'Click the sender, then the receiver.'
+      : kind === 'box'
+        ? 'Click a participant to box it. Select several first to group them.'
+        : blocks.includes(kind)
+          ? 'Wraps selected messages. Otherwise click between messages.'
+          : spatial(kind)
+            ? 'Click a lane at the point in time, or drag it there.'
+            : 'Opens its settings with a live preview.';

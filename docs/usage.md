@@ -260,7 +260,9 @@ correctly offline.
 ### Sequence diagrams
 
 Choose **Add diagram → Sequence** and click the workspace canvas to place it.
-Open it in **Tree** or choose **Edit diagram** in its header. Each sequence has its own source and participants.
+A new diagram is placed beside existing ones, opens for editing and scrolls
+into view. Reopen it later from **Tree** or with **Edit diagram** in its header.
+Each sequence has its own source and participants.
 Paste the following in its Mermaid editor.
 
 ```mermaid
@@ -275,28 +277,52 @@ sequenceDiagram
     end
 ```
 
-Open **Add element** in the toolbar to browse a compact list of participants,
-messages, notes, blocks, and advanced Mermaid constructs. Hover or focus an
-element to show its preview beside the list. The picker opens at the left edge
-of the page. Drag a participant
-tile onto the canvas to choose its lane, or click the tile and then the canvas.
-Press **R** for participant placement.
+Open **Add element** (the lifeline icon beside **Select**) to browse
+participants, messages, notes, blocks, and advanced Mermaid constructs. Hover
+or focus an element to draw an example of it in your diagram, with what it
+means and how to place it above the canvas. The example goes where the element
+would be inserted and wraps the selected message when one is selected. Elements
+that do not change the drawing, such as links and accessibility text, show a
+card instead. When the list is unavailable, the card says why, for example
+while another element waits for **Insert**. Drag a participant tile onto the canvas to choose its
+lane, or click the tile and then the canvas. Press **R** for participant
+placement. A dashed line follows the pointer to show where it will go.
 
 Choose **Message** and click the sender and receiver, or drag a connection
-handle between participant headers. Dragging a message tile onto a lane chooses
-the sender and insertion position; then click the receiver. Choose the same
-participant twice for a self-message.
+handle between participant headers. After the sender, an arrow follows the
+pointer until you click the receiver. Dragging a message tile onto a lane
+chooses the sender and insertion position; then click the receiver. Choose the
+same participant twice for a self-message. The **Arrow** list names each style,
+such as *Reply · dashed arrow*, next to its Mermaid token.
 
-Drag notes or activation elements onto a lane and sequence position. For a loop,
-alternative, parallel, or other message block, select contiguous messages in one
-branch to wrap them, then place the block. Without a selection, placement creates
-an empty block. A **Box** groups participant declarations instead of messages.
-Advanced settings and metadata open their properties directly from the palette.
+In the element forms, pointing at an option in any list (arrow, shape,
+participant, note position, wrapping) draws the diagram with that option on the
+canvas before you choose it; the arrow keys do the same. Moving off the list
+restores the current preview. This works while inserting and while editing.
 
-Every insertion opens editable properties in **Tree** and a diagram **Preview**.
-Change the fields to update the preview, then choose **Insert** to save one
-undoable change. **Cancel** or **Escape** discards it. Pending previews are not
-saved or exported. Changing diagrams or opening **Mermaid** also cancels them.
+Click or drag notes and activation elements onto a lane; a dot marks the lane
+and a line marks the point in time. A note can stretch across a second
+participant. **Activate** also adds the matching **Deactivate** after that
+participant's last message in the branch, because Mermaid draws the bar only
+once it is closed.
+
+For a loop, alternative, parallel, or other message block, select contiguous
+messages in one branch, then place the block to wrap them. Only a selection you
+make counts: the element you just inserted is not wrapped. Without a selection,
+the block is added where you click with one **New step** message inside, since
+Mermaid cannot draw an empty block. **Add else branch** and the other branch
+commands add a step the same way. A **Box** groups the participant you click,
+or the participants you selected first. **Message numbering** and **Title** go
+at the top of the diagram. A block left empty in the Mermaid source is listed
+in **Tree** with its line number.
+
+Every insertion opens editable properties in **Tree** and draws a preview on the
+canvas at the diagram's own scale. Change the fields to update the preview, then
+press **Enter** or choose **Insert** to save one undoable change. Enter pressed
+while the preview is still updating is applied once it is ready. **Cancel** or
+**Escape** discards it. When an element does not change the drawing, such as a
+link, the preview says so. Pending previews are not saved or exported. Changing
+diagrams or opening **Mermaid** also cancels them.
 
 Double-click a participant, message arrow, or note to edit its label. Drag a
 participant header horizontally to reorder its lane. Drag a message vertically

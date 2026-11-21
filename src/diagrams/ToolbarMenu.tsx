@@ -12,7 +12,7 @@ export function ToolbarMenu({
   alignToPageLeft = false,
 }: {
   label: string;
-  icon: 'plus' | 'more' | 'export';
+  icon: 'plus' | 'more' | 'export' | 'insert';
   children: (close: () => void) => ReactNode;
   viewportBounded?: boolean;
   alignToPageLeft?: boolean;

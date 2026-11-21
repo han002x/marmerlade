@@ -222,11 +222,24 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     const y = viewport.y + entity.position.y * viewport.zoom;
     const right = x + entity.size.width * viewport.zoom;
     const bottom = y + entity.size.height * viewport.zoom;
-    if (right <= 0 || bottom <= 0 || x >= area.clientWidth || y >= area.clientHeight)
-      void setCenter(entity.position.x + entity.size.width / 2, entity.position.y + entity.size.height / 2, {
-        zoom: viewport.zoom,
-        duration: 180,
-      });
+    // The toolbar covers the top of the board, so the title row must sit below it.
+    if (x < 0 || y < 64 || right > area.clientWidth || bottom > area.clientHeight)
+    {
+      // Computed from the stored rectangle: a just-created diagram is not measured by React Flow yet.
+      const zoom = Math.min(
+        Math.max(viewport.zoom, 0.6),
+        (area.clientWidth - 48) / entity.size.width,
+        (area.clientHeight - 96) / entity.size.height,
+      );
+      void setViewport(
+        {
+          x: (area.clientWidth - entity.size.width * zoom) / 2 - entity.position.x * zoom,
+          y: 72 + (area.clientHeight - 96 - entity.size.height * zoom) / 2 - entity.position.y * zoom,
+          zoom,
+        },
+        { duration: 180 },
+      );
+    }
   }
   function openFromTree(id: string) {
     open(id);
@@ -271,12 +284,12 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     const target = document.elementFromPoint(client.x, client.y);
     if (!target || !board.current?.contains(target) || target.closest('.mf-toolbar,.react-flow__panel,dialog'))
       return;
-    const position = screenToFlowPosition(client);
+    const size = { width: 900, height: 650 };
     const base = {
       id: crypto.randomUUID(),
       title: kind === 'flowchart' ? 'Flowchart' : 'Sequence',
-      position,
-      size: { width: 900, height: 650 },
+      position: freeSpot(screenToFlowPosition(client), size),
+      size,
     };
     const entity: DiagramEntity =
       kind === 'flowchart'
@@ -285,7 +298,33 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     save([...entities, entity]);
     setPlacement(undefined);
     setCursor(undefined);
-    setSelection([entity.id]);
+    // A new diagram is created to be filled in, so open it and bring it into view.
+    open(entity.id);
+  }
+  /** Move a new diagram right, then down, until it no longer covers an existing one. */
+  function freeSpot(start: XYPosition, size: { width: number; height: number }) {
+    const gap = 60;
+    const hits = (p: XYPosition) =>
+      entities.find(
+        (e) =>
+          p.x < e.position.x + e.size.width + gap &&
+          p.x + size.width + gap > e.position.x &&
+          p.y < e.position.y + e.size.height + gap &&
+          p.y + size.height + gap > e.position.y,
+      );
+    const right = { ...start };
+    for (let i = 0; i < entities.length; i++) {
+      const hit = hits(right);
+      if (!hit) return right;
+      right.x = hit.position.x + hit.size.width + gap;
+    }
+    const below = { ...start };
+    for (let i = 0; i < entities.length; i++) {
+      const hit = hits(below);
+      if (!hit) return below.y - start.y < right.x - start.x ? below : right;
+      below.y = hit.position.y + hit.size.height + gap;
+    }
+    return right;
   }
   function undo() {
     const previous = history.at(-1);

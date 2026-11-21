@@ -45,7 +45,8 @@ import {
 import { insertElement } from './insertion';
 import { sequenceDragPreview } from './dragPreview';
 import { bindSelection } from './selection';
-import { nameOf, type Statement } from './model';
+import { blocks, nameOf, type Statement } from './model';
+import { wrappable } from './insertion';
 
 export type Tool = 'select' | 'participant' | 'message';
 type Item = {
@@ -87,6 +88,10 @@ interface Props {
   onCommit: (source: string, at: number) => Promise<boolean>;
   onError: (error: string) => void;
   onSource: () => void;
+  /** A pending insertion, drawn in place of the diagram at the same scale. */
+  previewSvg?: string;
+  /** Whether the single selected statement was picked by the user and may be wrapped by a block. */
+  wrapSelected: boolean;
 }
 
 const Drawing = memo(function Drawing({ svg }: { svg: string }) {
@@ -144,6 +149,8 @@ export default function SequenceCanvas({
   onCommit,
   onError,
   onSource,
+  previewSvg,
+  wrapSelected,
 }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const { setViewport, screenToFlowPosition } = useReactFlow();
@@ -164,7 +171,9 @@ export default function SequenceCanvas({
   const [placementGuide, setPlacementGuide] = useState<{
     kind: string;
     point: XYPosition;
+    lane?: number;
   }>();
+  const [pointer, setPointer] = useState<XYPosition>();
   const [messageAt, setMessageAt] = useState<number>();
   const [sender, setSender] = useState<string>();
   const [actorSelected, setActorSelected] = useState<string>();
@@ -311,12 +320,45 @@ export default function SequenceCanvas({
     setSender(undefined);
     setMessageAt(undefined);
   }, [source]);
+  useEffect(() => {
+    if (tool === 'message') return;
+    setSender(undefined);
+    setMessageAt(undefined);
+    setPointer(undefined);
+  }, [tool]);
+  useEffect(() => {
+    if (!placementKind && tool !== 'participant') setPlacementGuide(undefined);
+  }, [placementKind, tool]);
+  const previewBox = useMemo(() => {
+    const view = /viewBox="([^"]+)"/.exec(previewSvg ?? '')?.[1].trim().split(/[\s,]+/).map(Number);
+    return view?.length === 4 && view.every(Number.isFinite)
+      ? { x: view[0], y: view[1], width: view[2], height: view[3] }
+      : undefined;
+  }, [previewSvg]);
+  // Keep a growing preview in view; the committed drawing keeps the same scale otherwise.
+  useLayoutEffect(() => {
+    const area = root.current;
+    if (!previewBox || !area) return;
+    const { x, y, zoom } = viewport;
+    const left = previewBox.x * zoom + x,
+      top = previewBox.y * zoom + y;
+    if (
+      left < 0 ||
+      top < 0 ||
+      left + previewBox.width * zoom > area.clientWidth ||
+      top + previewBox.height * zoom > area.clientHeight
+    )
+      fit(previewBox);
+    // Only a new preview may move the view; panning afterwards stays with the user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewBox, fit]);
   const canEdit = editable && source === geometry.source;
   const actors = geometry.nodes.filter((n) => n.data.actor).sort((a, b) => centreX(a) - centreX(b));
   const messages = geometry.nodes
     .filter((n) => n.data.kind === 'message')
     .sort((a, b) => centreY(a) - centreY(b));
   const activeActor =
+    sender ??
     selectedActor ??
     (selected?.kind === 'participant'
       ? selected.values[0]
@@ -336,7 +378,7 @@ export default function SequenceCanvas({
   }, [portal, svg, selected, selectedActor, group]);
   const nodes = useMemo(
     () =>
-      geometry.nodes.map((n) => ({
+      (previewSvg ? [] : geometry.nodes).map((n) => ({
         ...n,
         data: { ...n.data, connectFromBody: tool === 'message' },
         selected: group
@@ -353,7 +395,7 @@ export default function SequenceCanvas({
         connectable: canEdit && tool !== 'participant' && !editor,
         ...(drag?.id === n.id && { position: drag.position, dragging: true }),
       })),
-    [geometry, drag, selected, selectedActor, activeActor, tool, canEdit, editor, group, placementKind],
+    [geometry, drag, selected, selectedActor, activeActor, tool, canEdit, editor, group, placementKind, previewSvg],
   );
 
   async function apply(edit: () => CanvasEdit) {
@@ -389,7 +431,8 @@ export default function SequenceCanvas({
     );
   }
   function proposeMessage(from: string, to: string) {
-    const text = from + '->>' + to + ': ';
+    // No trailing space: the form replaces only the statement, so a space would stay behind in the source.
+    const text = from + '->>' + to + ':';
     const at =
       messageAt ??
       (selected?.kind === 'participant'
@@ -406,7 +449,7 @@ export default function SequenceCanvas({
       group
         ? group.includes('row:' + row.start) ||
           (row.kind === 'participant' && group.includes('actor:' + row.values[0]))
-        : row === selected,
+        : wrapSelected && row === selected,
     );
   function slot(point: XYPosition) {
     for (const row of rows) {
@@ -432,21 +475,27 @@ export default function SequenceCanvas({
       setMessageAt(slot(point));
       setSender(actor);
       onTool('message');
+    } else if (kind === 'box' && !wrappable(kind, selectedRows()).length) {
+      // A box needs participants to be drawn, so group the clicked lane.
+      const lane = rows.filter((r) => r.kind === 'participant' && r.values[0] === actor);
+      onPlace(kind, lane[0]?.start ?? source.length, lane, actor);
     } else onPlace(kind, slot(point), selectedRows(), actor);
   }
-  useImperativeHandle(ref, () => ({
-    move(kind, client) {
-      if (!root.current?.contains(document.elementFromPoint(client.x, client.y))) {
-        setPlacementGuide(undefined);
-        return;
-      }
-      const point = screenToFlowPosition(client);
-      const next = messages.find((node) => centreY(node) > point.y);
+  const laneKinds = ['note', 'activate', 'deactivate', 'destroy'];
+  function guideAt(kind: string, point: XYPosition) {
+    if (blocks.includes(kind) && (kind === 'box' || wrappable(kind, selectedRows()).length)) return undefined;
+    const nearest = actors.reduce<HitNode | undefined>(
+      (best, node) =>
+        !best || Math.abs(centreX(node) - point.x) < Math.abs(centreX(best) - point.x) ? node : best,
+      undefined,
+    );
+    const next = messages.find((node) => centreY(node) > point.y);
       const previous = messages.filter((node) => centreY(node) <= point.y).at(-1);
       const before = actors.find((node) => centreX(node) > point.x);
       const left = actors.filter((node) => centreX(node) <= point.x).at(-1);
-      setPlacementGuide({
+      return {
         kind,
+        lane: laneKinds.includes(kind) && nearest ? centreX(nearest) : undefined,
         point: {
           x: before
             ? left
@@ -463,7 +512,15 @@ export default function SequenceCanvas({
               ? centreY(previous) + 30
               : point.y,
         },
-      });
+      };
+  }
+  useImperativeHandle(ref, () => ({
+    move(kind, client) {
+      if (!root.current?.contains(document.elementFromPoint(client.x, client.y))) {
+        setPlacementGuide(undefined);
+        return;
+      }
+      setPlacementGuide(guideAt(kind, screenToFlowPosition(client)));
     },
     cancel() {
       setPlacementGuide(undefined);
@@ -494,12 +551,36 @@ export default function SequenceCanvas({
       return;
     }
     if (tool === 'message' && data.actor) {
+      // Choosing the sender is part of drawing the message, so the inspector keeps its current item.
       if (sender) proposeMessage(sender, data.actor);
-      else {
-        setSender(data.actor);
-        selectItem(data);
-      }
+      else setSender(data.actor);
     } else selectItem(data);
+  }
+  const nameFor = (id: string) =>
+    rows.find((r) => r.kind === 'participant' && r.values[0] === id)?.values[1] || id;
+  function hint() {
+    if (placementKind) {
+      const name = nameOf(placementKind).toLowerCase();
+      const targets = wrappable(placementKind, selectedRows());
+      if (targets.length)
+        return (
+          'Click anywhere to wrap the ' +
+          (targets.length === 1 ? 'selected ' + targets[0].kind : targets.length + ' selected ' + targets[0].kind + 's') +
+          ' in ' + (/^[aeiou]/.test(name) ? 'an ' : 'a ') + name + '. Escape cancels.'
+        );
+      if (placementKind === 'box')
+        return 'Click a participant to put it in a box. To group several, select them first. Escape cancels.';
+      if (blocks.includes(placementKind))
+        return (
+          'Click between messages to add ' + (/^[aeiou]/.test(name) ? 'an ' : 'a ') + name +
+          ' there. Select messages first to wrap them. Escape cancels.'
+        );
+      return 'Click a lane at the point in time for the ' + name + '. Escape cancels.';
+    }
+    if (tool === 'participant') return 'Click where the new lane should go. Escape cancels.';
+    return sender
+      ? 'From ' + nameFor(sender) + ': click the receiver, or ' + nameFor(sender) + ' again for a self-message. Escape cancels.'
+      : 'Click the sender, or drag from one participant to another. Escape cancels.';
   }
   const pending = useRef(false);
   async function finish() {
@@ -563,6 +644,17 @@ export default function SequenceCanvas({
       }
       ref={root}
       aria-label="Sequence canvas"
+      onPointerMove={(event) => {
+        const placing = placementKind ?? (tool === 'participant' ? 'participant' : undefined);
+        if (!placing && !(tool === 'message' && sender)) return;
+        const point = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+        setPointer(point);
+        if (placing) setPlacementGuide(guideAt(placing, point));
+      }}
+      onPointerLeave={() => {
+        setPointer(undefined);
+        if (placementKind || tool === 'participant') setPlacementGuide(undefined);
+      }}
     >
       <ReactFlow<HitNode>
         nodes={nodes}
@@ -684,7 +776,7 @@ export default function SequenceCanvas({
       >
         <ViewportPortal>
           <div
-            className="sq-artboard"
+            className={'sq-artboard' + (previewSvg ? ' is-replaced' : '')}
             ref={setPortal}
             onDoubleClick={(e) => {
               if (tool !== 'select') return;
@@ -726,18 +818,46 @@ export default function SequenceCanvas({
           >
             <Drawing svg={svg} />
           </div>
+          {previewSvg && previewBox && (
+            <div
+              className="sq-artboard sq-preview-artboard"
+              aria-label="Insertion preview drawing"
+              style={{ left: previewBox.x, top: previewBox.y, width: previewBox.width, height: previewBox.height }}
+            >
+              <Drawing svg={previewSvg} />
+            </div>
+          )}
         </ViewportPortal>
-        {placementGuide && (
+        {placementGuide && !previewSvg && (
           <ViewportPortal>
             <svg className="sq-placement-guide" style={{ overflow: 'visible' }} aria-hidden="true">
               <path
                 d={
                   'M' +
                   (placementGuide.kind === 'participant'
-                    ? placementGuide.point.x + ' 0v' + geometry.box.height
-                    : '0 ' + placementGuide.point.y + 'h' + geometry.box.width)
+                    ? placementGuide.point.x + ' ' + geometry.box.y + 'v' + geometry.box.height
+                    : geometry.box.x + ' ' + placementGuide.point.y + 'h' + geometry.box.width)
                 }
               />
+              {placementGuide.lane !== undefined && (
+                <circle cx={placementGuide.lane} cy={placementGuide.point.y} r="6" />
+              )}
+            </svg>
+          </ViewportPortal>
+        )}
+        {tool === 'message' && sender && pointer && !previewSvg && (
+          <ViewportPortal>
+            <svg className="sq-placement-guide sq-message-guide" style={{ overflow: 'visible' }} aria-hidden="true">
+              {(() => {
+                const from = actors.find((node) => node.data.actor === sender);
+                if (!from) return null;
+                const x = centreX(from),
+                  y = pointer.y,
+                  tip = Math.sign(pointer.x - x) || 1;
+                return (
+                  <path d={`M${x} ${y}H${pointer.x}m${-8 * tip} -5l${8 * tip} 5l${-8 * tip} 5`} />
+                );
+              })()}
             </svg>
           </ViewportPortal>
         )}
@@ -797,13 +917,9 @@ export default function SequenceCanvas({
           </button>
         </form>
       )}
-      {tool !== 'select' && !editor && (
+      {(tool !== 'select' || placementKind) && !editor && !previewSvg && (
         <div role="status" className="sq-hint">
-          {tool === 'participant'
-            ? 'Click the canvas to place a participant.'
-            : sender
-              ? 'Choose the receiving participant.'
-              : 'Drag from sender to receiver, or click the sender.'}
+          {hint()}
         </div>
       )}
     </div>

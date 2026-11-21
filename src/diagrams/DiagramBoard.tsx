@@ -95,12 +95,19 @@ function DiagramFrame({ data }: NodeProps<EntityNode>) {
           value={entity.title}
           onChange={(e) => data.rename(entity.id, e.target.value)}
         />
-        {editing && <span className="diagram-editing-status" role="status">Editing</span>}
+        {editing && (
+          <span className="diagram-editing-status" role="status" aria-label="Editing diagram" title="Editing diagram">
+            <Icon name="pencil" />
+          </span>
+        )}
         <button
           className="nodrag workspace-nopan"
+          type="button"
+          aria-label={editing ? 'Done editing diagram' : 'Edit diagram'}
+          title={editing ? 'Done editing diagram' : 'Edit diagram'}
           onClick={() => (editing ? data.close() : data.open(entity.id))}
         >
-          {editing ? 'Done' : 'Edit diagram'}
+          <Icon name={editing ? 'check' : 'pencil'} />
         </button>
       </header>
       {!editing && (

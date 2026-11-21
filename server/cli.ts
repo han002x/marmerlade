@@ -47,11 +47,18 @@ async function main() {
   const server = new McpServer({ name: 'marmerlade', version: '0.1.0' });
   const result = (value: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value) }] });
   const tool = (fn: () => unknown | Promise<unknown>) => Promise.resolve().then(fn).then(result).catch((error: unknown) => ({ ...result({ error: error instanceof Error ? error.message : String(error) }), isError: true }));
-  server.registerTool('get_workspace', { description: 'Read the diagram, wiki pages, slide decks, current revision, file and live canvas URL.' }, () => tool(() => ({ ...workspace.snapshot(), file: workspace.file, url: http.url })));
+  server.registerTool('get_workspace', { description: 'Read the diagram, wiki pages, slide decks, current revision, file and live canvas URL.', annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true } }, () => tool(() => ({ ...workspace.snapshot(), file: workspace.file, url: http.url })));
   server.registerTool('apply_changes', {
-    description: 'Atomically edit a workspace. Read its revision first. put operations replace the entity with that ID; delete_node removes its subtree and incident edges, retaining documents. Document deletions unlink every node. Include all related changes in one batch.',
-    inputSchema: { revision: z.number().int().nonnegative(), changes: z.array(changeSchema).min(1) },
-  }, ({ revision, changes }) => tool(() => workspace.commit(revision, d => applyChanges(d, changes))));
+    description: 'Atomically edit a workspace. Read its revision first. put operations replace the entity with that ID; delete_node removes its subtree and incident edges, retaining documents. Document deletions unlink every node. Include all related changes in one batch. Set dryRun to validate the batch against the current revision without writing; it returns {ok, revision, counts} or the validation error.',
+    inputSchema: { revision: z.number().int().nonnegative(), changes: z.array(changeSchema).min(1), dryRun: z.boolean().default(false) },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+  }, ({ revision, changes, dryRun }) => tool(async () => {
+    if (!dryRun) return workspace.commit(revision, d => applyChanges(d, changes));
+    const checked = await workspace.check(revision, d => applyChanges(d, changes));
+    const counts: Record<string, number> = {};
+    for (const { kind } of changes) counts[kind] = (counts[kind] ?? 0) + 1;
+    return { ...checked, counts };
+  }));
   server.registerTool(
     'import_mermaid',
     {
@@ -63,6 +70,7 @@ async function main() {
         diagramId: z.string().optional(),
         tidy: z.boolean().default(true),
       },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     ({ revision, source, diagramId, tidy }) =>
       tool(async () => {
@@ -157,6 +165,7 @@ async function main() {
     {
       description: 'Export a flowchart or sequence diagram as Mermaid source.',
       inputSchema: { diagramKind: diagramKindSchema, diagramId: z.string().optional() },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     ({ diagramKind, diagramId }) =>
       tool(() => {
@@ -174,10 +183,12 @@ async function main() {
   server.registerTool('diagnose_environment', {
     description: 'Check Node, packaged app, project access, and Chromium. Image generation belongs to the host agent, not this server.',
     inputSchema: { probe: z.boolean().default(true) },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   }, ({ probe }) => tool(() => diagnoseEnvironment(workspace.file, { probe, ownsWorkspace: true })));
   server.registerTool('list_icons', {
     description: 'Find supported icon IDs and names. Use these IDs rather than guessing Iconify names.',
     inputSchema: { query: z.string().default(''), group: z.enum(['tech', 'ai', 'brand']).optional(), offset: z.number().int().nonnegative().default(0), limit: z.number().int().min(1).max(100).default(50) },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   }, ({ query, group, offset, limit }) => tool(() => {
     const matches = ICONS.filter(icon => (!group || icon.group === group) && `${icon.id} ${icon.name}`.toLowerCase().includes(query.toLowerCase()));
     return { icons: matches.slice(offset, offset + limit).map(({ id, name, group }) => ({ id, name, group })), total: matches.length, nextOffset: offset + limit < matches.length ? offset + limit : null };
@@ -185,14 +196,17 @@ async function main() {
   server.registerTool('import_image', {
     description: 'Normalize a project-local image and attach it to an existing node. Original files are preserved. Paths must be inside the workspace project directory. Read revision first.',
     inputSchema: { revision: z.number().int().nonnegative(), nodeId: z.string().min(1), path: z.string().min(1) },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   }, ({ revision, nodeId, path }) => tool(() => renderer.importImage(revision, nodeId, path)));
   server.registerTool('layout_diagram', {
     description: 'Measure rendered labels and arrange the expanded graph. Saves positions while preserving fold state, styling, and documents. Read revision first; inspect previews afterwards.',
     inputSchema: { revision: z.number().int().nonnegative(), direction: z.enum(['TB', 'LR']).default('TB') },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   }, ({ revision, direction }) => tool(() => renderer.layout(revision, direction)));
   server.registerTool('render_preview', {
     description: 'Render an isolated revision of the actual app as PNG with overlap, clipping, image-load, slide-overflow and browser-error diagnostics. Does not change the live workspace.',
     inputSchema: previewRequestSchema.shape,
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   }, async ({ revision, ...options }) => {
     try {
       const preview = await renderer.preview(revision, options);
@@ -202,14 +216,17 @@ async function main() {
   server.registerTool('export_gif', {
     description: 'Start native animated-GIF export from an isolated revision. Returns a job ID immediately; poll get_render_job for progress and the local output file. Does not change the workspace.',
     inputSchema: gifRequestSchema.shape,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   }, ({ revision, fps, maxWidth, flow, ...options }) => tool(() => renderer.exportGif(revision, options, { fps, maxWidth, flow })));
   server.registerTool('get_render_job', {
     description: 'Read an asynchronous render job: queued, running with progress, complete with file, or failed with an error. Job IDs belong to this server session.',
     inputSchema: { jobId: z.string().uuid() },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   }, ({ jobId }) => tool(() => renderer.job(jobId)));
   server.registerTool('open_workspace', {
     description: 'Open the live browser canvas, or a node, wiki page, or slide deck.',
     inputSchema: { diagramKind: diagramKindSchema, view: z.enum(['canvas', 'node', 'wiki', 'slides']).default('canvas'), id: z.string().optional() },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, ({ view, id, diagramKind }) => tool(async () => {
     if (view === 'node' && !id) throw new Error('Node view requires an id');
     const url = `${http.url}/#/${view === 'canvas' ? (diagramKind === 'sequence' ? 'diagrams/sequence' : '') : view}${id ? '/' + encodeURIComponent(id) : ''}`;
@@ -219,6 +236,14 @@ async function main() {
   for (const [name, filename] of [['guide', 'guide.md'], ['example', 'example.marmerlade.json']] as const) {
     server.registerResource(name, `marmerlade://${name}`, { description: name === 'guide' ? 'Document model, editing rules, wiki and slides syntax' : 'Complete example with diagram, wiki pages and slides', mimeType: name === 'guide' ? 'text/markdown' : 'application/json' }, async uri => ({ contents: [{ uri: uri.href, text: await readFile(new URL(`./${filename}`, import.meta.url), 'utf8') }] }));
   }
+  const prompt = (name: string, description: string, argsSchema: Record<string, z.ZodType>, text: (args: Record<string, string | undefined>) => string) =>
+    server.registerPrompt(name, { description, argsSchema }, (args) => ({ messages: [{ role: 'user' as const, content: { type: 'text' as const, text: text(args as Record<string, string | undefined>) } }] }));
+  prompt('map_codebase', 'Map a codebase into a foldable Marmerlade diagram with wiki pages.',
+    { path: z.string().describe('Directory to map'), focus: z.string().optional().describe('Subsystem or question to emphasize') },
+    ({ path, focus }) => `Use marmerlade-codebase-map to map ${path}${focus ? `, focusing on ${focus}` : ''}.\nStart with get_workspace and keep its revision. Dry-run each apply_changes batch before committing it.\nFinish with layout_diagram and render_preview, and fix every reported diagnostic.`);
+  prompt('refresh_diagram', 'Update an existing Marmerlade diagram after the code changed.',
+    { scope: z.string().optional().describe('Path or subsystem that changed') },
+    ({ scope }) => `Use marmerlade-codebase-map to refresh the existing diagram${scope ? ` for ${scope}` : ''}.\nStart with get_workspace. Change only entities whose code changed, keep IDs, dry-run, then commit and render_preview.`);
   let closing = false;
   async function close() { if (closing) return; closing = true; await renderer.close(); await server.close(); await http.close(); await workspace.close(); }
   process.once('SIGINT', () => { void close(); }); process.once('SIGTERM', () => { void close(); });

@@ -46,8 +46,16 @@ export async function openWorkspace(filename: string) {
     queue = result.then(() => {}, () => {});
     return result;
   }
+  // Validate a transform exactly as commit would, without writing or bumping the revision.
+  function check(expectedRevision: number, transform: (d: Diagram) => Diagram) {
+    return queue.then(() => {
+      if (expectedRevision !== revision) throw new Conflict('Workspace changed. Read the latest revision before retrying.');
+      parseDiagram(transform(structuredClone(diagram)));
+      return { ok: true as const, revision };
+    });
+  }
   return {
-    file, snapshot, commit,
+    file, snapshot, commit, check,
     subscribe(listener: () => void) { listeners.add(listener); return () => listeners.delete(listener); },
     async close() { await queue; await release(); },
   };

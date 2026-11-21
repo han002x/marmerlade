@@ -237,8 +237,8 @@
 .sq-drawing > svg {
   overflow: visible;
 }
-.sq-hit:hover .react-flow__handle,
-.react-flow__node.selected .sq-hit .react-flow__handle {
+.sq-hit:hover .react-flow__handle:not(.sq-body-handle),
+.react-flow__node.selected .sq-hit .react-flow__handle:not(.sq-body-handle) {
   opacity: 1;
   scale: 1;
   pointer-events: all;

@@ -28,6 +28,7 @@ import {
   referencedActors,
   descriptions,
   lifetimeIssue,
+  nameIssue,
   placementInstruction,
   statements,
   validateSequence,
@@ -447,6 +448,11 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   function save(text: string) {
     if (!action) return;
     const inserted = statements(header + '\n' + text)[0];
+    const issue = inserted?.kind === 'participant' ? nameIssue(inserted.values[0]) : undefined;
+    if (issue) {
+      setError(issue);
+      return;
+    }
     if (
       !action.edit &&
       inserted?.kind === 'participant' &&

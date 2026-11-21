@@ -241,6 +241,14 @@ export function referencedActors(row: Statement): string[] {
   return [];
 }
 
+const reserved =
+  /^(participant|actor|create|destroy|box|loop|alt|else|opt|par|par_over|and|critical|option|break|rect|end|note|activate|deactivate|autonumber|title|links?|properties|details)\b/i;
+/** Mermaid reads a name that starts with a keyword as that keyword, so it cannot name a participant. */
+export function nameIssue(id: string) {
+  const word = reserved.exec(id.trim())?.[1];
+  return word ? `“${word}” is a Mermaid keyword. Start the name with another word, such as “P2”.` : undefined;
+}
+
 export function participants(rows: Statement[]) {
   return [...new Set(rows.flatMap(referencedActors))];
 }

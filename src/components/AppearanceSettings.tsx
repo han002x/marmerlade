@@ -44,7 +44,7 @@ export function AppearanceSettings() {
         if (preset) choose('custom', preset.style);
       }}><option value="" disabled>Choose preset</option>{PRESETS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
       <fieldset><legend>Colors</legend><div className="mf-appearance-colors">
-        {COLORS.map((key) => <label key={key}>{({ bg: 'Canvas', panel: 'Panels', border: 'Borders', text: 'Text', muted: 'Muted text', ink: 'Ink', pencil: 'Grid', accent: 'Accent', seal: 'Brand', node: 'Nodes', group: 'Groups', input: 'Inputs' })[key]}
+        {COLORS.map((key) => <label key={key}>{({ bg: 'Canvas', diagram: 'Diagram canvas', panel: 'Panels', border: 'Borders', text: 'Text', muted: 'Muted text', ink: 'Ink', pencil: 'Grid', accent: 'Accent', seal: 'Brand', node: 'Nodes', group: 'Groups', input: 'Inputs' })[key]}
           <input type="color" value={style.colors[key]} onInput={(e) => patch({ colors: { ...style.colors, [key]: e.currentTarget.value } })} />
         </label>)}
       </div></fieldset>

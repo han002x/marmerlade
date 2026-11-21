@@ -18,6 +18,7 @@
   --mf-seal: #e9764f;
   --mf-node: #27241f;
   --mf-group: #2d2a24;
+  --mf-diagram: #2d2a24;
   --mf-input: #161512;
   --mf-glow: rgba(143, 168, 220, 0.4);
   --mf-shadow: rgba(0, 0, 0, 0.5);
@@ -36,6 +37,7 @@
   --mf-seal: #d0532f;
   --mf-node: #ffffff;
   --mf-group: #f6f2ea;
+  --mf-diagram: #f6f2ea;
   --mf-input: #ffffff;
   --mf-glow: rgba(59, 91, 154, 0.28);
   --mf-shadow: rgba(74, 58, 32, 0.16);

@@ -161,10 +161,10 @@ export default function SequenceCanvas({
     (box: typeof emptyBox) => {
       if (root.current)
         void setViewport(
-          getViewportForBounds(box, root.current.clientWidth, root.current.clientHeight, 0.05, 1, 0.3),
+          getViewportForBounds(box, root.current.clientWidth, root.current.clientHeight, 0.05, workspaceZoom ?? 1, 0.3),
         );
     },
-    [setViewport],
+    [setViewport, workspaceZoom],
   );
   useLayoutEffect(() => {
     if (!portal) return;

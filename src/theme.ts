@@ -12,9 +12,16 @@ function read(): Settings {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(KEY) ?? 'null');
     if (value && typeof value === 'object' && 'selected' in value && typeof value.selected === 'string' && 'custom' in value
-      && (value.custom === null || isAppearance(value.custom))
-      && (PRESETS.some((p) => p.id === value.selected) || value.selected === 'custom' && value.custom !== null)) {
-      return { selected: value.selected, custom: value.custom };
+    ) {
+      let custom = value.custom;
+      if (custom && typeof custom === 'object' && 'colors' in custom && custom.colors && typeof custom.colors === 'object'
+        && !('diagram' in custom.colors) && 'group' in custom.colors) {
+        custom = { ...custom, colors: { ...custom.colors, diagram: custom.colors.group } };
+      }
+      if ((custom === null || isAppearance(custom))
+        && (PRESETS.some((p) => p.id === value.selected) || value.selected === 'custom' && custom !== null)) {
+        return { selected: value.selected, custom };
+      }
     }
   } catch { /* invalid or unavailable storage */ }
   return fallback();

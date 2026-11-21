@@ -87,7 +87,7 @@ function DiagramFrame({ data, selected }: NodeProps<EntityNode>) {
     };
   }, [source, appearance, editing]);
   return (
-    <article className={'diagram-entity' + (editing ? ' is-editing' : '')} aria-label={entity.title}>
+    <article className={'diagram-entity' + (editing ? ' is-editing' : '')} aria-label={entity.title} data-diagram-id={entity.id}>
       <NodeResizer
         minWidth={400}
         minHeight={300}
@@ -101,6 +101,7 @@ function DiagramFrame({ data, selected }: NodeProps<EntityNode>) {
           value={entity.title}
           onChange={(e) => data.rename(entity.id, e.target.value)}
         />
+        {editing && <span className="diagram-editing-status" role="status">Editing</span>}
         <button
           className="nodrag workspace-nopan"
           onClick={() => (editing ? data.close() : data.open(entity.id))}
@@ -109,13 +110,13 @@ function DiagramFrame({ data, selected }: NodeProps<EntityNode>) {
         </button>
       </header>
       {!editing && (
-        <div className="diagram-preview" onDoubleClick={() => data.open(entity.id)}>
+        <div className="diagram-preview">
           {error ? (
             <p role="alert">{error}</p>
           ) : svg ? (
             <div dangerouslySetInnerHTML={{ __html: svg }} />
           ) : (
-            <p>Double-click to edit this diagram</p>
+            <p>Click to edit this diagram</p>
           )}
         </div>
       )}
@@ -141,7 +142,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
   const entities = useMemo(() => diagramEntities(workspaceDiagram(state)), [state]);
   const active = state.activeDiagramId;
   const hash = useHash();
-  const { screenToFlowPosition, setCenter, getViewport, setViewport } = useReactFlow();
+  const { screenToFlowPosition, setCenter, getViewport, setViewport, fitView } = useReactFlow();
   const viewport = useViewport();
   const panning = useKeyPress('Space');
   const appearance = activeAppearance(useAppearance());
@@ -386,6 +387,17 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
       <main
         className={'diagram-board' + (placement ? ' is-placing-diagram' : '') + (panning ? ' is-panning' : '')}
         ref={board}
+        onClickCapture={(event) => {
+          // The first click can replace the preview with an editor before the second click.
+          if (event.detail !== 2 || placement || panning || !(event.target instanceof Element)) return;
+          if (event.target.closest('input,textarea,select,button,[contenteditable="true"],.react-flow__resize-control')) return;
+          const id = event.target.closest<HTMLElement>('[data-diagram-id]')?.dataset.diagramId;
+          if (id) void fitView({
+            nodes: [{ id }],
+            padding: { top: '80px', right: '32px', bottom: '32px', left: '32px' },
+            duration: 250,
+          });
+        }}
       >
         <nav
           className={'mf-toolbar' + (compact ? ' is-compact' : '')}
@@ -531,8 +543,12 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
             if (placement) setCursor(clientPoint({ x: event.clientX, y: event.clientY }));
           }}
           onPointerLeave={() => setCursor(undefined)}
-          onNodeClick={(event) => {
+          onNodeClick={(event, node) => {
             if (placement) add(placement, { x: event.clientX, y: event.clientY });
+            else if (
+              !event.shiftKey && !event.ctrlKey && !event.metaKey &&
+              !(event.target instanceof Element && event.target.closest('input,button,.react-flow__resize-control'))
+            ) open(node.id);
           }}
           onPaneClick={(event) => {
             if (placement) add(placement, { x: event.clientX, y: event.clientY });
@@ -601,6 +617,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
             <ViewportPortal>
               <div
                 className="diagram-editor"
+                data-diagram-id={opened.id}
                 onPointerDownCapture={(event) => {
                   // Keep pan gestures on the workspace when they start over an editor.
                   if (event.button !== 1 && event.button !== 2) return;

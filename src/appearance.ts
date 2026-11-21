@@ -1,6 +1,6 @@
 import type { FontFamily, Sloppiness } from './types';
 
-export const COLORS = ['bg', 'panel', 'border', 'text', 'muted', 'ink', 'pencil', 'accent', 'seal', 'node', 'group', 'input'] as const;
+export const COLORS = ['bg', 'diagram', 'panel', 'border', 'text', 'muted', 'ink', 'pencil', 'accent', 'seal', 'node', 'group', 'input'] as const;
 export type Palette = Record<typeof COLORS[number], string>;
 export const DOCUMENT_SYMBOLS = [
   { id: 'page', label: 'Page' }, { id: 'book', label: 'Book' },
@@ -26,7 +26,7 @@ export interface Appearance {
   shadows: boolean;
 }
 function palette([bg, panel, border, text, muted, ink, pencil, accent, seal, node, group, input]: [string,string,string,string,string,string,string,string,string,string,string,string]): Palette {
-  return { bg, panel, border, text, muted, ink, pencil, accent, seal, node, group, input };
+  return { bg, diagram: group, panel, border, text, muted, ink, pencil, accent, seal, node, group, input };
 }
 const paper: Appearance = {
   colors: palette(['#ffffff','#fbfaf7','#e6e1d7','#2a2723','#8a857c','#3a352e','#e2ddd2','#3b5b9a','#d0532f','#ffffff','#f6f2ea','#ffffff']),

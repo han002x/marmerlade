@@ -733,6 +733,17 @@ export default function SequenceCanvas({
   ];
   const styleKinds = styleKeys.map((key) => (key.startsWith('p:') ? 'participant' : rows[Number(key.slice(2))]?.kind));
   const showStyle = selecting && !drag && !joining && !editor && styleKeys.length > 0;
+  const styleLabel = (() => {
+    if (styleKeys.length !== 1) return styleKeys.length > 1 ? `${styleKeys.length} elements` : '';
+    const key = styleKeys[0];
+    if (key.startsWith('p:')) {
+      const id = key.slice(2);
+      const row = rows.find((item) => item.kind === 'participant' && item.values[0] === id);
+      return row?.values[1] || id;
+    }
+    const row = rows[Number(key.slice(2))];
+    return row ? summary(row) : '';
+  })();
   const panelOpen = Boolean((showControls && controls) || properties || showStyle);
   const panelContent = (
     <aside className="mf-style-panel sq-rail-content" aria-label="Sequence editing" onPointerMove={(event) => event.stopPropagation()} onKeyDown={(event) => {
@@ -749,6 +760,7 @@ export default function SequenceCanvas({
         event.stopPropagation();
       }
     }}>
+      {showStyle && styleLabel && <div className="mf-panel-head"><span className="mf-panel-title">{styleLabel}</span></div>}
       {showControls && controls && (
         <fieldset
           key={'tools:' + (selectedLane ?? selected?.start)}

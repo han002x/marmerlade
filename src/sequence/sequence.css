@@ -534,8 +534,6 @@
 }
 .sq-rail-properties {
   min-width: 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--mf-border);
 }
 .sq-style-fields {
   display: flex;

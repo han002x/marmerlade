@@ -579,9 +579,7 @@ export function StatementForm({
         else save(preview);
       }}
     >
-      <h3>
-        {row && !inserting ? 'Edit' : 'Add'} {nameOf(kind).toLowerCase()}
-      </h3>
+      {(!row || inserting) && <h3>Add {nameOf(kind).toLowerCase()}</h3>}
       {inserting && descriptions[kind] && <p className="sq-meaning">{descriptions[kind]}</p>}
       {guidance[kind] && <p>{guidance[kind]}</p>}
       {body}

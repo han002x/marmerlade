@@ -71,12 +71,14 @@ export function StylePanel() {
   const imageNode =
     count === 1 && hasNodes ? nodes.find((n) => n.id === selectedNodeIds[0] && n.image) : undefined;
 
+  const single = count === 1 && hasNodes ? nodes.find((n) => n.id === selectedNodeIds[0]) : undefined;
+  const singleEdge = count === 1 && hasEdges ? edges.find((e) => e.id === selectedEdgeIds[0]) : undefined;
+  const heading = single ? single.label || single.id : singleEdge?.label || (count > 1 ? `${count} elements` : 'Style');
+
   return (
     <aside className="mf-style-panel" aria-label="Style properties">
       <div className="mf-panel-head">
-        <span className="mf-panel-title">
-          Style{count > 1 ? ` · ${count}` : ''}
-        </span>
+        <span className="mf-panel-title">{heading}</span>
       </div>
 
       {imageNode && <ImageSection key={imageNode.id} node={imageNode} />}

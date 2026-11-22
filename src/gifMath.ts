@@ -6,6 +6,9 @@ import type { Diagram } from './types';
 /** Fallback cycle length (seconds) — mirrors STYLE_DEFAULTS.animationSpeed. */
 const DEFAULT_ANIMATION_SPEED = 1.6;
 
+// gif.js keeps an RGBA copy of every frame until encoding finishes.
+export const GIF_PIXEL_BUDGET = 64_000_000;
+
 /** Fixed, size-conscious defaults — no dialog (zero-config export). */
 export const GIF_DEFAULTS = {
   /** frames per second of the captured animation */
@@ -58,6 +61,10 @@ export function frameDelayMs(fps: number): number {
 export function fitScale(sourceWidth: number, maxWidth: number): number {
   if (sourceWidth <= 0) return 1;
   return Math.min(1, maxWidth / sourceWidth);
+}
+
+export function exportHeight(width: number, source: { width: number; height: number }): number {
+  return Math.max(1, Math.round(Math.round(source.height) * width / Math.max(1, Math.round(source.width))));
 }
 
 /** The download filename for the exported GIF. */

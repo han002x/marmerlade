@@ -3,6 +3,7 @@ import type { EditorSlots } from './diagrams/editorSlots';
 import DiagramBoard from './diagrams/DiagramBoard';
 import { useWorkspaceZoom } from './diagrams/useWorkspaceZoom';
 import { ToolButton } from './components/ToolButton';
+import { ExportMenu, type ExportFormat } from './components/ExportMenu';
 import { Activity, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
@@ -64,12 +65,8 @@ import { deckHref, openDocs, parseRoute, useHash } from './route';
 import { showDeck, showPage, useDock } from './dock';
 import { isTyping, useHotkeys } from './useHotkeys';
 import { copyNodes, imagesFromClipboard, nodesFromClipboard, snapshotClipboard } from './clipboard';
-import {
-  exportFile,
-  importFile,
-  saveForNavigation,
-} from './persist';
-import { exportGif, exportImage } from './gif';
+import { importFile, saveForNavigation } from './persist';
+import { cycleSeconds, exportGif, exportImage } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
 import { FlowControls } from './components/FlowControls';
@@ -112,8 +109,8 @@ function openAppearancePanel() {
 function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   slots?: EditorSlots;
   onTogglePanel: () => void;
-  exporting: 'gif' | 'png' | null;
-  setExporting: (format: 'gif' | 'png' | null) => void;
+  exporting: ExportFormat | null;
+  setExporting: (format: ExportFormat | null) => void;
   welcome: boolean;
 }) {
   const nodes = useDiagram((s) => s.nodes);
@@ -209,29 +206,21 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   /** the overflow (3-dot) menu: open state and its anchor for click-outside */
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [exportOpen, setExportOpen] = useState(false);
-  const exportRef = useRef<HTMLDivElement>(null);
-  const [exportWidth, setExportWidth] = useState(900);
   const canvasWidth = useStore((state) => state.width);
   const canvasHeight = useStore((state) => state.height);
   const compactToolbar = canvasWidth < 600;
 
   useEffect(() => {
-    if (!menuOpen && !exportOpen) return;
+    if (!menuOpen) return;
     const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as globalThis.Node)) {
+      if (e.target instanceof globalThis.Node && !menuRef.current?.contains(e.target)) {
         setMenuOpen(false);
-      }
-      if (exportRef.current && !exportRef.current.contains(e.target as globalThis.Node)) {
-        setExportOpen(false);
       }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (menuOpen) menuRef.current?.querySelector('button')?.focus();
-        if (exportOpen) exportRef.current?.querySelector('button')?.focus();
+        menuRef.current?.querySelector('button')?.focus();
         setMenuOpen(false);
-        setExportOpen(false);
       }
     };
     window.addEventListener('mousedown', onDown);
@@ -240,7 +229,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('keydown', onKey);
     };
-  }, [menuOpen, exportOpen]);
+  }, [menuOpen]);
 
   const onPickFile = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,7 +269,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
 
   // Export an animated GIF of the whole diagram: frame it, drop the live
   // selection so no outline bleeds into the capture, then record the viewport.
-  const saveExport = useCallback(async (format: 'gif' | 'png') => {
+  const saveExport = useCallback(async (format: ExportFormat, exportWidth: number) => {
     if (exporting) return;
     const el = canvasRef.current;
     if (!el) return;
@@ -301,18 +290,16 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
       const recordFlow = steps > 0 && (wasPlaying || wasLit);
       const was = clock();
       if (recordFlow) usePlayer.getState().pause();
-      const loop = flowSeconds(steps, speed);
+      const loop = recordFlow ? flowSeconds(steps, speed) : 0;
       try {
         await exportGif(
           el,
-          { nodes: ns, edges: es },
+          {
+            mode: 'realtime',
+            seconds: cycleSeconds({ nodes: ns, edges: es }, loop),
+            frame: recordFlow ? (t) => seek(-FLOW_LEAD + (((t / loop) % 1) * flowCycle(steps))) : undefined,
+          },
           { maxWidth: exportWidth, upscale: true },
-          recordFlow
-            ? {
-                seconds: loop,
-                frame: (t) => seek(-FLOW_LEAD + (((t / loop) % 1) * flowCycle(steps))),
-              }
-            : undefined,
         );
       } finally {
         if (recordFlow) {
@@ -325,7 +312,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     } finally {
       setExporting(null);
     }
-  }, [exporting, exportWidth, fitView, setSelection, flash, setExporting]);
+  }, [exporting, fitView, setSelection, flash, setExporting]);
 
   const hidden = useMemo(() => hiddenNodeIds(), [hiddenNodeIds, nodes]);
   // not drawn as a node: folded away, or an unfolded group (just a sheet)
@@ -981,54 +968,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           <FlowControls sig={flow.sig} steps={flow.steps} />
         </div>
         <span className="mf-sep" />
-        <div className="mf-menu-wrap" ref={exportRef}>
-          <ToolButton label="Export" active={exportOpen} onClick={() => setExportOpen((v) => !v)}>
-            <Icon name="export" />
-          </ToolButton>
-          {exportOpen && (
-            <div className="mf-menu mf-export-menu" role="group" aria-label="Export">
-              <button
-                className="mf-menu-item"
-                onClick={() => {
-                  setExportOpen(false);
-                  exportFile();
-                }}
-              >
-                <Icon name="export" />
-                <span>Workspace file <small>JSON</small></span>
-              </button>
-              <span className="mf-menu-sep" />
-              <label className="mf-export-resolution">
-                <span>Resolution</span>
-                <select value={exportWidth} onChange={(event) => setExportWidth(Number(event.target.value))}>
-                  {[900, 1440, 1920].map((width) => (
-                    <option key={width} value={width}>
-                      {width} × {canvasWidth ? Math.max(1, Math.round(Math.round(canvasHeight) * width / Math.round(canvasWidth))) : '—'} px
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button className="mf-menu-item" disabled={exporting !== null} onClick={() => {
-                setExportOpen(false);
-                void saveExport('png');
-              }}>
-                <Icon name="export" />
-                <span>Export PNG</span>
-              </button>
-              <button
-                className="mf-menu-item"
-                disabled={exporting !== null}
-                onClick={() => {
-                  setExportOpen(false);
-                  void saveExport('gif');
-                }}
-              >
-                <Icon name="film" />
-                <span>{exporting ? 'Exporting GIF…' : 'Export GIF'}</span>
-              </button>
-            </div>
-          )}
-        </div>
+        <ExportMenu size={{ width: canvasWidth, height: canvasHeight }} exporting={exporting} onExport={saveExport} />
         <div className="mf-menu-wrap" ref={menuRef}>
           <ToolButton label="More actions" expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
             <Icon name="more" />
@@ -1281,7 +1221,7 @@ function DiagramEditor({ showWelcome, diagramKind, slots }: { showWelcome: boole
   const [visited, setVisited] = useState(sequenceView);
   if (sequenceView && !visited) setVisited(true);
   const [panelWidth, setPanelWidth] = useState(360);
-  const [exporting, setExporting] = useState<'gif' | 'png' | null>(null);
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
 
   useEffect(() => {
     if (exporting !== 'gif') return;

@@ -5,6 +5,7 @@ import { parseMermaid } from '../mermaid/io';
 import { ReactFlowProvider } from '@xyflow/react';
 import { ToolButton } from '../components/ToolButton';
 import { FlowControls } from '../components/FlowControls';
+import { ExportMenu, type ExportFormat } from '../components/ExportMenu';
 import { Icon } from '../components/Icon';
 import { ElementPalette } from './ElementPalette';
 import { closeActivation, insertElement, sampleEdit } from './insertion';
@@ -14,8 +15,10 @@ import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState }
 import { useDiagram } from '../store';
 import { activeAppearance, useAppearance } from '../theme';
 import { diagramSvg } from '../mermaid/svg';
-import { exportFile } from '../persist';
-import { exportImage } from '../gif';
+import { exportGif, exportImage, GIF_DEFAULTS } from '../gif';
+import { exportHeight, GIF_PIXEL_BUDGET } from '../gifMath';
+import { flowCycle, flowSeconds, FLOW_LEAD } from '../flow';
+import { usePlayer } from '../flowPlayer';
 import {
   emptyBlocks,
   spatial,
@@ -38,7 +41,7 @@ import { StatementForm } from './StatementForm';
 import type { PropertyFocus } from './RailProperties';
 import { bindSelection, summary } from './selection';
 import { applySequenceStyles } from './applyStyles';
-import { remapSequenceStyles } from './styleMap';
+import { addMessageTraces } from './messageTraces';
 import './sequence.css';
 
 type Action = {
@@ -104,24 +107,17 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   const placement = useRef<PlacementHandle>(null);
   const [tool, setTool] = useState<Tool>('select');
   const panel = useDock((state) => state.open);
-  const [menu, setMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!menu) return;
-    const close = (event: PointerEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) setMenu(false);
-    };
-    const key = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenu(false);
-    };
-    document.addEventListener('pointerdown', close);
-    document.addEventListener('keydown', key);
-    return () => {
-      document.removeEventListener('pointerdown', close);
-      document.removeEventListener('keydown', key);
-    };
-  }, [menu]);
   const [renderError, setRenderError] = useState('');
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
+  const [exportError, setExportError] = useState('');
+  const exportSvg = useMemo(() => {
+    if (!svg) return null;
+    const template = document.createElement('template');
+    template.innerHTML = svg;
+    return template.content.querySelector('svg');
+  }, [svg]);
+  const exportSize = exportSvg?.viewBox.baseVal ?? { width: 0, height: 0 };
+  const canExport = drawing.source === source && !renderError && exportSize.width >= 2 && exportSize.height >= 2;
   const textarea = useRef<HTMLTextAreaElement>(null);
   const revision = useRef(0);
   const base = useRef(source);
@@ -647,31 +643,70 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   useEffect(() => {
     if (target) pickTarget(target);
   }, [target]);
-  async function downloadImage() {
+  async function saveExport(format: ExportFormat, width: number) {
+    if (!canExport || exporting || !exportSvg) return;
+    setExporting(format);
+    setExportError('');
+    const exported = document.importNode(exportSvg, true);
     const picture = document.createElement('div');
     picture.className = 'sq-export';
-    picture.innerHTML = svg;
-    const view = picture.querySelector('svg')?.viewBox.baseVal;
-    if (!view) return;
-    picture.style.width = view.width + 'px';
-    picture.style.height = view.height + 'px';
+    picture.appendChild(exported);
+    picture.style.width = exportSize.width + 'px';
+    picture.style.height = exportSize.height + 'px';
     const staging = document.createElement('div');
     staging.className = 'sq-export-stage';
+    staging.inert = true;
     staging.appendChild(picture);
     document.body.appendChild(staging);
     try {
-      // The export is drawn from `drawing.source`; its styles follow that version of the source.
-      const exported = picture.querySelector('svg');
-      if (exported) {
-        const drawn = statements(drawing.source);
-        bindSelection(exported, drawn);
-        applySequenceStyles(exported, drawn, remapSequenceStyles(source, drawing.source, useDiagram.getState().sequenceStyles));
+      bindSelection(exported, rows);
+      applySequenceStyles(exported, rows, useDiagram.getState().sequenceStyles);
+      // html-to-image only looks at HTML elements when it collects fonts to embed.
+      const fonts = document.createElement('span');
+      fonts.hidden = true;
+      fonts.style.fontFamily = [...new Set(Array.from(
+        exported.querySelectorAll('text, tspan, foreignObject *'),
+        (label) => getComputedStyle(label).fontFamily,
+      ))].join(', ');
+      picture.appendChild(fonts);
+      if (format === 'png') {
+        await exportImage(picture, width);
+        return;
       }
-      await exportImage(picture, 1200);
-    } catch (e) {
-      setError(String(e));
+
+      const player = usePlayer.getState();
+      const steps = messageSteps.size;
+      const loop = player.sig === `sequence:${source}` && (player.playing || player.lit)
+        ? flowSeconds(steps, player.speed)
+        : 0;
+      if (loop) addMessageTraces(exported, messageSteps);
+
+      const animations = picture.getAnimations({ subtree: true });
+      let seconds = loop;
+      for (const animation of animations) {
+        const timing = animation.effect?.getTiming();
+        if (typeof timing?.duration === 'number') {
+          const iterations = timing.direction?.startsWith('alternate') ? 2 : 1;
+          seconds = Math.max(seconds, timing.duration * iterations / 1000);
+        }
+        animation.pause();
+      }
+      const maxFrames = Math.floor(GIF_PIXEL_BUDGET / (width * exportHeight(width, exportSize)));
+      const fps = seconds ? Math.min(GIF_DEFAULTS.fps, Math.floor(maxFrames / seconds)) : 1;
+      if (maxFrames < 1 || fps < 1) throw new Error('The GIF is too large. Choose a lower resolution or shorten the animation.');
+      await exportGif(picture, {
+        mode: 'seek',
+        seconds,
+        frame: (elapsed) => {
+          for (const animation of animations) animation.currentTime = elapsed * 1000;
+          if (loop) picture.style.setProperty('--mf-flow-t', String(-FLOW_LEAD + (elapsed / loop % 1) * flowCycle(steps)));
+        },
+      }, { maxWidth: width, upscale: true, sharedPalette: false, fps });
+    } catch (error) {
+      setExportError(`Couldn't export ${format.toUpperCase()}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       staging.remove();
+      setExporting(null);
     }
   }
   const sourceStatus = (
@@ -792,34 +827,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
         <FlowControls sig={`sequence:${source}`} steps={drawing.source === source && svg ? messageSteps.size : 0} />
       </div>
       <span className="mf-sep" />
-      <div ref={menuRef} className="mf-menu-wrap">
-        <ToolButton label="Export" expanded={menu} onClick={() => setMenu((value) => !value)}>
-          <Icon name="export" />
-        </ToolButton>
-        {menu && (
-          <div
-            className="mf-menu mf-export-menu"
-            role="group"
-            aria-label="Export"
-            onClick={() => setMenu(false)}
-          >
-            <button className="mf-menu-item" onClick={exportFile}>
-              <Icon name="export" />
-              <span>
-                Workspace file <small>JSON</small>
-              </span>
-            </button>
-            <button
-              className="mf-menu-item"
-              disabled={!svg || !!renderError}
-              onClick={() => void downloadImage()}
-            >
-              <Icon name="export" />
-              Export PNG
-            </button>
-          </div>
-        )}
-      </div>
+      <ExportMenu size={exportSize} disabled={!canExport} exporting={exporting} onExport={saveExport} />
     </>
   );
   const sourceContent = (
@@ -992,8 +1000,13 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       {slots?.toolbar && createPortal(toolbar, slots.toolbar)}
       {slots?.source && createPortal(sourceContent, slots.source)}
       {slots?.outline && createPortal(outlineContent, slots.outline)}
+      {exporting === 'gif' && createPortal(
+        <div className="mf-export-overlay" role="status"><span>Exporting GIF…</span></div>,
+        document.body,
+      )}
       <div className="sq-work">
         <section className="sq-board">
+          {exportError && <div className="mf-notice" role="alert">{exportError}</div>}
           <ReactFlowProvider>
             <SequenceCanvas
               ref={placement}

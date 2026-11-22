@@ -3,7 +3,7 @@ import { workspaceDiagram } from './store.ts';
 import { useDock } from './dock.ts';
 import { readImageFile } from './imageUpload.ts';
 import { captureGif } from './gif.ts';
-import { cycleSeconds, frameCount, fitScale } from './gifMath.ts';
+import { cycleSeconds, frameCount, fitScale, GIF_PIXEL_BUDGET } from './gifMath.ts';
 import { flowCycle, flowSeconds, FLOW_LEAD } from './flow.ts';
 import { seek, usePlayer } from './flowPlayer.ts';
 import { layoutShown, type Direction } from './layout.ts';
@@ -49,9 +49,12 @@ function createBridge(fit: () => Promise<void>) {
       if (duration > 30) throw new Error('Animation exceeds the 30 second export limit');
       const rect = element.getBoundingClientRect();
       const scale = fitScale(rect.width, options.maxWidth);
-      if (frameCount(duration, options.fps) * rect.width * rect.height * scale * scale > 64_000_000) throw new Error('GIF exceeds the render memory budget. Reduce fps, maxWidth, or animation duration.');
-      const blob = await captureGif(element, current, options,
-        options.flow ? { seconds, frame: elapsed => seek(-FLOW_LEAD + (elapsed / seconds) * flowCycle(player.steps)) } : undefined,
+      if (frameCount(duration, options.fps) * rect.width * rect.height * scale * scale > GIF_PIXEL_BUDGET) throw new Error('GIF exceeds the render memory budget. Reduce fps, maxWidth, or animation duration.');
+      const blob = await captureGif(element, {
+        mode: 'realtime',
+        seconds: duration,
+        frame: options.flow ? elapsed => seek(-FLOW_LEAD + (elapsed / seconds) * flowCycle(player.steps)) : undefined,
+      }, options,
         (frame, total) => { window.__marmerladeProgress = { frame, total }; });
       const bytes = new Uint8Array(await blob.arrayBuffer());
       let binary = '';

@@ -14,6 +14,7 @@ export function Choice({
   change,
   preview,
   required,
+  hideLabel,
 }: {
   label: string;
   value: string;
@@ -22,6 +23,8 @@ export function Choice({
   /** Called with the option being considered, and with undefined when nothing is. */
   preview?: (value: string | undefined) => void;
   required?: boolean;
+  /** Keep the label for assistive technology only. */
+  hideLabel?: boolean;
 }) {
   const id = useId();
   const options = groups.flatMap((group) => group.options);
@@ -109,7 +112,9 @@ export function Choice({
 
   return (
     <div className="sq-choice">
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id} className={hideLabel ? 'sq-sr-only' : undefined}>
+        {label}
+      </label>
       <button
         id={id}
         ref={button}
@@ -124,7 +129,7 @@ export function Choice({
         onClick={() => (open ? close() : show())}
         onKeyDown={key}
       >
-        <span>{current?.label ?? value}</span>
+        <span>{current?.label ?? (value || label + '…')}</span>
         {current?.hint && <code>{current.hint}</code>}
       </button>
       {required && (

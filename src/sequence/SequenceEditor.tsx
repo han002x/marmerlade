@@ -9,7 +9,7 @@ import { ElementPalette } from './ElementPalette';
 import { closeActivation, insertElement, sampleEdit } from './insertion';
 import { moveLane, removeSelection, type CanvasEdit } from './canvasEdits';
 import SequenceCanvas, { type PlacementHandle, type Tool } from './SequenceCanvas';
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useDiagram } from '../store';
 import { activeAppearance, useAppearance } from '../theme';
 import { diagramSvg } from '../mermaid/svg';
@@ -347,7 +347,15 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     throw new Error('Choose an element to edit.');
   }
 
+  // Icon and dropdown picks in an open edit form apply as soon as their preview is ready;
+  // typed text waits for Enter. The form then reopens on the edited element.
+  const draftText = useRef('');
+  const autoApply = useRef(false);
+  const reopenAfter = useRef<string>(undefined);
   const draftProperties = (text: string, changed: boolean) => {
+    draftText.current = text;
+    // Picking the original value again leaves nothing to apply.
+    if (!changed) autoApply.current = false;
     try {
       setProposal(pending || changed ? buildDraft(text).source : source);
       setPreviewError('');
@@ -463,17 +471,41 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       const edit = buildDraft(text);
       if (edit.source !== candidate.source) return;
       if (edit.source === source) closeProperties();
-      else if (await commit(edit.source, edit.at)) discardInsertion();
+      else {
+        const editing = !pending;
+        if (editing) reopenAfter.current = source;
+        if (await commit(edit.source, edit.at)) discardInsertion();
+        else if (editing) reopenAfter.current = undefined;
+      }
     } catch (reason) {
       setPreviewError(reason instanceof Error ? reason.message : String(reason));
     }
   }
+
+  const applyPick = useEffectEvent(() => {
+    if (!autoApply.current || pending || !action) return;
+    if (previewError) autoApply.current = false;
+    if (!candidate || candidate.source !== proposal || proposal === source) return;
+    autoApply.current = false;
+    void applyProperties(draftText.current);
+  });
+  useEffect(() => applyPick(), [candidate, proposal, previewError]);
+  // A commit closes the form; an edit made from it keeps it open on the same element.
+  const reopen = useEffectEvent(() => {
+    if (reopenAfter.current === undefined || reopenAfter.current === source || action || pending || busy || draft !== source)
+      return;
+    reopenAfter.current = undefined;
+    if (selected || selectedActor) openProperties(selected, selectedActor);
+  });
+  useLayoutEffect(() => reopen(), [source, draft, action, pending, busy, selected, selectedActor]);
 
   const implicit = ids.filter(
     (id) => !rows.some((row) => row.kind === 'participant' && row.values[0] === id),
   );
   function closeProperties() {
     previewRevision.current++;
+    autoApply.current = false;
+    reopenAfter.current = undefined;
     setAction(undefined);
     setPropertyFocus(undefined);
     setCandidate(undefined);
@@ -866,13 +898,19 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   const propertyRow = pending?.row ?? action?.edit;
   const propertyError = previewError || error;
   const participantSelected = !!selectedActor || selected?.kind === 'participant';
-  const inForm = !!propertyKind && propertyKind === 'participant' && !pending;
+  const inForm = !!propertyKind && ['participant', 'message', 'note'].includes(propertyKind) && !pending;
+  /** Runs an action from the open form, keeping the form open if it changes the source. */
+  const keepForm = (run: () => void) => {
+    const keep = inForm ? source : undefined;
+    run();
+    reopenAfter.current = keep;
+  };
   const actions = (
     <>
           {!isBranch && (
             <>
-              <button type="button" className={participantSelected ? 'sq-move-left' : 'sq-move-up'} aria-label={participantSelected ? 'Move left' : 'Move up'} title={participantSelected ? 'Move left' : 'Move up'} onClick={() => move(-1)}><Icon name="tidy-right" /></button>
-              <button type="button" className={participantSelected ? '' : 'sq-move-down'} aria-label={participantSelected ? 'Move right' : 'Move down'} title={participantSelected ? 'Move right' : 'Move down'} onClick={() => move(1)}><Icon name="tidy-right" /></button>
+              <button type="button" className={participantSelected ? 'sq-move-left' : 'sq-move-up'} aria-label={participantSelected ? 'Move left' : 'Move up'} title={participantSelected ? 'Move left' : 'Move up'} onClick={() => keepForm(() => move(-1))}><Icon name="tidy-right" /></button>
+              <button type="button" className={participantSelected ? '' : 'sq-move-down'} aria-label={participantSelected ? 'Move right' : 'Move down'} title={participantSelected ? 'Move right' : 'Move down'} onClick={() => keepForm(() => move(1))}><Icon name="tidy-right" /></button>
             </>
           )}
           <button type="button" aria-label={selectedActor ? 'Remove participant' : participantSelected ? 'Remove declaration' : 'Remove'} title={selectedActor ? 'Remove participant' : participantSelected ? 'Remove declaration' : 'Remove'} onClick={() => {
@@ -904,6 +942,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
         invalid={!!previewError}
         onDraft={draftProperties}
         onTrial={trialProperties}
+        onPick={() => (autoApply.current = true)}
         save={(text) => void applyProperties(text)}
         cancel={cancelForm}
         actions={inForm ? actions : undefined}
@@ -911,17 +950,13 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       {propertyError && <p className="sq-form-error" role="alert">{propertyError}</p>}
     </>
   );
-  const quickField = selected?.kind === 'message' ? 'Arrow' : selected?.kind === 'note' ? 'Position' : undefined;
-  const labelField = selected?.kind === 'message' ? 'Message' : selected?.kind === 'note' ? 'Note' : undefined;
-  const editSelected = (field?: string) => openProperties(selected, selectedActor, { field });
-  const commands = (selected || selectedActor) && (
+  const branch = selected && branches[selected.kind];
+  const commands = (selected || selectedActor) && (!inForm || branch) && (
     <>
-      {labelField && <button onClick={() => editSelected(labelField)}>Edit text</button>}
-      {quickField && <button onClick={() => editSelected(quickField)}>{quickField}</button>}
       <div className="sq-element-actions">
-          {selected && branches[selected.kind] && (
-            <button onClick={() => beginInsertion(branches[selected.kind], selected.close?.start)}>
-              Add {branches[selected.kind]} branch
+          {selected && branch && (
+            <button onClick={() => beginInsertion(branch, selected.close?.start)}>
+              Add {branch} branch
             </button>
           )}
           {!inForm && actions}

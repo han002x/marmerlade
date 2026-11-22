@@ -1,7 +1,9 @@
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
 import { arrowGroups, arrowName, descriptions, nameOf, format, type Statement } from './model';
 import { Choice } from './Choice';
+import { ArrowGlyph, IconChoice, type ArrowHead } from './IconChoice';
 import { Icon } from '../components/Icon';
+type IconProps = Parameters<typeof Icon>[0];
 import { newNodeId } from '../nodeId';
 
 const participantFields = ['activate', 'deactivate', 'destroy', 'link', 'links', 'properties', 'details'];
@@ -37,6 +39,25 @@ const shapes: [string, string][] = [
   ['database', 'Database'],
   ['collections', 'Collections'],
   ['queue', 'Queue'],
+];
+const heads: [ArrowHead, string, string][] = [
+  ['arrow', '>>', 'arrow'],
+  ['open', ')', 'open arrow'],
+  ['cross', 'x', 'cross'],
+  ['none', '>', 'no arrowhead'],
+  ['both', '>>', 'arrows both ways'],
+];
+/** The common arrows drawn as an icon grid: a solid row, then a dashed row. */
+const arrowIcons = [false, true].flatMap((dashed) =>
+  heads.map(([head, end, name]) => {
+    const value = (head === 'both' ? '<<' : '') + (dashed ? '--' : '-') + end;
+    return { value, label: (dashed ? 'Dashed, ' : 'Solid, ') + name, icon: <ArrowGlyph dashed={dashed} head={head} /> };
+  }),
+);
+const notePositions = [
+  { value: 'left of', label: 'Left of', icon: <Icon name="note-left" size={18} /> },
+  { value: 'over', label: 'Over', icon: <Icon name="note-over" size={18} /> },
+  { value: 'right of', label: 'Right of', icon: <Icon name="note-right" size={18} /> },
 ];
 const typePattern = /(?:^|,)\s*["']?type["']?\s*:\s*["']?(\w+)["']?\s*(?=,|$)/i;
 
@@ -187,6 +208,7 @@ function ParticipantPicker({
   ids,
   names,
   optional,
+  hideLabel,
   change,
   preview,
 }: {
@@ -195,6 +217,7 @@ function ParticipantPicker({
   ids: string[];
   names: Record<string, string>;
   optional?: string;
+  hideLabel?: boolean;
   change: (value: string) => void;
   preview?: (value: string | undefined) => void;
 }) {
@@ -202,13 +225,14 @@ function ParticipantPicker({
   if (!choices.length)
     return (
       <label>
-        {label}
+        <span className={hideLabel ? 'sq-sr-only' : undefined}>{label}</span>
         <input required value={value} onChange={(e) => change(e.target.value)} />
       </label>
     );
   return (
     <Choice
       label={label}
+      hideLabel={hideLabel}
       value={value}
       required={optional === undefined}
       change={change}
@@ -229,10 +253,6 @@ function ParticipantPicker({
   );
 }
 
-function More({ children }: { children: ReactNode }) {
-  return <div className="sq-more">{children}</div>;
-}
-
 export function StatementForm({
   kind,
   row,
@@ -247,6 +267,7 @@ export function StatementForm({
   note,
   onDraft,
   onTrial,
+  onPick,
 }: {
   kind: string;
   row?: Statement;
@@ -260,14 +281,17 @@ export function StatementForm({
   onDraft?: (text: string, changed: boolean) => void;
   /** The statement as it would read with the option under the pointer, or undefined. */
   onTrial?: (text: string | undefined) => void;
+  /** A setting was picked (not typed); an edit form applies it straight away. */
+  onPick?: () => void;
   save: (statement: string) => void;
   cancel: () => void;
-  /** Extra buttons shown beside the participant toggles. */
+  /** Extra buttons shown beside the element's icon toggles. */
   actions?: ReactNode;
 }) {
   const [values, setValues] = useState(() => row?.values ?? defaults(kind, ids));
   const [partner, setPartner] = useState(ids[0] ?? 'A');
   const [queued, setQueued] = useState(false);
+  const [moreArrows, setMoreArrows] = useState(false);
   const primary = useRef<HTMLInputElement>(null);
   const [trial, setTrial] = useState<{ values: string[]; partner: string }>();
   const change = (i: number, value: string) =>
@@ -276,10 +300,15 @@ export function StatementForm({
       copy[i] = value;
       return copy;
     });
+  const pick = (next: string[]) => {
+    setTrial(undefined);
+    setValues(next);
+    if (!inserting) onPick?.();
+  };
   const replaced = (i: number, value: string) => values.map((old, j) => (j === i ? value : old));
   /** Props for a dropdown whose options each produce a whole new set of values. */
   const options = (next: (value: string) => string[]) => ({
-    change: (value: string) => setValues(next(value)),
+    change: (value: string) => pick(next(value)),
     preview: (value: string | undefined) =>
       setTrial(value === undefined ? undefined : { values: next(value), partner }),
   });
@@ -320,22 +349,28 @@ export function StatementForm({
   useEffect(() => {
     if (queued && (!busy || invalid)) flush();
   }, [queued, busy, invalid]);
-  const wrapping = (i: number) => (
-    <Choice
-      label="Text wrapping"
-      value={/^(wrap|nowrap):/i.exec(values[i] ?? '')?.[1]?.toLowerCase() ?? ''}
-      groups={[
-        {
-          options: [
-            { value: '', label: 'Diagram default' },
-            { value: 'wrap', label: 'Wrap' },
-            { value: 'nowrap', label: 'Keep on one line' },
-          ],
-        },
-      ]}
-      {...options((v) => replaced(i, (v && v + ':') + (values[i] ?? '').replace(/^(?:wrap|nowrap):/i, '')))}
-    />
+  /** An icon button that switches one setting, previewing the result on the canvas while pointed at. */
+  const toggle = (icon: IconProps['name'], label: string, pressed: boolean, next: () => string[]) => (
+    <button
+      key={label}
+      type="button"
+      className="sq-icon-toggle"
+      aria-pressed={pressed}
+      aria-label={label}
+      title={label}
+      onPointerEnter={() => setTrial({ values: next(), partner })}
+      onPointerLeave={() => setTrial(undefined)}
+      onClick={() => pick(next())}
+    >
+      <Icon name={icon} />
+    </button>
   );
+  /** Toggles Mermaid's `wrap:` prefix; an existing `nowrap:` stays until the toggle is used. */
+  const wrapping = (i: number) => {
+    const wrapped = /^wrap:/i.test(values[i] ?? '');
+    const next = () => replaced(i, (wrapped ? '' : 'wrap:') + (values[i] ?? '').replace(/^(?:wrap|nowrap):/i, ''));
+    return toggle('wrap-text', 'Wrap text', wrapped, next);
+  };
   const text = (label: string, i: number, props: { placeholder?: string; required?: boolean; main?: boolean } = {}) => (
     <label>
       {label}
@@ -384,7 +419,7 @@ export function StatementForm({
           aria-pressed={values[4] === 'create'}
           aria-label="Starts mid-diagram"
           title="Starts mid-diagram (drawn where a message creates it)"
-          onClick={() => change(4, values[4] === 'create' ? '' : 'create')}
+          onClick={() => pick(replaced(4, values[4] === 'create' ? '' : 'create'))}
         >
           <Icon name="lifeline-start" size={22} />
         </button>
@@ -393,55 +428,71 @@ export function StatementForm({
       </>
     );
   } else if (kind === 'message') {
-    const known = arrowGroups.some((g) => g.arrows.some(([a]) => a === values[2]));
+    const common = arrowIcons.some((option) => option.value === values[2]);
+    // Half arrowheads and connection circles are rare, so they wait behind “More”, unless in use.
+    const advanced = !common || values[4] === '()' || values[5] === '()';
+    const half = arrowGroups.find((group) => group.label === 'Half arrowheads')!;
+    const swapped = () => [values[1], values[0], ...values.slice(2)];
+    const end = (token: string) => () => replaced(5, values[5] === token ? '' : token);
     body = (
       <>
-        {picker('From', 0)}
-        {picker('To', 1)}
-        {text('Message', 3, { placeholder: 'e.g. Submit order', main: true })}
-        <Choice
-          label="Arrow"
-          value={values[2]}
-          groups={[
-            ...(known ? [] : [{ options: [{ value: values[2], label: arrowName(values[2]), hint: values[2] }] }]),
-            ...arrowGroups.map((group) => ({
-              label: group.label,
-              options: group.arrows.map(([token, name]) => ({ value: token, label: name, hint: token })),
-            })),
-          ]}
-          {...options((v) => replaced(2, v))}
-        />
-        <More>
+        <div className="sq-ends">
+          <ParticipantPicker label="From" hideLabel value={values[0] ?? ''} ids={ids} names={names} {...options((v) => replaced(0, v))} />
+          <button
+            type="button"
+            className="sq-icon-toggle"
+            aria-label="Swap direction"
+            title="Swap direction"
+            onPointerEnter={() => setTrial({ values: swapped(), partner })}
+            onPointerLeave={() => setTrial(undefined)}
+            onClick={() => pick(swapped())}
+          >
+            <Icon name="swap" />
+          </button>
+          <ParticipantPicker label="To" hideLabel value={values[1] ?? ''} ids={ids} names={names} {...options((v) => replaced(1, v))} />
+        </div>
+        {inserting && text('Message', 3, { placeholder: 'e.g. Submit order', main: true })}
+        <div className="sq-arrows">
+          <IconChoice label="Arrow" columns={5} value={values[2]} options={arrowIcons} {...options((v) => replaced(2, v))} />
+          <button
+            type="button"
+            className="sq-icon-toggle"
+            aria-pressed={moreArrows || advanced}
+            aria-expanded={moreArrows || advanced}
+            disabled={advanced}
+            aria-label="More arrow options"
+            title="More arrow options"
+            onClick={() => setMoreArrows((open) => !open)}
+          >
+            <Icon name="more" />
+          </button>
+        </div>
+        {(moreArrows || advanced) && (
+          <>
           <Choice
-            label="Receiver activation"
-            value={values[5] ?? ''}
+            label="Half arrowheads"
+            hideLabel
+            value={common ? '' : values[2]}
             groups={[
-              {
-                options: [
-                  { value: '', label: 'No change' },
-                  { value: '+', label: 'Activate receiver', hint: '+' },
-                  { value: '-', label: 'Deactivate sender', hint: '−' },
-                  { value: '()', label: 'Central connection', hint: '()' },
-                ],
-              },
+              ...(half.arrows.some(([a]) => a === values[2]) || common
+                ? []
+                : [{ options: [{ value: values[2], label: arrowName(values[2]), hint: values[2] }] }]),
+              { options: half.arrows.map(([token, name]) => ({ value: token, label: name, hint: token })) },
             ]}
-            {...options((v) => replaced(5, v))}
+            {...options((v) => replaced(2, v))}
           />
-          <Choice
-            label="Sender connection"
-            value={values[4] ?? ''}
-            groups={[
-              {
-                options: [
-                  { value: '', label: 'Default' },
-                  { value: '()', label: 'Central connection', hint: '()' },
-                ],
-              },
-            ]}
-            {...options((v) => replaced(4, v))}
-          />
+          <div className="sq-element-actions">
+            {toggle('dot-sender', 'Circle at sender', values[4] === '()', () => replaced(4, values[4] === '()' ? '' : '()'))}
+            {toggle('dot-receiver', 'Circle at receiver', values[5] === '()', end('()'))}
+          </div>
+          </>
+        )}
+        <div className="sq-element-actions">
+          {toggle('activate-bar', 'Activate receiver', values[5] === '+', end('+'))}
+          {toggle('deactivate-bar', 'Deactivate sender', values[5] === '-', end('-'))}
           {wrapping(3)}
-        </More>
+          {actions}
+        </div>
       </>
     );
   } else if (kind === 'note') {
@@ -449,39 +500,36 @@ export function StatementForm({
     const people = (a: string, b: string) => replaced(1, [a, values[0] === 'over' ? b : ''].filter(Boolean).join(','));
     body = (
       <>
-        <Choice
+        <IconChoice
           label="Position"
           value={values[0]}
-          groups={[
-            {
-              options: [
-                { value: 'over', label: 'Over' },
-                { value: 'left of', label: 'Left of' },
-                { value: 'right of', label: 'Right of' },
-              ],
-            },
-          ]}
+          options={notePositions}
           {...options((v) => [v, v === 'over' ? values[1] : first, ...values.slice(2)])}
         />
-        <ParticipantPicker
-          label="Participant"
-          value={first}
-          ids={ids}
-          names={names}
-          {...options((v) => people(v, second))}
-        />
-        {values[0] === 'over' && (
+        <div className="sq-ends">
           <ParticipantPicker
-            label="Stretch to"
-            value={second}
-            optional="Just this participant"
-            ids={ids.filter((id) => id !== first)}
+            label="Participant"
+            value={first}
+            ids={ids}
             names={names}
-            {...options((v) => people(first, v))}
+            {...options((v) => people(v, second))}
           />
-        )}
-        {text('Note', 2, { placeholder: 'e.g. Validates the cart', main: true })}
-        <More>{wrapping(2)}</More>
+          {values[0] === 'over' && (
+            <ParticipantPicker
+              label="Stretch to"
+              value={second}
+              optional="Just this one"
+              ids={ids.filter((id) => id !== first)}
+              names={names}
+              {...options((v) => people(first, v))}
+            />
+          )}
+        </div>
+        {inserting && text('Note', 2, { placeholder: 'e.g. Validates the cart', main: true })}
+        <div className="sq-element-actions">
+          {wrapping(2)}
+          {actions}
+        </div>
       </>
     );
   } else if (kind === 'box') {
@@ -581,7 +629,7 @@ export function StatementForm({
     >
       {(!row || inserting) && <h3>Add {nameOf(kind).toLowerCase()}</h3>}
       {inserting && descriptions[kind] && <p className="sq-meaning">{descriptions[kind]}</p>}
-      {guidance[kind] && <p>{guidance[kind]}</p>}
+      {inserting && guidance[kind] && <p>{guidance[kind]}</p>}
       {body}
       {lifecycle && (
         <ParticipantPicker

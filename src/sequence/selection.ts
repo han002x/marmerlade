@@ -98,9 +98,10 @@ export function bindSelection(svg: SVGSVGElement, rows: Statement[]) {
 
 export function summary(row: Statement) {
   if (row.kind === 'message')
-    return row.values[0] + ' → ' + row.values[1] + (row.values[3] ? ' · ' + row.values[3] : '');
+    return row.values[0] + ' → ' + row.values[1] + (row.values[3] ? ' · ' + row.values[3].replace(/^(?:wrap|nowrap):/i, '') : '');
   if (row.kind === 'participant')
     return (row.values[2] === 'actor' ? 'Actor · ' : 'Participant · ') + (row.values[1] || row.values[0]);
+  if (row.kind === 'note') return 'Note · ' + (row.values[2]?.replace(/^(?:wrap|nowrap):/i, '') || row.values[1]);
   if (blocks.includes(row.kind)) return row.kind + (row.values[0] ? ' · ' + row.values[0] : '');
   return row.text;
 }

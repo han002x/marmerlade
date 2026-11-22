@@ -1288,7 +1288,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
               variant={activeAppearance().texture === 'grid' ? BackgroundVariant.Lines : BackgroundVariant.Dots}
             />
             <Controls />
-            <MiniMap pannable zoomable />
+            <MiniMap pannable zoomable style={{ width: 130, height: 90 }} />
           </>
         )}
       </ReactFlow>

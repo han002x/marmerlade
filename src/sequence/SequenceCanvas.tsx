@@ -1074,7 +1074,7 @@ export default function SequenceCanvas({
                 <Icon name="expand" />
               </ControlButton>
             </Controls>
-            <MiniMap pannable zoomable />
+            <MiniMap pannable zoomable style={{ width: 130, height: 90 }} />
           </>
         )}
       </ReactFlow>

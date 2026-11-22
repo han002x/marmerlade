@@ -725,6 +725,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
             pannable
             zoomable
             className="workspace-nopan"
+            style={{ width: 130, height: 90 }}
             nodeColor={(node) =>
               node.id === active ? 'color-mix(in srgb, var(--mf-accent) 45%, var(--mf-bg))' : 'var(--mf-border)'
             }

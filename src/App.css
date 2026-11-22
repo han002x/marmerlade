@@ -1046,6 +1046,16 @@
 }
 .react-flow__minimap {
   box-shadow: var(--mf-lift);
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.react-flow__minimap:hover {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__minimap {
+    transition: none;
+  }
 }
 .react-flow__edge-path {
   stroke-linecap: round;

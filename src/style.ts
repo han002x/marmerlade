@@ -123,14 +123,13 @@ export function inkOn(background: string | undefined): string | undefined {
 
 /** Map a stroke style + width to an SVG/CSS dash array. */
 export function dashArray(style: StrokeStyle, width: number): string | undefined {
-  switch (style) {
-    case 'dashed':
-      return `${width * 3} ${width * 2.5}`;
-    case 'dotted':
-      return `${width} ${width * 2}`;
-    default:
-      return undefined;
-  }
+  if (style !== 'dashed' && style !== 'dotted') return undefined;
+  return `${dashParts(style, width)[0]} ${dashParts(style, width)[1]}`;
+}
+
+/** Dotted is dashed at half length with the same dash-to-gap ratio, so both carry equal ink. */
+function dashParts(style: 'dashed' | 'dotted', width: number): [number, number] {
+  return style === 'dashed' ? [width * 3, width * 2.5] : [width * 1.5, width * 1.25];
 }
 
 /**
@@ -144,11 +143,7 @@ export function flowDash(
   width: number,
 ): { array: string; period: number } {
   const [dash, gap] =
-    style === 'dashed'
-      ? [width * 3, width * 2.5]
-      : style === 'dotted'
-        ? [width, width * 2]
-        : [width * 4, width * 3];
+    style === 'dashed' || style === 'dotted' ? dashParts(style, width) : [width * 4, width * 3];
   return { array: `${dash} ${gap}`, period: dash + gap };
 }
 

@@ -126,7 +126,7 @@ function inkOver(part: SVGElement, sloppiness: 1 | 2, seed: number, continuous: 
   return inked;
 }
 
-function paint(svg: SVGSVGElement, owner: SVGElement, style: ElementStyle, kind: string, seed: string) {
+function paint(svg: SVGSVGElement, owner: SVGElement, style: ElementStyle, kind: string, seed: string, baseWidth?: number) {
   // Nested elements tagged with another statement (such as `else` titles) are painted by their own owner.
   const parts = [owner, ...owner.querySelectorAll<SVGElement>('*')].filter(
     (part) => part === owner || part.closest(OWNER) === owner,
@@ -143,6 +143,10 @@ function paint(svg: SVGSVGElement, owner: SVGElement, style: ElementStyle, kind:
   }
   // Mermaid draws sequences with clean lines, so only a chosen sloppiness re-inks them.
   const sloppiness = style.sloppiness;
+  // Every part of one element (box, lifeline, footer) shares one width, so its dashes and dots match.
+  const shared = parts.find((part) => SHAPES.has(part.tagName.toLowerCase()));
+  const sharedWidth =
+    style.strokeWidth ?? baseWidth ?? (shared ? parseFloat(getComputedStyle(shared).strokeWidth) || 1 : 1);
   parts.forEach((part, index) => {
     const tag = part.tagName.toLowerCase();
     if (tag === 'text' || tag === 'tspan') {
@@ -155,13 +159,12 @@ function paint(svg: SVGSVGElement, owner: SVGElement, style: ElementStyle, kind:
     if (!SHAPES.has(tag)) return;
     // A message's activation bar belongs to the participant, not the message.
     if (kind === 'message' && part.matches('.activation0,.activation1,.activation2')) return;
-    const lifeline = part.matches('[data-et="life-line"]');
     const line = tag === 'line' || part.matches('.messageLine0,.messageLine1');
     save(part, 'style', 'rx', 'ry', 'pathLength', 'data-sq-shape');
     if (style.stroke) part.style.stroke = style.stroke;
-    const width = style.strokeWidth ?? (parseFloat(getComputedStyle(part).strokeWidth) || 1);
-    if (!lifeline && style.strokeWidth != null) part.style.strokeWidth = String(width);
-    if (!lifeline && style.strokeStyle) part.style.strokeDasharray = dashArray(style.strokeStyle, width) ?? 'none';
+    const width = sharedWidth;
+    if (style.strokeWidth != null || style.strokeStyle) part.style.strokeWidth = String(width);
+    if (style.strokeStyle) part.style.strokeDasharray = dashArray(style.strokeStyle, width) ?? 'none';
     if (style.background && !line) part.style.fill = style.background;
     if (style.edges && tag === 'rect') {
       const radius = style.edges === 'round' ? '8' : '0';
@@ -182,7 +185,7 @@ function paint(svg: SVGSVGElement, owner: SVGElement, style: ElementStyle, kind:
         shape.style.setProperty('--mf-anim-dur', duration);
       }
     }
-    if (lifeline || (animation !== 'draw' && animation !== 'flow')) return;
+    if (animation !== 'draw' && animation !== 'flow') return;
     shape.setAttribute('data-sq-shape', animation);
     shape.style.setProperty('--mf-anim-dur', duration);
     if (animation === 'draw') shape.setAttribute('pathLength', '100');
@@ -204,13 +207,22 @@ export function applySequenceStyles(svg: SVGSVGElement, rows: Statement[], style
   if (!styles || !Object.keys(styles).length) return;
   // Each participant has several drawn parts (header, lifeline, footer); seed each one apart.
   const drawn = new Map<string, number>();
+  // A participant's header box sets the stroke width its lifeline and footer follow.
+  const widths = new Map<string, number>();
+  for (const owner of svg.querySelectorAll<SVGElement>('[data-sequence-actor]')) {
+    const key = actorKey(owner.getAttribute('data-sequence-actor')!);
+    if (widths.has(key) || owner.matches('[data-et="life-line"]')) continue;
+    const first = [owner, ...owner.querySelectorAll<SVGElement>('*')].find((el) => SHAPES.has(el.tagName.toLowerCase()));
+    if (first) widths.set(key, parseFloat(getComputedStyle(first).strokeWidth) || 1);
+  }
   for (const owner of svg.querySelectorAll<SVGElement>('[data-sequence-actor]')) {
     if (owner.parentElement?.closest('[data-sequence-actor]')) continue;
     const key = actorKey(owner.getAttribute('data-sequence-actor')!);
     const style = styles[key];
     const count = drawn.get(key) ?? 0;
     drawn.set(key, count + 1);
-    if (style) paint(svg, owner, style, 'participant', key + '#' + count);
+    if (!style) continue;
+    paint(svg, owner, style, 'participant', key + '#' + count, widths.get(key));
   }
   const byStart = new Map(rows.map((row) => [row.start, row]));
   for (const owner of svg.querySelectorAll<SVGElement>('[data-statement]:not([data-sequence-actor])')) {

@@ -607,3 +607,5 @@
     animation: mf-anim-flow var(--mf-anim-dur, 1.6s) linear infinite;
   }
 }
+.sq-form .sq-icon-toggle { justify-self: start; display: inline-flex; align-items: center; justify-content: center; padding: 4px 8px; background: var(--mf-input); border: 1px solid var(--mf-border); border-radius: 4px; color: var(--mf-text); cursor: pointer; }
+.sq-form .sq-icon-toggle[aria-pressed='true'] { color: var(--mf-accent); border-color: var(--mf-accent); background: color-mix(in srgb, var(--mf-accent) 12%, transparent); }

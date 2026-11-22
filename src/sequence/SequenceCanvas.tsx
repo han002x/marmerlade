@@ -770,8 +770,7 @@ export default function SequenceCanvas({
         </RailProperties>
       )}
       {showStyle && (
-        <details className="sq-style" open>
-          <summary>Style{styleKeys.length > 1 ? ' · ' + styleKeys.length : ''}</summary>
+        <div className="sq-style">
           <div className="sq-style-fields">
             <StyleFields
               styles={styleKeys.map((key) => sequenceStyles[key] ?? {})}
@@ -787,7 +786,7 @@ export default function SequenceCanvas({
               }}
             />
           </div>
-        </details>
+        </div>
       )}
       {selecting && hiddenRows.length > 0 && (
         <details className="sq-rail-statements" open>

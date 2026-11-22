@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
 import { arrowGroups, arrowName, descriptions, nameOf, format, type Statement } from './model';
 import { Choice } from './Choice';
+import { Icon } from '../components/Icon';
 import { newNodeId } from '../nodeId';
 
 const participantFields = ['activate', 'deactivate', 'destroy', 'link', 'links', 'properties', 'details'];
@@ -239,6 +240,7 @@ export function StatementForm({
   names = {},
   save,
   cancel,
+  actions,
   busy,
   invalid,
   inserting = false,
@@ -260,6 +262,8 @@ export function StatementForm({
   onTrial?: (text: string | undefined) => void;
   save: (statement: string) => void;
   cancel: () => void;
+  /** Extra buttons shown beside the participant toggles. */
+  actions?: ReactNode;
 }) {
   const [values, setValues] = useState(() => row?.values ?? defaults(kind, ids));
   const [partner, setPartner] = useState(ids[0] ?? 'A');
@@ -373,17 +377,19 @@ export function StatementForm({
             return copy;
           })}
         />
-        <More>
-          <label className="sq-check">
-            <input
-              type="checkbox"
-              checked={values[4] === 'create'}
-              onChange={(e) => change(4, e.target.checked ? 'create' : '')}
-            />
-            Starts mid-diagram (drawn where a message creates it)
-          </label>
-          {text('Mermaid metadata', 3, { placeholder: '"type": "queue"' })}
-        </More>
+        <div className="sq-element-actions">
+        <button
+          type="button"
+          className="sq-icon-toggle"
+          aria-pressed={values[4] === 'create'}
+          aria-label="Starts mid-diagram"
+          title="Starts mid-diagram (drawn where a message creates it)"
+          onClick={() => change(4, values[4] === 'create' ? '' : 'create')}
+        >
+          <Icon name="lifeline-start" size={22} />
+        </button>
+          {actions}
+        </div>
       </>
     );
   } else if (kind === 'message') {
@@ -594,14 +600,16 @@ export function StatementForm({
           {note}
         </p>
       )}
-      <div>
-        <button type="submit" aria-busy={queued} disabled={invalid}>
-          {queued ? 'Checking…' : inserting ? 'Insert' : 'Apply edit'}
-        </button>
-        <button type="button" onClick={cancel}>
-          Cancel
-        </button>
-      </div>
+      {inserting && (
+        <div>
+          <button type="submit" aria-busy={queued} disabled={invalid}>
+            {queued ? 'Checking…' : 'Insert'}
+          </button>
+          <button type="button" onClick={cancel}>
+            Cancel
+          </button>
+        </div>
+      )}
     </form>
   );
 }

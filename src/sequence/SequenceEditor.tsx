@@ -865,6 +865,31 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   const propertyKind = pending?.kind ?? action?.edit.kind;
   const propertyRow = pending?.row ?? action?.edit;
   const propertyError = previewError || error;
+  const participantSelected = !!selectedActor || selected?.kind === 'participant';
+  const inForm = !!propertyKind && propertyKind === 'participant' && !pending;
+  const actions = (
+    <>
+          {!isBranch && (
+            <>
+              <button type="button" className={participantSelected ? 'sq-move-left' : 'sq-move-up'} aria-label={participantSelected ? 'Move left' : 'Move up'} title={participantSelected ? 'Move left' : 'Move up'} onClick={() => move(-1)}><Icon name="tidy-right" /></button>
+              <button type="button" className={participantSelected ? '' : 'sq-move-down'} aria-label={participantSelected ? 'Move right' : 'Move down'} title={participantSelected ? 'Move right' : 'Move down'} onClick={() => move(1)}><Icon name="tidy-right" /></button>
+            </>
+          )}
+          <button type="button" aria-label={selectedActor ? 'Remove participant' : participantSelected ? 'Remove declaration' : 'Remove'} title={selectedActor ? 'Remove participant' : participantSelected ? 'Remove declaration' : 'Remove'} onClick={() => {
+            if (selectedActor) {
+              const edit = removeSelection(source, rows, [], [selectedActor]);
+              void commit(edit.source, edit.at);
+            } else if (selected) {
+              void commit(
+                source.slice(0, selected.start) + source.slice(selected.close?.end ?? selected.end),
+                selected.start,
+              );
+            }
+          }}>
+            <Icon name="trash" />
+          </button>
+    </>
+  );
   const properties = propertyKind && (
     <>
       <StatementForm
@@ -881,11 +906,11 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
         onTrial={trialProperties}
         save={(text) => void applyProperties(text)}
         cancel={cancelForm}
+        actions={inForm ? actions : undefined}
       />
       {propertyError && <p className="sq-form-error" role="alert">{propertyError}</p>}
     </>
   );
-  const participantSelected = !!selectedActor || selected?.kind === 'participant';
   const quickField = selected?.kind === 'message' ? 'Arrow' : selected?.kind === 'note' ? 'Position' : undefined;
   const labelField = selected?.kind === 'message' ? 'Message' : selected?.kind === 'note' ? 'Note' : undefined;
   const editSelected = (field?: string) => openProperties(selected, selectedActor, { field });
@@ -899,25 +924,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               Add {branches[selected.kind]} branch
             </button>
           )}
-          {!isBranch && (
-            <>
-              <button className={participantSelected ? 'sq-move-left' : 'sq-move-up'} aria-label={participantSelected ? 'Move left' : 'Move up'} title={participantSelected ? 'Move left' : 'Move up'} onClick={() => move(-1)}><Icon name="tidy-right" /></button>
-              <button className={participantSelected ? '' : 'sq-move-down'} aria-label={participantSelected ? 'Move right' : 'Move down'} title={participantSelected ? 'Move right' : 'Move down'} onClick={() => move(1)}><Icon name="tidy-right" /></button>
-            </>
-          )}
-          <button aria-label={selectedActor ? 'Remove participant' : participantSelected ? 'Remove declaration' : 'Remove'} title={selectedActor ? 'Remove participant' : participantSelected ? 'Remove declaration' : 'Remove'} onClick={() => {
-            if (selectedActor) {
-              const edit = removeSelection(source, rows, [], [selectedActor]);
-              void commit(edit.source, edit.at);
-            } else if (selected) {
-              void commit(
-                source.slice(0, selected.start) + source.slice(selected.close?.end ?? selected.end),
-                selected.start,
-              );
-            }
-          }}>
-            <Icon name="trash" />
-          </button>
+          {!inForm && actions}
       </div>
     </>
   );

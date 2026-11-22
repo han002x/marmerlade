@@ -52,7 +52,8 @@ type IconName =
   | 'step-back'
   | 'step-fwd'
   | 'tree'
-  | 'image';
+  | 'image'
+  | 'lifeline-start';
 
 const JAR_COLORS = {
   ink: '#3a352e',
@@ -62,6 +63,7 @@ const JAR_COLORS = {
 };
 
 const PATHS: Record<IconName, React.ReactNode> = {
+  'lifeline-start': <><path d="M2 8h6" /><path d="m5.5 5 3 3-3 3" /><rect x="9" y="3" width="13" height="7" rx="1.5" /><path d="M15.5 10v11" strokeDasharray="2.5 2.5" /></>,
   pumpkin: <><path d="M12 7C5 2 1 8 3 15c1 5 6 7 9 5 3 2 8 0 9-5 2-7-2-13-9-8ZM12 7c-1-3 0-5 2-5" /><path d="m6 11 3 1-2 2Zm12 0-3 1 2 2Z" fill="currentColor" stroke="none" /><path d="m7 16 2 2 3-1 3 1 2-2" /></>,
   ghost: <><path d="M5 21V10a7 7 0 0 1 14 0v11l-3-2-4 2-4-2Z" /><circle cx="9" cy="10" r="1" fill="currentColor" /><circle cx="15" cy="10" r="1" fill="currentColor" /><path d="M10 15h4" /></>,
   bat: <path d="m12 9-2-3-1 4C6 7 3 6 2 5v9c3-1 4 0 5 3 2-1 3 0 5 3 2-3 3-4 5-3 1-3 2-4 5-3V5c-1 1-4 2-7 5l-1-4Z" />,

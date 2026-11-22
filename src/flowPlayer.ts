@@ -122,7 +122,7 @@ export const usePlayer = create<Player>((set, get) => ({
   },
 
   setSchedule: (sig, steps) => {
-    if (sig === get().sig) return;
+    if (sig === get().sig && steps === get().steps) return;
     set({ sig, steps });
     if (steps === 0) {
       halt();

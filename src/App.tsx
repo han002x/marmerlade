@@ -72,6 +72,7 @@ import {
 import { exportGif, exportImage } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
+import { FlowControls } from './components/FlowControls';
 import type { DiagramNode as DNode, Side } from './types';
 import { hasOutline, shapeDef } from './shapes';
 import { installRenderBridge } from './renderBridge';
@@ -362,27 +363,6 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     () => flowSchedule([...shown.placed, ...shown.folded]),
     [shown],
   );
-  const setSchedule = usePlayer((s) => s.setSchedule);
-  const playing = usePlayer((s) => s.playing);
-  const lit = usePlayer((s) => s.lit);
-  const flowSpeed = usePlayer((s) => s.speed);
-  const stopFlow = usePlayer((s) => s.stop);
-  const cycleSpeed = usePlayer((s) => s.cycleSpeed);
-  const [flowOpen, setFlowOpen] = useState(false);
-  const flowRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!flowOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (flowRef.current && !flowRef.current.contains(e.target as globalThis.Node)) setFlowOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [flowOpen]);
-  const togglePlay = usePlayer((s) => s.toggle);
-  const stepFlow = usePlayer((s) => s.stepBy);
-  const noFlow = flow.steps === 0;
-  useEffect(() => setSchedule(flow.sig, flow.steps), [flow.sig, flow.steps, setSchedule]);
-
   // fold choreography: nodes mid-fold are drawn on the card they fold into
   const foldPhase = useFoldMotion((s) => s.phase);
   const foldAnchor = useFoldMotion((s) => s.anchor);
@@ -914,9 +894,6 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         { key: 'e', run: toggleMode },
         { key: '[', run: () => foldLevel('fold') },
         { key: ']', run: () => foldLevel('unfold') },
-        { key: 'p', run: togglePlay },
-        { key: ',', run: () => stepFlow(-1) },
-        { key: '.', run: () => stepFlow(1) },
         { key: 'm', run: onTogglePanel },
         { key: 'z', meta: true, run: undo },
         { key: 'g', meta: true, run: groupSelection },
@@ -925,7 +902,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         { key: 'backspace', run: deleteSelected },
         { key: 'delete', run: deleteSelected },
       ],
-      [arm, tidy, onTogglePanel, deleteSelected, undo, cancelPending, foldSelection, foldLevel, groupSelection, openSelectedPage, openSelectedDeck, toggleMode, togglePlay, stepFlow],
+      [arm, tidy, onTogglePanel, deleteSelected, undo, cancelPending, foldSelection, foldLevel, groupSelection, openSelectedPage, openSelectedDeck, toggleMode],
     ),
   );
 
@@ -1001,51 +978,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         </div>
         <span className="mf-sep" />
         <div className="mf-group-btns">
-          <div className="mf-menu-wrap" ref={flowRef}>
-            <ToolButton
-              label={playing ? 'Stop flow' : 'Play flow'}
-              hotkey="P"
-              active={playing}
-              disabled={noFlow}
-              onClick={() => {
-                if (playing) {
-                  stopFlow();
-                  setFlowOpen(false);
-                } else {
-                  togglePlay();
-                  setFlowOpen(true);
-                }
-              }}
-            >
-              <Icon name={playing ? 'stop' : 'play'} />
-            </ToolButton>
-            {flowOpen && (
-              <div className="mf-menu mf-flow-menu" role="toolbar" aria-label="Flow controls">
-                <ToolButton label="Previous step" hotkey="," disabled={noFlow || !lit} onClick={() => stepFlow(-1)}>
-                  <Icon name="step-back" />
-                </ToolButton>
-                <ToolButton
-                  label={playing ? 'Pause flow' : 'Stop flow'}
-                  disabled={!playing && !lit}
-                  onClick={() => {
-                    if (playing) togglePlay();
-                    else {
-                      stopFlow();
-                      setFlowOpen(false);
-                    }
-                  }}
-                >
-                  <Icon name={playing ? 'pause' : 'stop'} />
-                </ToolButton>
-                <ToolButton label="Next step" hotkey="." disabled={noFlow} onClick={() => stepFlow(1)}>
-                  <Icon name="step-fwd" />
-                </ToolButton>
-                <ToolButton label="Flow speed" disabled={noFlow} onClick={cycleSpeed}>
-                  <span className="mf-speed">{flowSpeed === 0.5 ? '½' : flowSpeed}×</span>
-                </ToolButton>
-              </div>
-            )}
-          </div>
+          <FlowControls sig={flow.sig} steps={flow.steps} />
         </div>
         <span className="mf-sep" />
         <div className="mf-menu-wrap" ref={exportRef}>

@@ -40,6 +40,7 @@ import ProductNav from '../components/ProductNav';
 import { DragPlacement } from '../components/DragPlacement';
 import { Icon } from '../components/Icon';
 import { NodeTransforms, type ResizePreview } from '../components/NodeTransforms';
+import { boundsOf, snapMove, type Guide } from '../canvasTransform';
 import './diagrams.css';
 
 import { MermaidPanel, FlowchartSource } from '../components/MermaidPanel';
@@ -57,6 +58,8 @@ type EntityNode = Node<
     open: (id: string) => void;
     close: () => void;
     rename: (id: string, title: string) => void;
+    duplicate: (id: string) => void;
+    remove: (id: string) => void;
   },
   'diagram'
 >;
@@ -122,6 +125,24 @@ function DiagramFrame({ data }: NodeProps<EntityNode>) {
           onClick={() => (editing ? data.close() : data.open(entity.id))}
         >
           <Icon name={editing ? 'check' : 'pencil'} />
+        </button>
+        <button
+          className="nodrag workspace-nopan"
+          type="button"
+          aria-label="Duplicate diagram"
+          title="Duplicate diagram"
+          onClick={() => data.duplicate(entity.id)}
+        >
+          <Icon name="copy" />
+        </button>
+        <button
+          className="nodrag workspace-nopan"
+          type="button"
+          aria-label="Delete diagram"
+          title="Delete diagram"
+          onClick={() => data.remove(entity.id)}
+        >
+          <Icon name="trash" />
         </button>
       </header>
       {!editing && (
@@ -216,6 +237,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
   const [cursor, setCursor] = useState<XYPosition>();
   const [dragPositions, setDragPositions] = useState<Map<string, XYPosition>>();
   const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null);
+  const [moveGuides, setMoveGuides] = useState<Guide[]>([]);
   const displayEntities = entities.map((entity) => {
     const rect = resizePreview?.rects.get(entity.id);
     return rect ? { ...entity, position: { x: rect.x, y: rect.y }, size: { width: rect.width, height: rect.height } } : entity;
@@ -223,6 +245,20 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
   const opened = displayEntities.find((entity) => entity.id === active);
   const diagramRects = useMemo(() => new Map(entities.map((entity) => [entity.id, { ...entity.position, ...entity.size }])), [entities]);
   const titleHeight = 40;
+  /** Where the dragged diagrams land once snapped to the edges and centres of the other diagrams. */
+  function snapDrag(group: { id: string; position: XYPosition }[]) {
+    const moving = group.flatMap((item) => {
+      const rect = diagramRects.get(item.id);
+      return rect ? [{ ...rect, ...item.position }] : [];
+    });
+    const others = [...diagramRects].filter(([id]) => !group.some((item) => item.id === id)).map(([, rect]) => rect);
+    const bounds = boundsOf(moving);
+    const snap = bounds ? snapMove(bounds, others, viewport.zoom) : { offset: { x: 0, y: 0 }, guides: [] };
+    const positions = new Map(
+      group.map((item) => [item.id, { x: item.position.x + snap.offset.x, y: item.position.y + snap.offset.y }]),
+    );
+    return { positions, guides: snap.guides };
+  }
   const [expansion, setExpansion] = useState(new Map<string, boolean>());
   const [selection, setSelection] = useState<string[]>([]);
   const [history, setHistory] = useState<DiagramEntity[][]>([]);
@@ -286,7 +322,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     followNode(!initialized.current);
     initialized.current = true;
   }, [hash]);
-  function reveal(id: string) {
+  function reveal(id: string, centre = false) {
     const entity = entities.find((e) => e.id === id);
     const area = board.current;
     if (!entity || !area) return;
@@ -295,11 +331,11 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     const right = x + entity.size.width * viewport.zoom;
     const bottom = y + entity.size.height * viewport.zoom;
     // The toolbar covers the top of the board, so the title row must sit below it.
-    if (x < 0 || y < 64 || right > area.clientWidth || bottom > area.clientHeight)
+    if (centre || x < 0 || y < 64 || right > area.clientWidth || bottom > area.clientHeight)
     {
       // Computed from the stored rectangle: a just-created diagram is not measured by React Flow yet.
       const zoom = Math.min(
-        Math.max(viewport.zoom, 0.6),
+        centre ? 1 : Math.max(viewport.zoom, 0.6),
         (area.clientWidth - 48) / entity.size.width,
         (area.clientHeight - 96) / entity.size.height,
       );
@@ -318,7 +354,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     reveal(id);
   }
   const revealActive = useEffectEvent(() => {
-    if (active) reveal(active);
+    if (active) reveal(active, entities.find((e) => e.id === active)?.kind === 'flowchart');
   });
   useEffect(() => {
     revealActive();
@@ -414,11 +450,11 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     setHistory(history.slice(0, -1));
     setSelection([]);
   }
-  function remove() {
-    if (!selection.length) return;
-    if (active && selection.includes(active)) close();
-    save(entities.filter((item) => !selection.includes(item.id)));
-    setSelection([]);
+  function remove(ids = selection) {
+    if (!ids.length) return;
+    if (active && ids.includes(active)) close();
+    save(entities.filter((item) => !ids.includes(item.id)));
+    setSelection((current) => current.filter((id) => !ids.includes(id)));
   }
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -433,18 +469,27 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
         setCursor(undefined);
         return;
       }
-      if (active || placement) return;
+      if (placement) return;
+      // While a diagram is open, Delete belongs to whatever is selected inside it; with nothing selected it removes the diagram.
+      if (
+        active &&
+        (!selection.includes(active) ||
+          document.querySelector('.react-flow__node:not(.react-flow__node-diagram).selected,.react-flow__edge.selected,.sq-selected'))
+      )
+        return;
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
         remove();
       }
+      if (active) return;
       if ((event.ctrlKey || event.metaKey) && event.key === 'z' && history.length) {
         event.preventDefault();
         undo();
       }
     };
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
+    // Capture phase, so the open editor's own Delete handler hasn't yet changed what is selected inside it.
+    window.addEventListener('keydown', key, true);
+    return () => window.removeEventListener('keydown', key, true);
   });
   const nodes: EntityNode[] = displayEntities.map((entity) => ({
     id: entity.id,
@@ -462,34 +507,52 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
       open,
       close,
       rename: (id, title) => save(entities.map((item) => (item.id === id ? { ...item, title } : item))),
+      duplicate: (id) => duplicate([id]),
+      remove: (id) => remove([id]),
     },
   }));
-  function duplicate() {
-    const copies = entities
-      .filter((entity) => selection.includes(entity.id))
-      .map((entity) => ({
+  /** Place a copy of `source` beside it, aligned on one axis: right, below, above, then left. */
+  function copySpot(source: DiagramEntity, taken: DiagramEntity[]) {
+    const gap = 60;
+    const { position: p, size: s } = source;
+    const free = (at: XYPosition) =>
+      !taken.some(
+        (e) =>
+          at.x < e.position.x + e.size.width + gap &&
+          at.x + s.width + gap > e.position.x &&
+          at.y < e.position.y + e.size.height + gap &&
+          at.y + s.height + gap > e.position.y,
+      );
+    const candidates = [
+      { x: p.x + s.width + gap, y: p.y },
+      { x: p.x, y: p.y + s.height + gap },
+      { x: p.x, y: p.y - s.height - gap },
+      { x: p.x - s.width - gap, y: p.y },
+    ];
+    const spot = candidates.find(free);
+    if (spot) return spot;
+    // Every side is taken: keep going right along the same row.
+    const row = { ...candidates[0] };
+    while (!free(row)) row.x += s.width + gap;
+    return row;
+  }
+  function duplicate(ids: string[]) {
+    const placed = [...entities];
+    const copies: DiagramEntity[] = [];
+    for (const entity of entities.filter((item) => ids.includes(item.id))) {
+      const copy = {
         ...structuredClone(entity),
         id: crypto.randomUUID(),
         title: entity.title + ' copy',
-        position: { x: entity.position.x + 40, y: entity.position.y + 40 },
-      }));
+        position: copySpot(entity, placed),
+      };
+      placed.push(copy);
+      copies.push(copy);
+    }
     save([...entities, ...copies]);
     setSelection(copies.map((entity) => entity.id));
   }
-  const workspaceActions = (
-    <>
-      <div className="mf-menu-sep" />
-      <button role="menuitem" className="mf-menu-item" onClick={duplicate} disabled={!selection.length}>
-        Duplicate selected diagrams
-      </button>
-      <button role="menuitem" className="mf-menu-item" onClick={remove} disabled={!selection.length}>
-        Delete selected diagrams
-      </button>
-      <button role="menuitem" className="mf-menu-item" onClick={undo} disabled={!history.length}>
-        Undo workspace change
-      </button>
-    </>
-  );
+  const workspaceActions = null;
   const slots = opened
     ? {
         diagramId: opened.id,
@@ -698,10 +761,13 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
               });
           }}
           onNodeDrag={(_, node, group) => {
-            setDragPositions(new Map((group.length ? group : [node]).map((item) => [item.id, item.position])));
+            const { positions, guides } = snapDrag(group.length ? group : [node]);
+            setDragPositions(positions);
+            setMoveGuides(guides);
           }}
           onNodeDragStop={(_, node, group) => {
-            const positions = new Map((group.length ? group : [node]).map((item) => [item.id, item.position]));
+            const { positions } = snapDrag(group.length ? group : [node]);
+            setMoveGuides([]);
             const next = entities.map((entity) => {
               const position = positions.get(entity.id);
               return position ? { ...entity, position } : entity;
@@ -798,7 +864,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
           nodes={diagramRects}
           selected={selection}
           preview={resizePreview}
-          moveGuides={[]}
+          moveGuides={moveGuides}
           onPreview={setResizePreview}
           onCommit={commitResize}
           disabled={Boolean(placement || panning || dragPositions)}

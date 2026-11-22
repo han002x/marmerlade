@@ -4,6 +4,7 @@ import { useDock } from '../dock';
 import { parseMermaid } from '../mermaid/io';
 import { ReactFlowProvider } from '@xyflow/react';
 import { ToolButton } from '../components/ToolButton';
+import { FlowControls } from '../components/FlowControls';
 import { Icon } from '../components/Icon';
 import { ElementPalette } from './ElementPalette';
 import { closeActivation, insertElement, sampleEdit } from './insertion';
@@ -57,6 +58,13 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   const history = useDiagram((s) => s.sequenceHistory);
   const appearance = activeAppearance(useAppearance());
   const rows = useMemo(() => statements(source), [source]);
+  const messageSteps = useMemo(() => {
+    const steps = new Map<number, number>();
+    for (const row of rows) {
+      if (row.kind === 'message') steps.set(row.start, steps.size);
+    }
+    return steps;
+  }, [rows]);
   const ids = useMemo(() => participants(rows), [rows]);
   const [index, setIndex] = useState(-1);
   // Inserting selects the new statement for editing. Only a selection the user made may be wrapped.
@@ -780,6 +788,10 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
         <span aria-hidden="true">↶</span>
       </ToolButton>
       <span className="mf-sep" />
+      <div className="mf-group-btns">
+        <FlowControls sig={`sequence:${source}`} steps={drawing.source === source && svg ? messageSteps.size : 0} />
+      </div>
+      <span className="mf-sep" />
       <div ref={menuRef} className="mf-menu-wrap">
         <ToolButton label="Export" expanded={menu} onClick={() => setMenu((value) => !value)}>
           <Icon name="export" />
@@ -996,6 +1008,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               svg={svg}
               source={source}
               rows={rows}
+              messageSteps={drawing.source === source ? messageSteps : undefined}
               selected={selected}
               selectedActor={selectedActor}
               panel={slots ? slots.stylePanel : localPanel}

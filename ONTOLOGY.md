@@ -27,6 +27,7 @@ the top level. Pages outside folders appear at the top level.
 | edge → endpoints | `edge.source`, `edge.target` | many : 2 | Ids of nodes. A group id is a valid endpoint. |
 | node → pages | `node.pageIds` | many : many | Ordered. First = default page. |
 | node → decks | `node.deckIds` | many : many | Ordered. First = default deck. |
+| sequence participant → pages / decks | `sequence.links[participantId].pageIds` / `.deckIds` | many : many | Same rules as a node's lists. |
 | page/deck → node | *not stored* | | Derived by scanning nodes (`nodesOfPage`). |
 | page → page | Markdown `[[Target]]` | many : many | Derived (`extractLinks`, `backlinks`). |
 | page/deck → deck | Markdown `[[deck:Title]]` | many : many | Derived at render time. |
@@ -302,7 +303,11 @@ In the browser console or a script, the store takes the same data:
 Version 5 workspaces include a `diagrams` array. Each diagram is an independent
 entity with an ID, title, canvas position, and frame size. A flowchart entity has
 `kind: "flowchart"`, `nodes`, and `edges`. A sequence entity has
-`kind: "sequence"` and Mermaid `source`. Both types coexist on the workspace
+`kind: "sequence"` and Mermaid `source`, plus optional `styles` and `links`.
+`links` maps a participant id to `{ pageIds?, deckIds? }`, ordered like a node's
+lists with the first as the default; Mermaid has no syntax for them, so they
+stay out of the source. Deleting a page or deck removes it from every
+participant. Both types coexist on the workspace
 canvas and can have multiple instances. Node and edge identifiers are local to
 their flowchart. Pages and decks belong to the workspace.
 

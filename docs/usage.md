@@ -89,6 +89,8 @@ the links. The first linked page is the default. Selecting a node shows its defa
 to read it beside the diagram. **Add explanation** creates a page titled from
 the node and opens it for editing. Later node renames leave page titles alone.
 ↗ opens the current page in its own window, keeping the node context.
+Sequence participants link pages the same way: hover a participant header for
+its page and slides buttons, or select it and press `W` or `K`.
 The wiki sidebar lists every page and supports title search. Use **New folder**
 or a folder’s menu to create nested folders. A page’s menu moves it to a folder
 without changing its URL. The canvas tree still lists pages under their linked nodes.
@@ -229,8 +231,8 @@ survive reloads. Reset Custom from any preset to start again.
 | `⇧L` | Tidy left-right |
 | `T` | Open app appearance |
 | `M` | Toggle Mermaid panel |
-| `W` | Open the selected node's default wiki page in the side panel |
-| `K` | Open the selected node's default slide deck in the side panel (all decks when nothing is selected) |
+| `W` | Open the selected node's or sequence participant's default wiki page in the side panel |
+| `K` | Open the selected node's or sequence participant's default slide deck in the side panel (all decks when nothing is selected) |
 | `E` | Page tab: switch between Edit and Read |
 | `F` | Fold / unfold the selected group (or the sheet a selected node sits on) |
 | `G` | Group selected nodes, or ungroup a selected group or all of its children. A group with a label, links, connections, or styling remains as a node. |

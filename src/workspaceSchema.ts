@@ -1,7 +1,7 @@
 import { isSequence } from './sequence/model.ts';
 import { z } from 'zod';
 import { normalizeDiagram } from './pages.ts';
-import type { Diagram } from './types.ts';
+import type { Diagram, DocumentLinks } from './types.ts';
 import { wikiFoldersSchema } from './wikiFolders.ts';
 
 const id = z.string().min(1);
@@ -43,6 +43,7 @@ export const diagramEntitySchema = z.discriminatedUnion('kind', [
     kind: z.literal('sequence'),
     source: z.string().refine(isSequence, 'Expected a Mermaid sequenceDiagram'),
     styles: z.record(z.string(), style).optional(),
+    links: z.record(z.string(), z.object({ pageIds: z.array(id).optional(), deckIds: z.array(id).optional() })).optional(),
   }),
 ]);
 export const diagramSchema = z.object({ diagrams:z.array(diagramEntitySchema).optional(), sequence: z.string().refine(isSequence, 'Expected a Mermaid sequenceDiagram').optional(), nodes: z.array(nodeSchema), edges: z.array(edgeSchema), pages: z.array(documentSchema).default([]), decks: z.array(documentSchema).default([]), wikiFolders: wikiFoldersSchema.optional() });
@@ -60,6 +61,13 @@ export const changeSchema = z.discriminatedUnion('kind', [
 ]);
 export type Change = z.infer<typeof changeSchema>;
 
+function checkLinks(owner: DocumentLinks, d: Diagram) {
+  for (const [links, docs] of [[owner.pageIds, d.pages], [owner.deckIds, d.decks]] as const) {
+    if (new Set(links).size !== (links?.length ?? 0)) throw new Error('Duplicate document links');
+    if (links?.some(link => !docs?.some(doc => doc.id === link))) throw new Error('Missing linked document');
+  }
+}
+
 export function parseDiagram(value: unknown): Diagram {
   const d = normalizeDiagram(diagramSchema.parse(value));
   // Legacy operations address the first diagram of each kind.
@@ -72,6 +80,8 @@ export function parseDiagram(value: unknown): Diagram {
   });
   for(const entity of d.diagrams ?? []) {
     if(entity.kind==='flowchart') parseDiagram({nodes:entity.nodes,edges:entity.edges,pages:d.pages,decks:d.decks});
+    // Participant links follow the node rules.
+    if(entity.kind==='sequence') for(const entry of Object.values(entity.links ?? {})) checkLinks(entry, d);
   }
   for (const list of [d.diagrams ?? [],d.nodes, d.edges, d.pages ?? [], d.decks ?? []]) {
     if (new Set(list.map(x => x.id)).size !== list.length) throw new Error('Duplicate IDs');
@@ -87,10 +97,7 @@ export function parseDiagram(value: unknown): Diagram {
       if (!target) throw new Error(`Missing parent: ${parent}`);
       parent = target.parentId;
     }
-    for (const [links, docs] of [[node.pageIds, d.pages], [node.deckIds, d.decks]] as const) {
-      if (new Set(links).size !== (links?.length ?? 0)) throw new Error('Duplicate document links');
-      if (links?.some(link => !docs?.some(doc => doc.id === link))) throw new Error('Missing linked document');
-    }
+    checkLinks(node, d);
   }
   if (d.edges.some(e => !nodes.has(e.source) || !nodes.has(e.target))) throw new Error('Missing edge endpoint');
   return d;

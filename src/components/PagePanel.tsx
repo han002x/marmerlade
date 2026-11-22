@@ -1,4 +1,5 @@
-import { useDiagram } from '../store';
+import { useDiagram, useLinkOwner } from '../store';
+import { parseParticipantOwner } from '../linkOwners';
 import { retitleField } from '../retitle';
 import { showPage, useDock } from '../dock';
 import { nodesOfPage, pageOf, pathTo } from '../pages';
@@ -12,21 +13,30 @@ import '../wiki/wiki.css';
 export default function PagePanel() {
   const nodes = useDiagram((s) => s.nodes);
   const pages = useDiagram((s) => s.pages);
-  const selected = useDiagram((s) => s.selectedNodeIds[0]);
+  const selectedNode = useDiagram((s) => s.selectedNodeIds[0]);
+  const participant = useDock((s) => s.participant);
+  // a node, or a sequence participant (linkOwners.ts)
+  const selected = participant ?? selectedNode;
   const mode = useDock((s) => s.mode);
   const setMode = useDock((s) => s.setMode);
   const active = useDock((s) => s.page);
   const setPage = useDock((s) => s.setPage);
 
-  const node = nodes.find((n) => n.id === selected);
+  const node = useLinkOwner(selected);
   const chosen = active && active.selection === selected && (!node || node.pageIds?.includes(active.id))
     ? pages.find((p) => p.id === active.id) : undefined;
   const page = chosen ?? pageOf(node, pages);
-  const pageNode = page ? (node?.pageIds?.includes(page.id) ? node : nodesOfPage(nodes, page.id)[0]) : undefined;
+  const pageOwner = page ? (node?.pageIds?.includes(page.id) ? node : nodesOfPage(nodes, page.id)[0]) : undefined;
+  // embeds, crumbs and the wiki's `?node=` only know flowchart nodes
+  const pageNode = pageOwner && !parseParticipantOwner(pageOwner.id) ? pageOwner : undefined;
 
   /** Show a page on one of its nodes, or on its own when it has none. */
   const open = (id: string, nodeId?: string) => {
     const st = useDiagram.getState();
+    if (!nodeId && node?.pageIds?.includes(id)) {
+      setPage(id);
+      return;
+    }
     const targets = nodesOfPage(st.nodes, id);
     const target = targets.find((n) => n.id === (nodeId ?? selected)) ?? targets[0];
     if (target) {
@@ -34,6 +44,7 @@ export default function PagePanel() {
       if (target.id !== selected) window.location.hash = nodeHref(target.id);
     } else {
       st.setSelection([], []);
+      useDock.getState().setParticipant(null);
       setPage(id);
     }
   };
@@ -46,7 +57,7 @@ export default function PagePanel() {
     return (
       <div className="wk-dock">
         <Navigation nodes={nodes} pages={pages} pageId={null} nodeId={undefined} onPage={open}
-          empty="Select a node to write its page" />
+          empty="Select a node or participant to write its page" />
       </div>
     );
   }

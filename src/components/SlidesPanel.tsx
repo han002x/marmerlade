@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { retitleField } from '../retitle';
-import { useDiagram } from '../store';
+import { useDiagram, useLinkOwner } from '../store';
+import { parseParticipantOwner } from '../linkOwners';
 import { useDock } from '../dock';
 import { nodesOfPage, pageOf, pathTo } from '../pages';
 import { splitSlides } from '../slides';
@@ -19,30 +20,41 @@ const useSlides = (body: string) => useMemo(() => splitSlides(body).slides, [bod
 export default function SlidesPanel() {
   const nodes = useDiagram((s) => s.nodes);
   const decks = useDiagram((s) => s.decks);
-  const selected = useDiagram((s) => s.selectedNodeIds[0]);
+  const selectedNode = useDiagram((s) => s.selectedNodeIds[0]);
+  const participant = useDock((s) => s.participant);
+  // a node, or a sequence participant (linkOwners.ts)
+  const selected = participant ?? selectedNode;
   const mode = useDock((s) => s.deckMode);
   const setMode = useDock((s) => s.setDeckMode);
   const active = useDock((s) => s.deck);
   const setDeck = useDock((s) => s.setDeck);
 
-  const node = nodes.find((n) => n.id === selected);
+  const node = useLinkOwner(selected);
   const chosen = active && active.selection === selected && (!node || node.deckIds?.includes(active.id))
     ? decks.find((d) => d.id === active.id) : undefined;
   const deck = chosen ?? pageOf(node, decks, 'deckIds');
-  const deckNode = deck ? (node?.deckIds?.includes(deck.id) ? node : nodesOfPage(nodes, deck.id, 'deckIds')[0]) : undefined;
+  const deckOwner = deck ? (node?.deckIds?.includes(deck.id) ? node : nodesOfPage(nodes, deck.id, 'deckIds')[0]) : undefined;
+  // crumbs, slide embeds and the slides window's `?node=` only know flowchart nodes
+  const deckNode = deckOwner && !parseParticipantOwner(deckOwner.id) ? deckOwner : undefined;
   const slides = useSlides(deck?.body ?? '');
 
   /** Show a deck on one of its nodes, or on its own when it has none. */
   const open = (id: string, nodeId?: string) => {
     const st = useDiagram.getState();
+    if (!nodeId && node?.deckIds?.includes(id)) {
+      setDeck(id);
+      return;
+    }
     const targets = nodesOfPage(st.nodes, id, 'deckIds');
     const target = targets.find((n) => n.id === (nodeId ?? selected)) ?? targets[0];
     if (target) {
+      useDock.getState().setParticipant(null);
       st.setSelection([target.id], []);
       useDock.setState({ deck: { selection: target.id, id } });
       if (target.id !== selected) window.location.hash = nodeHref(target.id);
     } else {
       st.setSelection([], []);
+      useDock.getState().setParticipant(null);
       setDeck(id);
     }
   };
@@ -52,7 +64,7 @@ export default function SlidesPanel() {
     return (
       <div className="wk-dock">
         <Navigation kind="deckIds" nodes={nodes} pages={decks} pageId={null} nodeId={undefined} onPage={open}
-          empty="Select a node to write its slides" />
+          empty="Select a node or participant to write its slides" />
       </div>
     );
   }

@@ -202,6 +202,14 @@
   outline: 1.5px solid var(--mf-accent);
   background: color-mix(in srgb, var(--mf-accent) 5%, transparent);
 }
+/* A participant's page and slides buttons show like a flowchart node's (App.css .mf-page). */
+.sq-hit:hover > .mf-page,
+.react-flow__node.selected .sq-hit > .mf-page {
+  opacity: 1;
+}
+.sq-flow.is-placing .sq-hit > .mf-page:not(.has-page) {
+  opacity: 0;
+}
 .sq-hit.dragging {
   cursor: grabbing;
   outline: 1.5px solid var(--mf-accent);

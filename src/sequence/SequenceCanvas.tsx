@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useWorkspaceZoom } from '../diagrams/useWorkspaceZoom';
-import { useDock } from '../dock';
+import { showDeck, showPage, useDock } from '../dock';
 import {
   memo,
   useCallback,
@@ -33,6 +33,9 @@ import {
 } from '@xyflow/react';
 import { Icon } from '../components/Icon';
 import { SideHandles } from '../components/SideHandles';
+import { PageButton } from '../components/PageButton';
+import { DeckButton } from '../components/DeckButton';
+import { participantOwner } from '../linkOwners';
 import { JoinPreview } from '../components/JoinPreview';
 import { activeAppearance, useAppearance } from '../theme';
 import { useHotkeys } from '../useHotkeys';
@@ -60,6 +63,8 @@ export type Tool = 'select' | 'participant' | 'message';
 type Item = {
   connectFromBody?: boolean;
   actor?: string;
+  /** link owner id of a participant's header, for its page and slides buttons */
+  owner?: string;
   footer?: boolean;
   start?: number;
   label: string;
@@ -100,6 +105,8 @@ interface Props {
   messageSteps?: ReadonlyMap<number, number>;
   selected?: Statement;
   selectedActor?: string;
+  /** The sequence's diagram id; set, participants get page and slides buttons. */
+  diagramId?: string;
   /** Host for the floating element panel (the board-level style-panel slot). */
   panel: HTMLElement | null;
   controls?: ReactNode;
@@ -149,6 +156,8 @@ function Hit({ id, data, dragging, isConnectable }: NodeProps<HitNode>) {
         />
       )}
       {data.actor && !data.footer && <SideHandles connectable={isConnectable} />}
+      {data.owner && <PageButton owner={data.owner} />}
+      {data.owner && <DeckButton owner={data.owner} />}
     </div>
   );
 }
@@ -169,6 +178,7 @@ export default function SequenceCanvas({
   messageSteps,
   selected,
   selectedActor,
+  diagramId,
   panel,
   controls,
   properties,
@@ -297,6 +307,7 @@ export default function SequenceCanvas({
       if (actor)
         add([el], 'actor:' + actor, {
           actor,
+          ...(diagramId && { owner: participantOwner(diagramId, actor) }),
           label:
             rows.find((r) => r.kind === 'participant' && r.values[0] === actor)?.values[1] ||
             el.querySelector('text')?.textContent ||
@@ -356,7 +367,7 @@ export default function SequenceCanvas({
       hasFitted.current = true;
       fit(box);
     }
-  }, [portal, svg, rows, source, fit]);
+  }, [portal, svg, rows, source, fit, diagramId]);
 
   const sequenceStyles = useDiagram((s) => s.sequenceStyles);
   const updateSequenceStyle = useDiagram((s) => s.updateSequenceStyle);
@@ -705,6 +716,22 @@ export default function SequenceCanvas({
     },
     { key: 'v', run: () => onTool('select') },
     { key: 'r', run: () => canEdit && onTool('participant') },
+    // W / K: the selected participant's page or slides, as on a flowchart node
+    {
+      key: 'w',
+      run: () => {
+        const owner = useDock.getState().participant;
+        if (owner) showPage(owner);
+      },
+    },
+    {
+      key: 'k',
+      run: () => {
+        const owner = useDock.getState().participant;
+        if (owner) showDeck(owner);
+        else useDock.setState({ open: true, view: 'slides' });
+      },
+    },
     {
       key: 't',
       run: () => useDock.setState({ open: true, view: 'appearance' }),

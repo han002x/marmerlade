@@ -120,6 +120,14 @@ export interface DiagramNode {
   style?: ElementStyle;
 }
 
+/** Pages and decks linked to a sequence participant, like a node's `pageIds` / `deckIds`. */
+export interface DocumentLinks {
+  /** linked wiki pages in order; the first is the default */
+  pageIds?: string[];
+  /** linked slide decks in order; the first is the default */
+  deckIds?: string[];
+}
+
 /** A Markdown wiki page. Nodes point at pages; pages outlive their nodes. */
 export interface Page {
   id: string;
@@ -183,5 +191,7 @@ export type DiagramEntity = {
       source: string;
       /** per-element styles; Mermaid has no sequence style syntax (see sequence/styleMap.ts) */
       styles?: Record<string, ElementStyle>;
+      /** pages and decks linked to participants, keyed by participant id */
+      links?: Record<string, DocumentLinks>;
     }
 );

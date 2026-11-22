@@ -3,7 +3,8 @@ import { readFile, writeFile, rename, mkdir, realpath, unlink } from 'node:fs/pr
 import { basename, dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import lockfile from 'proper-lockfile';
-import type { Diagram } from '../src/types.ts';
+import type { Diagram, DiagramEntity } from '../src/types.ts';
+import { dropParticipantLinks } from '../src/linkOwners.ts';
 import { parseDiagram, type Change } from '../src/workspaceSchema.ts';
 import { placeWikiPage } from '../src/wikiFolders.ts';
 
@@ -116,6 +117,15 @@ export function applyChanges(d: Diagram, changes: Change[]): Diagram {
   }
   if(d.diagrams)d.diagrams=d.diagrams.map(entity=>entity.kind==='flowchart'?{...entity,nodes:entity.nodes.map(node=>({
     ...node,pageIds:node.pageIds?.filter(id=>d.pages?.some(p=>p.id===id)),deckIds:node.deckIds?.filter(id=>d.decks?.some(p=>p.id===id))
-  }))}:entity);
+  }))}:keepLinkedDocuments(entity,d));
   return d;
+}
+
+/** A sequence without participant links to deleted pages or decks. */
+function keepLinkedDocuments(entity: Extract<DiagramEntity, { kind: 'sequence' }>, d: Diagram) {
+  let next = entity;
+  for (const [key, docs] of [['pageIds', d.pages], ['deckIds', d.decks]] as const)
+    for (const entry of Object.values(entity.links ?? {}))
+      for (const id of entry[key] ?? []) if (!docs?.some((doc) => doc.id === id)) next = dropParticipantLinks(next, key, id);
+  return next;
 }

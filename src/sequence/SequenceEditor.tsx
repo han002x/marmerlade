@@ -13,6 +13,7 @@ import { moveLane, removeSelection, type CanvasEdit } from './canvasEdits';
 import SequenceCanvas, { type PlacementHandle, type Tool } from './SequenceCanvas';
 import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useDiagram } from '../store';
+import { parseParticipantOwner, participantOwner } from '../linkOwners';
 import { activeAppearance, useAppearance } from '../theme';
 import { diagramSvg } from '../mermaid/svg';
 import { exportGif, exportImage, GIF_DEFAULTS } from '../gif';
@@ -643,6 +644,29 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   useEffect(() => {
     if (target) pickTarget(target);
   }, [target]);
+  // The page and slides tabs follow the selected participant, and a participant's page or
+  // slides button selects it here.
+  const diagramId = slots?.diagramId;
+  const activeActor = selectedActor ?? (selected?.kind === 'participant' ? selected.values[0] : undefined);
+  const wantedParticipant = useDock((state) => state.participant);
+  useEffect(() => {
+    if (diagramId) useDock.getState().setParticipant(activeActor ? participantOwner(diagramId, activeActor) : null);
+  }, [diagramId, activeActor]);
+  useEffect(
+    () => () => {
+      const current = useDock.getState().participant;
+      if (diagramId && current && parseParticipantOwner(current)?.diagramId === diagramId)
+        useDock.getState().setParticipant(null);
+    },
+    [diagramId],
+  );
+  const pickParticipant = useEffectEvent((actor: string) => {
+    if (actor !== activeActor) pick(rows.find((row) => row.kind === 'participant' && row.values[0] === actor), actor);
+  });
+  useEffect(() => {
+    const wanted = wantedParticipant ? parseParticipantOwner(wantedParticipant) : null;
+    if (wanted && wanted.diagramId === diagramId) pickParticipant(wanted.actor);
+  }, [wantedParticipant, diagramId]);
   async function saveExport(format: ExportFormat, width: number) {
     if (!canExport || exporting || !exportSvg) return;
     setExporting(format);
@@ -1024,6 +1048,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               messageSteps={drawing.source === source ? messageSteps : undefined}
               selected={selected}
               selectedActor={selectedActor}
+              diagramId={diagramId}
               panel={slots ? slots.stylePanel : localPanel}
               controls={commands}
               properties={propertyKind ? {

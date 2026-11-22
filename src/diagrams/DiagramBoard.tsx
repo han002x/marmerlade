@@ -906,7 +906,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
           width={panelWidth}
           onWidthChange={setPanelWidth}
           onClose={() => setPanelOpen(false)}
-          showLinks={opened?.kind === 'flowchart'}
+          showLinks={!!opened}
           tree={
             <WorkspaceTree
               entities={entities}

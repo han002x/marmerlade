@@ -8,6 +8,9 @@ const { renderPage } = await import('../src/wiki/render.ts');
 const { parseRoute, pageHref } = await import('../src/route.ts');
 const { useDiagram } = await import('../src/store.ts');
 const { showPage, useDock } = await import('../src/dock.ts');
+const { linkOwner, ownerLinks, workspaceDiagram } = await import('../src/store.ts');
+const { parseDiagram } = await import('../src/workspaceSchema.ts');
+import { parseParticipantOwner, participantOwner } from '../src/linkOwners.ts';
 const { readSaved, write, importFile, startSync, startAutosave } = await import('../src/persist.ts');
 import {
   backlinks,
@@ -299,6 +302,44 @@ const page = (id: string, title: string, updatedAt: number): Page => ({
 }
 
 // Old saves migrate at every entry point, and new saves retain order and sharing.
+// ---- sequence participants link pages and decks like nodes ----
+{
+  const st = useDiagram.getState();
+  const flow = { id: 'f', title: 'Flow', kind: 'flowchart' as const, position: { x: 0, y: 0 }, size: { width: 900, height: 650 }, nodes: [node('a', 'API')], edges: [] };
+  const seq = { id: 's1', title: 'Login', kind: 'sequence' as const, position: { x: 1000, y: 0 }, size: { width: 900, height: 650 },
+    source: 'sequenceDiagram\nparticipant U as User\nU->>S: hi' };
+  st.load({ diagrams: [flow, seq], nodes: flow.nodes, edges: [], sequence: seq.source });
+  st.openDiagram('s1');
+  const user = participantOwner('s1', 'U');
+  const server = participantOwner('s1', 'S');
+  check('participant owner ids round-trip', JSON.stringify(parseParticipantOwner(user)) === '{"diagramId":"s1","actor":"U"}');
+  check('node ids are not participant owners', parseParticipantOwner('a') === null);
+  const links = () => (useDiagram.getState().diagrams?.find((e) => e.id === 's1') as typeof seq & { links?: Record<string, { pageIds?: string[]; deckIds?: string[] }> }).links;
+  const page = st.openPage(user);
+  check('a participant page is titled from its alias', useDiagram.getState().pages.find((p) => p.id === page)?.title === 'User');
+  check('the participant links its page', JSON.stringify(links()) === JSON.stringify({ U: { pageIds: [page] } }), links());
+  check('an implicit participant is an owner too', linkOwner(server)?.label === 'S');
+  st.linkPage(page!, server);
+  const deck = st.openDeck(server);
+  check('decks link beside pages', JSON.stringify(links()?.S) === JSON.stringify({ pageIds: [page], deckIds: [deck] }), links());
+  check('ownerLinks reads participant links', ownerLinks(useDiagram.getState(), server, 'deckIds')?.[0] === deck);
+  check('nodes keep their own links', !useDiagram.getState().nodes[0].pageIds?.length);
+  showPage(user);
+  check('showPage selects the participant', useDock.getState().participant === user && useDock.getState().page?.id === page);
+  st.unlinkDeck(deck!, server);
+  check('unlinking drops the empty list', JSON.stringify(links()?.S) === JSON.stringify({ pageIds: [page] }), links());
+  // links survive saving and reloading the workspace
+  const saved = parseDiagram(JSON.parse(JSON.stringify(workspaceDiagram())));
+  check('participant links survive the workspace schema', JSON.stringify((saved.diagrams?.[1] as { links?: unknown }).links) === JSON.stringify(links()));
+  st.deletePage(page!);
+  check('deleting a page unlinks participants', links() === undefined, links());
+  assert.throws(
+    () => parseDiagram({ nodes: [], edges: [], diagrams: [{ ...seq, links: { U: { pageIds: ['gone'] } } }] }),
+    /Missing linked document/,
+  );
+  useDock.getState().setParticipant(null);
+}
+
 {
   const storageWindow = new JSDOM('', { url: 'https://marmerlade.test' }).window;
   Object.defineProperty(globalThis, 'localStorage', { value: storageWindow.localStorage, configurable: true });

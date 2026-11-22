@@ -80,8 +80,8 @@ function SheetNodeInner({ data }: NodeProps) {
             {d.title || 'Untitled'}
           </span>
         )}
-      <PageButton nodeId={d.groupId} />
-      <DeckButton nodeId={d.groupId} />
+      <PageButton owner={d.groupId} />
+      <DeckButton owner={d.groupId} />
     </div>
   );
 }

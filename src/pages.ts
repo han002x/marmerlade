@@ -45,7 +45,7 @@ export function newPageId(pages: Page[], prefix = 'page'): string {
 }
 
 /** The default page of a node, if it exists. */
-export function pageOf(node: DiagramNode | undefined, pages: Page[], key: LinkKey = 'pageIds'): Page | undefined {
+export function pageOf(node: Partial<Record<LinkKey, string[]>> | undefined, pages: Page[], key: LinkKey = 'pageIds'): Page | undefined {
   return pages.find((p) => p.id === node?.[key]?.[0]);
 }
 
@@ -53,7 +53,12 @@ export function pageOf(node: DiagramNode | undefined, pages: Page[], key: LinkKe
  * Give `node` a page, titled from its label, unless it already has one.
  * Returns the new page, or null when nothing needed creating.
  */
-export function createPageFor(node: DiagramNode, pages: Page[], now = Date.now(), key: LinkKey = 'pageIds'): Page | null {
+export function createPageFor(
+  node: Pick<DiagramNode, 'label' | LinkKey>,
+  pages: Page[],
+  now = Date.now(),
+  key: LinkKey = 'pageIds',
+): Page | null {
   if (pageOf(node, pages, key)) return null;
   // A reference imported from Mermaid may not have page content yet.
   const id = node[key]?.[0] ?? newPageId(pages, key === 'deckIds' ? 'deck' : 'page');
@@ -61,7 +66,7 @@ export function createPageFor(node: DiagramNode, pages: Page[], now = Date.now()
 }
 
 /** Pages no node points at. */
-export function orphanPages(nodes: DiagramNode[], pages: Page[], key: LinkKey = 'pageIds'): Page[] {
+export function orphanPages(nodes: Partial<Record<LinkKey, string[]>>[], pages: Page[], key: LinkKey = 'pageIds'): Page[] {
   const used = new Set(nodes.flatMap((n) => n[key] ?? []));
   return pages.filter((p) => !used.has(p.id));
 }
@@ -149,7 +154,7 @@ export function resolveLink(
 }
 
 /** All nodes linked to a page, in diagram order. */
-export function nodesOfPage(nodes: DiagramNode[], pageId: string, key: LinkKey = 'pageIds'): DiagramNode[] {
+export function nodesOfPage<T extends Partial<Record<LinkKey, string[]>>>(nodes: T[], pageId: string, key: LinkKey = 'pageIds'): T[] {
   return nodes.filter((n) => n[key]?.includes(pageId));
 }
 

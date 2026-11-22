@@ -233,8 +233,8 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
           </span>
         )}
       </div>
-      <PageButton nodeId={id} />
-      <DeckButton nodeId={id} />
+      <PageButton owner={id} />
+      <DeckButton owner={id} />
     </div>
   );
 }

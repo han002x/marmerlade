@@ -153,7 +153,7 @@ export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=
           <Suspense fallback={null}>
             <PagePanel />
           </Suspense>
-        ) : <p className="mf-tree-empty">Select a flowchart node to view its page.</p>)}
+        ) : <p className="mf-tree-empty">Open a diagram and select a node or participant to view its page.</p>)}
       </div>
       <div className="mf-panel-body" role="tabpanel" id="mf-view-slides"
         aria-labelledby="mf-tab-slides" hidden={tab !== 'slides'}>
@@ -161,7 +161,7 @@ export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=
           <Suspense fallback={null}>
             <SlidesPanel />
           </Suspense>
-        ) : <p className="mf-tree-empty">Select a flowchart node to view its slides.</p>)}
+        ) : <p className="mf-tree-empty">Open a diagram and select a node or participant to view its slides.</p>)}
       </div>
       <div className="mf-panel-body" role="tabpanel" id="mf-view-tree"
         aria-labelledby="mf-tab-tree" hidden={tab !== 'tree'}>

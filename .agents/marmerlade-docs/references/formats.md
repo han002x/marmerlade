@@ -117,7 +117,7 @@ view for overflow. Source validity does not establish visual fit.
 
 ## Mermaid flowchart subset
 
-The workspace also accepts Mermaid `sequenceDiagram` source as `diagram.sequence`. Use `{{sequence}}` for a live wiki or slide embed. Sequence export reproduces the stored source.
+The workspace also accepts Mermaid `sequenceDiagram` source as `diagram.sequence`. Use `{{sequence}}` for a live wiki or slide embed. Sequence export reproduces the stored source. A sequence entity may carry `links`: participant id → `{ pageIds?, deckIds? }`, ordered like a node's lists (first = default); every id must name an existing page or deck.
 
 For `flowchart` and `graph` input, `parseMermaid` is the strict parser;
 unrecognized lines reject the edit so the live editor keeps its last good state.

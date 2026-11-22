@@ -24,6 +24,7 @@ import { layout, layoutShown, nodeSize, type Direction } from './layout.ts';
 import type { NodeClipboard } from './clipboard.ts';
 import { createPageFor, mergePages, newPageId, normalizeDiagram, resolveLink, type LinkKey } from './pages.ts';
 import { folderTrail, placeWikiPage } from './wikiFolders.ts';
+import { dropParticipantLinks, findOwner, parseParticipantOwner, setParticipantLinks, type LinkOwner } from './linkOwners.ts';
 import {
   childrenOf,
   descendants,
@@ -200,7 +201,7 @@ interface State {
   // selection
   setSelection: (nodeIds: string[], edgeIds: string[]) => void;
 
-  // wiki
+  // wiki: `nodeId` below is a link owner id, a flowchart node's or a sequence participant's (linkOwners.ts)
   /** Open a linked page or the default, creating missing content on first call. */
   openPage: (nodeId: string, pageId?: string) => string | null;
   createPageForNode: (nodeId: string) => string | null;
@@ -330,18 +331,41 @@ export const useDiagram = create<State>((set, get) => {
 
 
   /**
-   * Pages and decks are the same thing to the store: documents that nodes link
-   * to in order, the first being the default. One set of actions serves both.
+   * Pages and decks are the same thing to the store: documents that nodes and
+   * sequence participants link to in order, the first being the default. One
+   * set of actions serves both.
    */
   const linked = (list: 'pages' | 'decks', key: LinkKey) => {
     const prefix = key === 'deckIds' ? 'deck' : 'page';
     const relink = (nodes: DiagramNode[], match: (n: DiagramNode) => boolean, ids: (old: string[]) => string[]) =>
       nodes.map((n) => (match(n) ? { ...n, [key]: ids(n[key] ?? []) } : n));
-    const has = (id: string) => (n: DiagramNode) => !!n[key]?.includes(id);
+    const has = (id: string) => (n: Partial<Record<LinkKey, string[]>>) => !!n[key]?.includes(id);
+    /** Rewrite the list of one owner, a node or a sequence participant, when `when` holds for it. */
+    const relinkOwner = (
+      s: State,
+      ownerId: string,
+      ids: (old: string[]) => string[],
+      when: (owner: LinkOwner) => boolean = () => true,
+    ): Partial<State> => {
+      const participant = parseParticipantOwner(ownerId);
+      if (!participant) return { nodes: relink(s.nodes, (n) => n.id === ownerId && when(n), ids) };
+      // Participant links live on the sequence entity, so the workspace keeps its entities from here on.
+      const entities = s.diagrams ?? diagramEntities(workspaceDiagram(s));
+      const owner = findOwner(ownerId, s.nodes, entities);
+      if (!owner || !when(owner)) return {};
+      return {
+        diagrams: entities.map((e) =>
+          e.id === participant.diagramId && e.kind === 'sequence'
+            ? setParticipantLinks(e, participant.actor, key, ids(owner[key] ?? []))
+            : e,
+        ),
+      };
+    };
+    const ownerOf = (s: State, ownerId: string) => findOwner(ownerId, s.nodes, diagramEntities(workspaceDiagram(s)));
     return {
       open: (nodeId: string, docId?: string): string | null => {
         const s = get();
-        const node = s.nodes.find((n) => n.id === nodeId);
+        const node = ownerOf(s, nodeId);
         if (!node) return null;
         if (docId && !node[key]?.includes(docId)) return null;
         const target = docId ? { ...node, [key]: [docId] } : node;
@@ -349,19 +373,19 @@ export const useDiagram = create<State>((set, get) => {
         if (doc) {
           set({
             [list]: [...s[list], doc],
-            nodes: relink(s.nodes, (n) => n.id === nodeId && !n[key]?.length, () => [doc.id]),
+            ...relinkOwner(s, nodeId, () => [doc.id], (n) => !n[key]?.length),
           } as Partial<State>);
         }
         return doc?.id ?? target[key]?.[0] ?? null;
       },
       createFor: (nodeId: string): string | null => {
         const s = get();
-        const node = s.nodes.find((n) => n.id === nodeId);
+        const node = ownerOf(s, nodeId);
         if (!node) return null;
         const id = newPageId(s[list], prefix);
         set({
           [list]: [...s[list], { id, title: node.label, body: '', updatedAt: Date.now() }],
-          nodes: relink(s.nodes, (n) => n.id === nodeId, (old) => [...old, id]),
+          ...relinkOwner(s, nodeId, (old) => [...old, id]),
         } as Partial<State>);
         return id;
       },
@@ -379,19 +403,19 @@ export const useDiagram = create<State>((set, get) => {
           [list]: s[list].filter((p) => p.id !== id),
           wikiFolders: list === 'pages' ? placeWikiPage(s.wikiFolders, id, null) : s.wikiFolders,
           nodes: relink(s.nodes, has(id), (old) => old.filter((p) => p !== id)),
+          diagrams: s.diagrams?.map((e) => (e.kind === 'sequence' ? dropParticipantLinks(e, key, id) : e)),
           // Undo can restore deleted nodes, but must not revive links to deleted documents.
           history: s.history.map((h) => ({ ...h, nodes: relink(h.nodes, has(id), (old) => old.filter((p) => p !== id)) })),
         }) as Partial<State>),
       link: (id: string, nodeId: string) =>
         set((s) => {
-          const node = s.nodes.find((n) => n.id === nodeId);
-          if (!node || has(id)(node) || !s[list].some((p) => p.id === id)) return s;
-          return { nodes: relink(s.nodes, (n) => n.id === nodeId, (old) => [...old, id]) };
+          if (!s[list].some((p) => p.id === id)) return s;
+          return relinkOwner(s, nodeId, (old) => [...old, id], (n) => !has(id)(n));
         }),
       unlink: (id: string, nodeId: string) =>
-        set((s) => ({ nodes: relink(s.nodes, (n) => n.id === nodeId && has(id)(n), (old) => old.filter((p) => p !== id)) })),
+        set((s) => relinkOwner(s, nodeId, (old) => old.filter((p) => p !== id), has(id))),
       makeDefault: (id: string, nodeId: string) =>
-        set((s) => ({ nodes: relink(s.nodes, (n) => n.id === nodeId && has(id)(n), (old) => [id, ...old.filter((p) => p !== id)]) })),
+        set((s) => relinkOwner(s, nodeId, (old) => [id, ...old.filter((p) => p !== id)], has(id))),
       update: (id: string, patch: Partial<Pick<Page, 'title' | 'body'>>) =>
         set((s) => ({
           [list]: s[list].map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p)),
@@ -1200,6 +1224,31 @@ export const useDiagram = create<State>((set, get) => {
   },
   };
 });
+
+/** The node or sequence participant an owner id names, as it stands now. */
+export function linkOwner(id: string, s: State = useDiagram.getState()): LinkOwner | undefined {
+  return findOwner(id, s.nodes, diagramEntities(workspaceDiagram(s)));
+}
+
+/** The pages or decks an owner links to, cheap enough for a per-button selector. */
+export function ownerLinks(s: State, id: string, key: LinkKey): string[] | undefined {
+  const participant = parseParticipantOwner(id);
+  if (!participant) return s.nodes.find((n) => n.id === id)?.[key];
+  const entity = s.diagrams?.find((e) => e.id === participant.diagramId);
+  return entity?.kind === 'sequence' ? entity.links?.[participant.actor]?.[key] : undefined;
+}
+
+/** The node or sequence participant `id` names, live. */
+export function useLinkOwner(id: string | null | undefined): LinkOwner | undefined {
+  const nodes = useDiagram((s) => s.nodes);
+  const diagrams = useDiagram((s) => s.diagrams);
+  const sequence = useDiagram((s) => s.sequence);
+  return useMemo(
+    () => (id ? linkOwner(id) : undefined),
+    // linkOwner reads these through the store
+    [id, nodes, diagrams, sequence],
+  );
+}
 
 /** Everything a `[[link]]` can name in the workspace right now. */
 export function workspaceReferences(): Reference[] {

@@ -11,7 +11,7 @@ Drag a diagram by its name bar or preview to move it. Rename it in its header
 or resize it when selected. Drag on empty canvas to select several diagrams,
 then move, duplicate, or delete them together.
 
-Double-click a diagram or choose **Edit diagram** to edit it in place.
+Click a diagram to edit it in place. Click empty canvas to finish.
 Choose **Done** when finished. Drag flowchart nodes and draw edges between
 handles. Pan or zoom anywhere on the workspace, or use the minimap to
 navigate between diagrams. Built on [React Flow](https://reactflow.dev) (`@xyflow/react`).
@@ -268,7 +268,7 @@ correctly offline.
 
 Choose **Add diagram → Sequence** and click the workspace canvas to place it.
 A new diagram is placed beside existing ones, opens for editing and scrolls
-into view. Reopen it later from **Tree** or with **Edit diagram** in its header.
+into view. Reopen it later from **Tree** or by clicking it.
 Each sequence has its own source and participants.
 Paste the following in its Mermaid editor.
 

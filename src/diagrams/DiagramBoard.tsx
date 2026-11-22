@@ -112,20 +112,6 @@ function DiagramFrame({ data }: NodeProps<EntityNode>) {
           value={entity.title}
           onSave={(title) => data.rename(entity.id, title)}
         />
-        {editing && (
-          <span className="diagram-editing-status" role="status" aria-label="Editing diagram" title="Editing diagram">
-            <Icon name="pencil" />
-          </span>
-        )}
-        <button
-          className="nodrag workspace-nopan"
-          type="button"
-          aria-label={editing ? 'Done editing diagram' : 'Edit diagram'}
-          title={editing ? 'Done editing diagram' : 'Edit diagram'}
-          onClick={() => (editing ? data.close() : data.open(entity.id))}
-        >
-          <Icon name={editing ? 'check' : 'pencil'} />
-        </button>
         <button
           className="nodrag workspace-nopan"
           type="button"
@@ -758,6 +744,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
             if (placement) add(placement, { x: event.clientX, y: event.clientY });
             else {
               setSelection([]);
+              if (active) close();
             }
           }}
           onNodesChange={(changes) => {

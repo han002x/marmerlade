@@ -896,6 +896,10 @@ export default function SequenceCanvas({
         elementsSelectable
         selectionOnDrag={tool === 'select' && !placementKind}
         zoomOnDoubleClick={false}
+        onDoubleClick={(e) => {
+          if (tool === 'select' && !placementKind && (e.target as Element).classList.contains('react-flow__pane'))
+            fit(geometry.box);
+        }}
         minZoom={0.05}
         panOnDrag={workspaceZoom ? false : [1, 2]}
         panActivationKeyCode={workspaceZoom ? null : 'Space'}
@@ -1015,7 +1019,10 @@ export default function SequenceCanvas({
             onDoubleClick={(e) => {
               if (tool !== 'select' || placementKind) return;
               const hit = (e.target as Element).closest('[data-statement]');
-              if (!hit) return;
+              if (!hit) {
+                fit(geometry.box);
+                return;
+              }
               const actor = actors.find((n) => n.data.actor === hit.getAttribute('data-sequence-actor'));
               if (actor) rename(actor.data, screenToFlowPosition({ x: e.clientX, y: e.clientY }));
               else

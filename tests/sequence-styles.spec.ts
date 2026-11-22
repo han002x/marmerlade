@@ -50,7 +50,7 @@ test('sequence elements take styles that follow edits, undo, save and the previe
     })
     .toEqual({ 'p:A': { background: '#f6d6cf' } });
 
-  await page.getByRole('button', { name: 'Done editing diagram' }).click();
+  await page.locator('.react-flow__pane').click({ position: { x: 5, y: 5 } });
   await expect(page.locator('.diagram-preview [data-et="participant"][data-id="A"] rect')).toHaveCSS(
     'fill',
     'rgb(246, 214, 207)',

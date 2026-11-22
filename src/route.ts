@@ -1,4 +1,5 @@
 //   #/diagrams        diagram canvas (also the default at #/)
+//   #/diagrams/<id>   canvas, opened on one diagram
 //   #/wiki            page index
 //   #/wiki/<pageId>   one page
 //   #/node/<nodeId>   canvas, focused on a node
@@ -13,12 +14,13 @@ export type Route =
   | { kind: 'canvas' }
   | { kind: 'docs' }
   | { kind: 'node'; id: string }
+  | { kind: 'diagram'; id: string }
   | { kind: 'wiki'; id: string | null; nodeId?: string }
   | { kind: 'slides'; id: string | null; nodeId?: string; slide?: number; presenter?: boolean };
 
 export function parseRoute(hash: string): Route {
   if (hash === '#/diagrams') return { kind: 'canvas' };
-  const [, kind, id] = hash.match(/^#\/(wiki|node|slides|docs)(?:\/([^/?]+))?/) ?? [];
+  const [, kind, id] = hash.match(/^#\/(wiki|node|slides|docs|diagrams)(?:\/([^/?]+))?/) ?? [];
   const decoded = id ? decodeURIComponent(id) : null;
   if (kind === 'docs') return { kind: 'docs' };
   if (kind === 'wiki' || kind === 'slides') {
@@ -34,6 +36,7 @@ export function parseRoute(hash: string): Route {
     };
   }
   if (kind === 'node' && decoded) return { kind: 'node', id: decoded };
+  if (kind === 'diagrams' && decoded) return { kind: 'diagram', id: decoded };
   return { kind: 'canvas' };
 }
 
@@ -45,6 +48,7 @@ export const deckHref = (deckId: string, nodeId?: string, slide?: number, presen
   return `#/slides/${encodeURIComponent(deckId)}${query ? `?${query}` : ''}`;
 };
 export const nodeHref = (nodeId: string) => `#/node/${encodeURIComponent(nodeId)}`;
+export const diagramHref = (diagramId: string) => `#/diagrams/${encodeURIComponent(diagramId)}`;
 
 const subscribe = (cb: () => void) => {
   window.addEventListener('hashchange', cb);
@@ -77,6 +81,11 @@ export function openSlides(deckId?: string, nodeId?: string) {
 /** Open (or reuse) the canvas window focused on a node. */
 export function openNode(nodeId: string) {
   window.open(`${window.location.pathname}${nodeHref(nodeId)}`, windows.canvas)?.focus();
+}
+
+/** Open (or reuse) the canvas window on one diagram. */
+export function openBoard(diagramId: string) {
+  window.open(`${window.location.pathname}${diagramHref(diagramId)}`, windows.canvas)?.focus();
 }
 
 /** Open (or reuse) the docs window. */

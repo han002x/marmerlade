@@ -1,4 +1,5 @@
 import { useDiagram } from '../store';
+import { retitleField } from '../retitle';
 import { showPage, useDock } from '../dock';
 import { nodesOfPage, pageOf, pathTo } from '../pages';
 import { nodeHref, openWiki } from '../route';
@@ -99,6 +100,7 @@ export default function PagePanel() {
           value={page.title}
           placeholder="Untitled"
           onChange={(e) => useDiagram.getState().updatePage(page.id, { title: e.target.value })}
+              {...retitleField('page', page.id)}
         />
         {node && (
           <Menu className="wk-icon" align="end" label="Pages on this node" button="⌄">
@@ -146,7 +148,6 @@ export default function PagePanel() {
         nodeId={pageNode?.id}
         onPage={open}
         onNode={toNode}
-        targets={() => [...new Set([...pages.map((p) => p.title), ...nodes.map((n) => n.label)].filter(Boolean))]}
         onChange={(body) => {
           const cur = useDiagram.getState().pages.find((p) => p.id === page.id);
           if (cur && cur.body !== body) useDiagram.getState().updatePage(page.id, { body });

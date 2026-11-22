@@ -5,8 +5,10 @@ import type { Appearance } from './appearance';
 
 import { Marked, type Token } from 'marked';
 import type { Deck, Diagram } from './types';
-import { embedDiagram, embedNode } from './pages.ts';
-import { decodeDiagramTarget, DIAGRAM_LINE } from './diagramEmbed.ts';
+import { embedDiagram, entityDiagram, resolveEmbed } from './pages.ts';
+import { diagramEntities } from './diagramEntities.ts';
+import { refName } from './references.ts';
+import { decodeDiagramTarget, DIAGRAM_LINE, SEQUENCE_LINE } from './diagramEmbed.ts';
 import { toMermaid } from './mermaid/io.ts';
 
 export const FONTS = ['sans', 'serif', 'mono', 'hand'] as const;
@@ -519,7 +521,7 @@ const WIKILINK = /\[\[([^[\]|]+)(?:\|([^[\]]+))?\]\]/g;
 
 /**
  * A deck as a standalone Markdown file for Marp or Slidev: live diagram embeds
- * become Mermaid fences and wikilinks become their text.
+ * (named diagrams too) become Mermaid fences and wikilinks become their text.
  */
 export function toMarkdown(deck: Deck, diagram: Diagram, nodeId?: string, appearance?: Appearance): string {
   let source = deck.body.replace(/\r\n?/g, '\n');
@@ -529,10 +531,19 @@ export function toMarkdown(deck: Deck, diagram: Diagram, nodeId?: string, appear
       if (key === 'backgroundColor' || key === 'color' || key === 'font' || key === 'headingFont') source = setDeckStyle(source, key, value);
     }
   }
+  const entities = diagramEntities(diagram);
+  const fence = (source: string) => (source ? '```mermaid\n' + source + '\n```' : '');
   const mermaid = (target: string) => {
-    const id = embedNode(target, diagram.nodes, nodeId);
-    const sub = id ? embedDiagram(diagram, id) : { nodes: [], edges: [] };
-    return sub.nodes.length ? `\`\`\`mermaid\n${toMermaid(sub)}\n\`\`\`` : '';
+    const pick = resolveEmbed(target, diagram.nodes, entities, nodeId);
+    if (pick?.kind === 'entity' && pick.entity.kind === 'sequence') return fence(pick.entity.source);
+    const sub = pick?.kind === 'node' ? embedDiagram(diagram, pick.id)
+      : pick?.kind === 'entity' && pick.entity.kind === 'flowchart' ? entityDiagram(pick.entity) : { nodes: [], edges: [] };
+    return sub.nodes.length ? fence(toMermaid(sub)) : '';
+  };
+  const sequence = (target: string) => {
+    if (!target.trim()) return fence(diagram.sequence ?? '');
+    const pick = resolveEmbed(target, diagram.nodes, entities, undefined, true);
+    return pick?.kind === 'entity' && pick.entity.kind === 'sequence' ? fence(pick.entity.source) : '';
   };
   const original = parse(source);
   const hasPositioned = original.tokens.some(token => token.type === 'html' && token.raw.includes('data-slide-diagram='));
@@ -554,8 +565,8 @@ export function toMarkdown(deck: Deck, diagram: Diagram, nodeId?: string, appear
       if (t.type === 'code') return t.raw;
       return t.raw
         .replace(DIAGRAM_LINE, (_all, target: string | undefined) => mermaid(target ?? ''))
-        .replace(WIKILINK, (_all, target: string, alias: string | undefined) => (alias ?? target).trim())
-        .replace(/^\{\{sequence\}\}(?:\{width=\d{1,3}%\})?[ \t]*$/gm, () => diagram.sequence ? '```mermaid\n' + diagram.sequence + '\n```' : '');
+        .replace(WIKILINK, (_all, target: string, alias: string | undefined) => (alias ?? refName(target)).trim())
+        .replace(SEQUENCE_LINE, (_all, target: string | undefined) => sequence(target ?? ''));
     })
     .join('')
     .trim();

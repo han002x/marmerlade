@@ -146,7 +146,7 @@ export default function Present({ deckId, nodeId, slides, slide, presenter = fal
   );
 
   return (
-    <div className={`sl-present${pointer ? ' pointer' : ''}${presenter ? ' presenter' : ''}`}>
+    <div className={`sl-present${pointer ? ' pointer' : ''}${presenter ? ' presenter' : ''}`} data-ref-previews="off">
       <div className={`sl-stage${current.look.transition ? ` t-${current.look.transition}` : ''}${seen.back ? ' back' : ''}`}>
         <Slide key={at} slide={current} nodeId={nodeId} />
         <div className="sl-progress" role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={slides.length}

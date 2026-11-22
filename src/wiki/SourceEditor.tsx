@@ -1,10 +1,34 @@
-import { useEffect, useRef, useImperativeHandle, type Ref } from 'react';
+import { lazy, Suspense, useEffect, useRef, useImperativeHandle, type Ref } from 'react';
+import { createRoot } from 'react-dom/client';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap, placeholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, undo, redo, undoDepth, redoDepth, isolateHistory } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { autocompletion, type CompletionContext } from '@codemirror/autocomplete';
+import { autocompletion, startCompletion, type Completion, type CompletionContext } from '@codemirror/autocomplete';
+import { workspaceReferences } from '../store';
+import { referenceKey, type Reference } from '../references';
+import '../components/refs.css';
+
+const RefCard = lazy(() => import('../components/RefCard'));
+
+/** A RefCard inside CodeMirror's completion info panel. */
+const preview = (r: Reference) => () => {
+  const dom = document.createElement('div');
+  dom.className = 'ref-card ref-inline';
+  const root = createRoot(dom);
+  root.render(<Suspense fallback={null}><RefCard refKey={referenceKey(r)} /></Suspense>);
+  return { dom, destroy: () => queueMicrotask(() => root.unmount()) };
+};
+const KIND_LABEL: Record<Reference['kind'], string> = { page: 'page', deck: 'deck', diagram: 'diagram', node: 'node' };
+
+/** Line-start `/` commands: each types an opener, then offers its targets. */
+const SLASH: { label: string; insert: string }[] = [
+  { label: 'Link page', insert: '[[' },
+  { label: 'Link deck', insert: '[[deck:' },
+  { label: 'Link diagram', insert: '[[diagram:' },
+  { label: 'Embed diagram', insert: '{{diagram:' },
+];
 import { tags } from '@lezer/highlight';
 
 const theme = EditorView.theme({
@@ -43,8 +67,8 @@ export interface SourceHistory { undo: () => void; redo: () => void }
 interface Props {
   value: string;
   onChange: (value: string) => void;
-  /** page titles and node labels offered after `[[` */
-  targets: () => string[];
+  /** what `[[` offers; the whole workspace by default */
+  references?: () => Reference[];
   /** told where the caret is, as an offset into the text */
   onCaret?: (offset: number) => void;
   /** move the caret and scroll to it; focus unless the caller keeps another panel open */
@@ -54,11 +78,11 @@ interface Props {
 }
 
 /** Raw Markdown editor. Remote changes replace the text and keep the caret. */
-export default function Editor({ value, onChange, targets, onCaret, caret, historyRef, onHistoryChange }: Props) {
+export default function Editor({ value, onChange, references = workspaceReferences, onCaret, caret, historyRef, onHistoryChange }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
-  const latest = useRef({ onChange, targets, onCaret, onHistoryChange });
-  latest.current = { onChange, targets, onCaret, onHistoryChange };
+  const latest = useRef({ onChange, references, onCaret, onHistoryChange });
+  latest.current = { onChange, references, onCaret, onHistoryChange };
   useImperativeHandle(historyRef, () => ({
     undo: () => { if (view.current) undo(view.current); },
     redo: () => { if (view.current) redo(view.current); },
@@ -66,13 +90,43 @@ export default function Editor({ value, onChange, targets, onCaret, caret, histo
 
   useEffect(() => {
     const complete = (c: CompletionContext) => {
-      const m = c.matchBefore(/\[\[[^\]\n]*/);
-      if (!m) return null;
-      return {
-        from: m.from + 2,
-        options: latest.current.targets().map((label) => ({ label, apply: `${label}]]` })),
-        filter: true,
-      };
+      const link = c.matchBefore(/\[\[[^\]\n]*/);
+      if (link) {
+        return {
+          from: link.from + 2,
+          options: latest.current.references().map((r): Completion => ({
+            label: r.target, displayLabel: r.title, detail: KIND_LABEL[r.kind], apply: `${r.target}]]`, info: preview(r),
+          })),
+          filter: true,
+        };
+      }
+      const embed = c.matchBefore(/^\{\{(diagram|sequence):[^}\n]*/);
+      if (embed) {
+        const sequence = embed.text.startsWith('{{sequence');
+        const refs = latest.current.references().filter((r) => (r.kind === 'diagram' && (!sequence || r.icon === 'sequence')) || (!sequence && r.kind === 'node'));
+        return {
+          from: embed.from + embed.text.indexOf(':') + 1,
+          options: refs.map((r): Completion => ({
+            label: r.title, detail: KIND_LABEL[r.kind], apply: `${r.title}}}`, info: preview(r), boost: r.kind === 'diagram' ? 1 : 0,
+          })),
+          filter: true,
+        };
+      }
+      const slash = c.matchBefore(/^\/[\w ]*/);
+      if (slash) {
+        return {
+          from: slash.from,
+          options: SLASH.map(({ label, insert }): Completion => ({
+            label: '/' + label.toLowerCase(), displayLabel: label,
+            apply: (view, _completion, from, to) => {
+              view.dispatch({ changes: { from, to, insert }, selection: { anchor: from + insert.length } });
+              startCompletion(view);
+            },
+          })),
+          filter: true,
+        };
+      }
+      return null;
     };
     const v = new EditorView({
       parent: host.current!,

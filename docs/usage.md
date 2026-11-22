@@ -103,8 +103,12 @@ floating toolbar. Select a handle to insert, clear, or delete that row or
 column; `Tab` moves between cells and
 adds a row at the end, `Shift+Tab` moves back, and `Enter` adds a cell line
 break. Merged cells and resizing are not supported. `[[Node or Page]]` links jump between
-pages (`[[Target|alias]]` supported, `[[` autocompletes), each page lists its
-backlinks, and `{{diagram}}` embeds the node's live sub-diagram. In **Edit** mode,
+pages (`[[Target|alias]]` supported), `[[deck:Title]]` opens a deck and
+`[[diagram:Title]]` a diagram on the canvas. `[[` offers every page, deck and
+diagram with a preview; `/` offers **Link page**, **Link deck**, **Link
+diagram** and **Embed** for any diagram by name. Hover any link to preview it.
+Each page lists its backlinks, and `{{diagram}}` embeds the node's live
+sub-diagram (`{{diagram:Checkout}}` a whole diagram by title). In **Edit** mode,
 drag its width handle to resize it. Use the drag grip or the up and down buttons
 to move it between blocks. Click a node
 in it, or **Canvas** in the header, to drill back up: the canvas unfolds
@@ -139,7 +143,8 @@ A deck is Markdown in the subset [Marp](https://marp.app) and
 [Slidev](https://sli.dev) both read: `---` on its own line starts a new
 slide, an HTML comment (`<!-- … -->`) is a speaker note, and optional front
 matter at the top is kept but not shown. `{{diagram}}` draws the linked
-node's live sub-diagram, `{{diagram:Node}}` draws any node by label or id,
+node's live sub-diagram, `{{diagram:Node}}` draws any node by label or id
+(or a whole diagram by title), the toolbar's diagram button places any diagram,
 and ```` ```mermaid ```` fences render as diagrams. Drag a live diagram on the slide
 canvas to move it. Select it to resize it with the object handles. `[[wikilinks]]` open the
 wiki. The source sits beside its slides, which redraw as you type. The slide

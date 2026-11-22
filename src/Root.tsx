@@ -1,6 +1,7 @@
 import { lazy, Profiler, Suspense, useEffect } from 'react'
 import WorkspaceStatus from './components/WorkspaceStatus.tsx'
 import AppearanceDialog from './components/AppearanceDialog'
+import RefHover from './components/RefHover'
 
 import { nameProductWindow, parseRoute, useHash } from './route.ts'
 
@@ -24,7 +25,7 @@ function Route({ route, showWelcome }: { route: ReturnType<typeof parseRoute>; s
 
 export default function Root({ showWelcome }: { showWelcome: boolean }) {
   const route = parseRoute(useHash())
-  const product = route.kind === 'node' ? 'canvas' : route.kind
+  const product = route.kind === 'node' || route.kind === 'diagram' ? 'canvas' : route.kind
   useEffect(() => {
     nameProductWindow(product)
     if (product === 'canvas') document.title = 'Diagrams · marmerlade'
@@ -33,5 +34,6 @@ export default function Root({ showWelcome }: { showWelcome: boolean }) {
     <Suspense fallback={null}><Route route={route} showWelcome={showWelcome} /></Suspense>
     {product !== 'canvas' && <AppearanceDialog />}
     <WorkspaceStatus />
+    {route.kind === 'slides' && route.presenter ? null : <RefHover />}
   </>
 }

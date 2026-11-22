@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { retitleField } from '../retitle';
 import { useDiagram } from '../store';
 import { openAppearance } from '../theme';
 import { backlinks, nodesOfPage, pathTo } from '../pages';
@@ -29,11 +30,6 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
     document.title = page ? `${page.title || 'Untitled'} · Wiki pages · marmerlade` : 'Wiki pages · marmerlade';
   }, [page]);
 
-  const targets = useCallback(() => {
-    const st = useDiagram.getState();
-    const names = [...st.pages.map((p) => p.title), ...st.nodes.map((n) => n.label)];
-    return [...new Set(names.filter(Boolean))];
-  }, []);
 
   const remove = () => {
     if (!page) return;
@@ -104,6 +100,7 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
               value={page.title}
               placeholder="Untitled"
               onChange={(e) => useDiagram.getState().updatePage(page.id, { title: e.target.value })}
+              {...retitleField('page', page.id)}
             />
             <Document
               key={page.id}
@@ -111,7 +108,6 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
               mode={mode}
               nodeId={node?.id}
               onPage={toPage}
-              targets={targets}
               onChange={(body) => {
                 const cur = useDiagram.getState().pages.find((p) => p.id === page.id);
                 if (cur && cur.body !== body) useDiagram.getState().updatePage(page.id, { body });

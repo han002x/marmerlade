@@ -27,7 +27,7 @@ async function start() {
     startAutosave();
     startSync();
     const { kind } = parseRoute(window.location.hash);
-    if (!saved && (kind === 'canvas' || kind === 'node')) {
+    if (!saved && (kind === 'canvas' || kind === 'node' || kind === 'diagram')) {
       useDiagram.getState().load(SAMPLE);
       showWelcome = isFirstRun();
     }

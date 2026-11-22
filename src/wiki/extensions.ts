@@ -8,6 +8,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import Image from '@tiptap/extension-image';
 import { Marked } from 'marked';
 import { diagramMarkdown, readDiagramEmbed } from '../diagramEmbed.ts';
+import { parseRef } from '../references.ts';
 
 export const WikiLink = Node.create({
   name: 'wikiLink', group: 'inline', inline: true, atom: true,
@@ -21,7 +22,10 @@ export const WikiLink = Node.create({
     })];
   },
   parseHTML: () => [{ tag: 'span[data-wikilink]', getAttrs: (el) => ({ target: el.getAttribute('data-wikilink'), alias: el.getAttribute('data-alias') }) }],
-  renderHTML: ({ node, HTMLAttributes }) => ['span', mergeAttributes(HTMLAttributes, { 'data-wikilink': node.attrs.target, 'data-alias': node.attrs.alias, class: 'wl' }), node.attrs.alias || node.attrs.target],
+  renderHTML: ({ node, HTMLAttributes }) => {
+    const ref = parseRef(String(node.attrs.target ?? ''));
+    return ['span', mergeAttributes(HTMLAttributes, { 'data-wikilink': node.attrs.target, 'data-alias': node.attrs.alias, class: ref.kind === 'page' ? 'wl' : `wl ${ref.kind}` }), node.attrs.alias || ref.name];
+  },
   markdownTokenizer: {
     name: 'wikiLink', level: 'inline', start: (src) => src.indexOf('[['),
     tokenize(src) {

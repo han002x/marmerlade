@@ -304,8 +304,9 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     const entity =
       route.kind === 'node'
         ? entities.find((e) => e.kind === 'flowchart' && e.nodes.some((n) => n.id === route.id))
-        : hash === '#/diagrams/sequence'
-          ? entities.find((e) => e.kind === 'sequence')
+        : route.kind === 'diagram'
+          ? (entities.find((e) => e.id === route.id) ??
+            (route.id === 'sequence' ? entities.find((e) => e.kind === 'sequence') : undefined))
           : undefined;
     if (entity) {
       open(entity.id);
@@ -363,7 +364,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     settleFoldMotion();
     state.openDiagram(null);
     setSequenceTarget(undefined);
-    if (parseRoute(location.hash).kind === 'node' || location.hash === '#/diagrams/sequence')
+    if (['node', 'diagram'].includes(parseRoute(location.hash).kind))
       location.hash = '/diagrams';
   }
   useHotkeys(
@@ -537,6 +538,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     return row;
   }
   function renameDiagram(id: string, title: string) {
+    const from = entities.find((item) => item.id === id)?.title ?? '';
     save(
       entities.map((item) =>
         item.id === id
@@ -544,6 +546,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
           : item,
       ),
     );
+    useDiagram.getState().retitle('diagram', id, from);
   }
   function duplicate(ids: string[]) {
     const placed = [...entities];

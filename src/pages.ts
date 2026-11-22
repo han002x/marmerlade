@@ -2,8 +2,9 @@
 // Slide decks link the same way, so each helper takes the node field to read.
 // No store or DOM here, so scripts/pages.ts can exercise it directly.
 
-import type { Diagram, DiagramNode, Page } from './types';
+import type { Deck, Diagram, DiagramEntity, DiagramNode, Page } from './types';
 import { validateWikiFolders } from './wikiFolders.ts';
+import { parseRef } from './references.ts';
 
 /** The node field holding links to pages or to decks. */
 export type LinkKey = 'pageIds' | 'deckIds';
@@ -113,17 +114,34 @@ export function extractLinks(body: string): string[] {
 export type Resolved =
   | { kind: 'page'; page: Page }
   | { kind: 'node'; node: DiagramNode }
+  | { kind: 'deck'; deck: Deck }
+  | { kind: 'diagram'; entity: DiagramEntity }
   | { kind: 'none' };
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 /**
- * A link names a page title first, then a node label (whose page is created on
+ * `deck:Title` names a deck and `diagram:Title` a diagram entity. Anything
+ * else names a page title first, then a node label (whose page is created on
  * first visit). Case-insensitive; the first match in document order wins.
  */
-export function resolveLink(target: string, nodes: DiagramNode[], pages: Page[]): Resolved {
+export function resolveLink(
+  target: string,
+  nodes: DiagramNode[],
+  pages: Page[],
+  more: { decks?: Deck[]; diagrams?: DiagramEntity[] } = {},
+): Resolved {
+  const ref = parseRef(target);
+  if (ref.kind === 'deck') {
+    const deck = more.decks?.find((d) => same(d.title, ref.name));
+    if (deck) return { kind: 'deck', deck };
+  } else if (ref.kind === 'diagram') {
+    const entity = more.diagrams?.find((e) => same(e.title, ref.name));
+    if (entity) return { kind: 'diagram', entity };
+  }
   const page = pages.find((p) => same(p.title, target));
   if (page) return { kind: 'page', page };
+  if (ref.kind !== 'page') return { kind: 'none' };
   const node = nodes.find((n) => n.label && same(n.label, target));
   if (!node) return { kind: 'none' };
   const linked = pageOf(node, pages);
@@ -174,6 +192,43 @@ export function foldedAncestors(nodes: DiagramNode[], nodeId: string): string[] 
 export function embedNode(target: string, nodes: DiagramNode[], fallback?: string): string | undefined {
   if (!target.trim()) return fallback;
   return (nodes.find((n) => n.id === target.trim()) ?? nodes.find((n) => n.label && same(n.label, target)))?.id;
+}
+
+export type EmbedPick =
+  | { kind: 'node'; id: string }
+  | { kind: 'entity'; entity: DiagramEntity };
+
+/**
+ * What `{{diagram:Target}}` draws: a node of the open flowchart (by id or
+ * label, as before), else a whole diagram entity by title. `{{sequence:Target}}`
+ * only names sequence entities.
+ */
+export function resolveEmbed(
+  target: string,
+  nodes: DiagramNode[],
+  entities: DiagramEntity[],
+  fallback?: string,
+  sequence = false,
+): EmbedPick | undefined {
+  if (!sequence) {
+    const id = embedNode(target, nodes, fallback);
+    if (id) return { kind: 'node', id };
+  }
+  if (!target.trim()) return undefined;
+  const entity = entities.find((e) => (!sequence || e.kind === 'sequence') && same(e.title, target));
+  return entity && { kind: 'entity', entity };
+}
+
+/** A whole flowchart as an embed draws it: page and deck links dropped. */
+export function entityDiagram(entity: Extract<DiagramEntity, { kind: 'flowchart' }>): Diagram {
+  return {
+    nodes: entity.nodes.map((n) => {
+      const { pageIds, deckIds, ...rest } = n;
+      void pageIds; void deckIds;
+      return rest;
+    }),
+    edges: entity.edges,
+  };
 }
 
 /**

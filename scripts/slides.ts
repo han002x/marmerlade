@@ -342,6 +342,16 @@ const node = (id: string, label: string, extra: Partial<DiagramNode> = {}): Diag
   assert.equal(toMarkdown({ ...deck, body: '{{diagram:Nope}}\n\nx' }, { nodes, edges }).split('---\n\n')[1], 'x\n');
   assert.equal(deckFileName(deck), 'launch-plan.md');
   assert.equal(deckFileName({ ...deck, title: ' ' }), 'deck.md');
+
+  // named diagrams and prefixed links
+  const flow = { id: 'e1', title: 'Checkout', kind: 'flowchart' as const, position: { x: 0, y: 0 }, size: { width: 1, height: 1 },
+    nodes: [node('x', 'Cart'), node('y', 'Pay')], edges: [{ id: 'xy', source: 'x', target: 'y' }] };
+  const login = { id: 'e2', title: 'Login', kind: 'sequence' as const, position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, source: 'sequenceDiagram\nA->>B: hi' };
+  const named = toMarkdown({ ...deck, body: '[[deck:Q3|the deck]] [[diagram:Checkout]]\n\n{{diagram:Checkout}}\n\n---\n\n{{sequence:Login}}' },
+    { nodes, edges, diagrams: [{ ...flow }, login] });
+  assert.ok(named.includes('the deck Checkout'), named);
+  assert.ok(named.includes('x["Cart"]') && named.includes('x --- y'), 'a named flowchart exports whole: ' + named);
+  assert.ok(named.includes('```mermaid\nsequenceDiagram\nA->>B: hi\n```'), 'a named sequence exports its source: ' + named);
 }
 
 // ---- routes ----

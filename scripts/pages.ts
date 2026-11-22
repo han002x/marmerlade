@@ -21,11 +21,14 @@ import {
   pageOf,
   pathTo,
   resolveLink,
+  resolveEmbed,
+  entityDiagram,
   normalizeDiagram,
   nodesOfPage,
 } from '../src/pages.ts';
+import { filterReferences, parseRef, refName, references, refTarget, retarget } from '../src/references.ts';
 import { mergeDiagram } from '../src/mermaid/io.ts';
-import type { Diagram, DiagramNode, Page } from '../src/types.ts';
+import type { Diagram, DiagramEntity, DiagramNode, Page } from '../src/types.ts';
 
 let failed = 0;
 const check = (name: string, ok: boolean, detail?: unknown) => {
@@ -125,6 +128,81 @@ const page = (id: string, title: string, updatedAt: number): Page => ({
   check('unresolved link is marked new', html.includes('class="wl new"') && html.includes('data-create="ghost"'), html);
   check('embed placeholder survives', html.includes('data-embed'), html);
   check('scripts and handlers are stripped', !/<script|onerror/.test(html), html);
+}
+
+// ---- references between pages, decks and diagrams ----
+{
+  check('unprefixed targets are pages', parseRef(' API ').kind === 'page' && parseRef('API').name === 'API');
+  check('deck: and diagram: name their kind', parseRef('deck:Q3 Review').kind === 'deck' && parseRef('diagram:Checkout').name === 'Checkout');
+  check('a prefix needs a name', parseRef('deck: ').kind === 'page' && parseRef('Diagram: Overview').kind === 'page');
+  check('refTarget inverts parseRef', refTarget('deck', 'Q3') === 'deck:Q3' && refTarget('page', 'API') === 'API' && refName('diagram:Flow') === 'Flow');
+
+  const nodes = [node('a', 'API', { pageIds: ['p1'] }), node('b', 'Cache')];
+  const pages = [page('p1', 'API', 1)];
+  const decks = [page('d1', 'Q3 Review', 1)];
+  const flow: DiagramEntity = { id: 'e1', title: 'Checkout', kind: 'flowchart', position: { x: 0, y: 0 }, size: { width: 1, height: 1 },
+    nodes: [node('x', 'Cart', { pageIds: ['p1'] }), node('y', 'Pay')], edges: [{ id: 'xy', source: 'x', target: 'y' }] };
+  const seq: DiagramEntity = { id: 'e2', title: 'Login', kind: 'sequence', position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, source: 'sequenceDiagram\nA->>B: hi' };
+  const more = { decks, diagrams: [flow, seq] };
+
+  const deck = resolveLink('deck:q3 review', nodes, pages, more);
+  check('deck link resolves, any case', deck.kind === 'deck' && deck.deck.id === 'd1', deck);
+  const diagram = resolveLink('diagram:Checkout', nodes, pages, more);
+  check('diagram link resolves to the entity', diagram.kind === 'diagram' && diagram.entity.id === 'e1', diagram);
+  check('missing deck is none, not a node', resolveLink('deck:Cache', nodes, pages, more).kind === 'none');
+  check('unprefixed links never reach decks', resolveLink('Q3 Review', nodes, pages, more).kind === 'none');
+  check('old callers without decks still work', resolveLink('deck:Q3 Review', nodes, pages).kind === 'none' && resolveLink('API', nodes, pages).kind === 'page');
+  check('backlinks ignore deck links', backlinks(pages[0], nodes, [...pages, { ...page('p2', 'X', 1), body: '[[deck:API]]' }]).length === 0);
+
+  const html = renderPage('[[deck:Q3 Review|the deck]] [[diagram:Checkout]] [[deck:Nope]] [[API]]\n\n{{diagram:Checkout}}\n\n{{sequence:Login}}', { nodes, pages, ...more });
+  check('deck link renders to the slides route', html.includes('class="wl deck" data-ref="deck:d1" href="#/slides/d1"') && html.includes('>the deck<'), html);
+  check('diagram link renders to the board route, without its prefix', html.includes('data-ref="diagram:e1" href="#/diagrams/e1">Checkout<'), html);
+  check('missing deck renders as missing', html.includes('class="wl missing" data-ref="missing:deck:Nope"'), html);
+  check('page links carry a preview key', html.includes('data-ref="page:p1"'), html);
+  check('named embeds keep their target', html.includes('data-embed="Checkout"') && html.includes('data-sequence="Login"'), html);
+  check('diagram route parses', JSON.stringify(parseRoute('#/diagrams/e1')) === '{"kind":"diagram","id":"e1"}' && parseRoute('#/diagrams').kind === 'canvas');
+
+  const node1 = resolveEmbed('Cache', nodes, more.diagrams, 'a');
+  check('embed: a node of the open flowchart wins', node1?.kind === 'node' && node1.id === 'b', node1);
+  const whole = resolveEmbed('checkout', nodes, more.diagrams, 'a');
+  check('embed: else a whole diagram by title', whole?.kind === 'entity' && whole.entity.id === 'e1', whole);
+  check('embed: bare target still takes the fallback node', resolveEmbed('', nodes, more.diagrams, 'a')?.kind === 'node');
+  check('embed: sequence names only sequences', resolveEmbed('Checkout', nodes, more.diagrams, undefined, true) === undefined
+    && resolveEmbed('Login', nodes, more.diagrams, undefined, true)?.kind === 'entity');
+  check('a whole embedded flowchart drops page links', entityDiagram(flow as Extract<DiagramEntity, { kind: 'flowchart' }>).nodes.every((n) => !n.pageIds));
+
+  const refs = references({ nodes, pages, decks, diagrams: more.diagrams });
+  check('references list every kind once', refs.map((r) => r.target).join() === 'API,deck:Q3 Review,diagram:Checkout,diagram:Login,Cache', refs);
+  check('filter narrows by kind prefix', filterReferences(refs, 'diagram:log').map((r) => r.title).join() === 'Login');
+  const ranked = filterReferences(references({ nodes: [node('c', 'Cat')], pages: [page('p', 'Big Cat', 1)] }), 'cat');
+  check('filter ranks prefix matches before kind order', ranked.map((r) => r.title).join() === 'Cat,Big Cat', ranked);
+
+  const body = 'a [[deck:Q3 Review|deck]] b [[Q3 Review]] c [[diagram:Checkout]]\n{{diagram:Checkout}}{width=50%}\n{{sequence:Checkout}}\n<span data-slide-diagram="Checkout"></span>';
+  check('retarget follows a deck rename only', retarget(body, 'deck', 'q3 review', 'Q4') === body.replace('deck:Q3 Review|', 'deck:Q4|'), retarget(body, 'deck', 'q3 review', 'Q4'));
+  const moved = retarget(body, 'diagram', 'Checkout', 'Buy');
+  check('retarget follows a diagram rename into links and embeds', !moved.includes('Checkout') && moved.includes('{{diagram:Buy}}{width=50%}') && moved.includes('data-slide-diagram="Buy"'), moved);
+  check('retarget leaves other text alone', retarget(body, 'page', 'Nope', 'X') === body);
+}
+
+// ---- retitle through the store ----
+{
+  const flow: DiagramEntity = { id: 'e1', title: 'Checkout', kind: 'flowchart', position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, nodes: [], edges: [] };
+  useDiagram.setState({
+    nodes: [], edges: [], diagrams: [flow, { ...flow, id: 'e2', title: 'Other' }], activeDiagramId: null,
+    pages: [{ ...page('p1', 'API', 1), body: '[[diagram:Checkout]] [[deck:Plan]]' }],
+    decks: [{ ...page('d1', 'Plan', 1), body: '{{diagram:Checkout}}' }],
+  });
+  useDiagram.setState({ diagrams: [{ ...flow, title: 'Buy' }, { ...flow, id: 'e2', title: 'Other' }] });
+  useDiagram.getState().retitle('diagram', 'e1', 'Checkout');
+  const st = useDiagram.getState();
+  check('renaming a diagram rewrites page and deck references', st.pages[0].body === '[[diagram:Buy]] [[deck:Plan]]' && st.decks[0].body === '{{diagram:Buy}}', [st.pages[0].body, st.decks[0].body]);
+  useDiagram.getState().updateDeck('d1', { title: 'Other plan' });
+  useDiagram.getState().retitle('deck', 'd1', 'Plan');
+  check('renaming a deck rewrites links to it', useDiagram.getState().pages[0].body === '[[diagram:Buy]] [[deck:Other plan]]', useDiagram.getState().pages[0].body);
+  useDiagram.setState({ diagrams: [{ ...flow, title: 'Other' }, { ...flow, id: 'e2', title: 'Other' }] });
+  const before = useDiagram.getState().pages[0].body;
+  useDiagram.getState().retitle('diagram', 'e1', 'Buy');
+  check('a clashing title rewrites nothing', useDiagram.getState().pages[0].body === before);
 }
 
 // ---- structure: path, folded ancestors, embeds ----

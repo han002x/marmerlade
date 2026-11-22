@@ -10,6 +10,7 @@ const editor = new Editor({ extensions: editorExtensions(), contentType: 'markdo
 const fixtures = [
   '# Title\n\n**bold** and *italic* and ~~gone~~ and `code`\n\n> Quote\n\n- One\n- Two',
   '[[API]] and [[Cache|the cache]]\n\n{{diagram}}\n\n{{diagram}}',
+  '[[deck:Q3 Review|the deck]] and [[diagram:Checkout]]\n\n{{diagram:Checkout}}{width=60%}\n\n{{sequence:Login}}',
   '| Left | Right |\n| :--- | ---: |\n| a \\| b | **bold** |\n| x<br>y | [[Cache\\|alias]] |',
   '- [x] Done\n- [ ] Pending\n\n```ts\nconst x = 1;\n```\n\n![Alt](https://example.com/image.png)',
 ];
@@ -25,6 +26,10 @@ editor.commands.setContent('[[Cache|alias]]\n\n{{diagram}}', { contentType: 'mar
 assert.equal(editor.getJSON().content?.[0].content?.[0].attrs?.target, 'Cache');
 assert.equal(editor.getJSON().content?.[0].content?.[0].attrs?.alias, 'alias');
 assert.equal(editor.getJSON().content?.[1].type, 'diagramEmbed');
+editor.commands.setContent('[[deck:Q3|q]]\n\n{{sequence:Login}}', { contentType: 'markdown' });
+assert.equal(editor.getJSON().content?.[0].content?.[0].attrs?.target, 'deck:Q3');
+assert.deepEqual({ ...editor.getJSON().content?.[1].attrs }, { target: 'Login', sequence: true, width: null });
+assert.equal(editor.getMarkdown().trim(), '[[deck:Q3|q]]\n\n{{sequence:Login}}');
 editor.commands.setContent('');
 editor.commands.insertTable({ rows: 3, cols: 3, withHeaderRow: true });
 assert.equal(editor.getJSON().content?.[0].content?.length, 3);

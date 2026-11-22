@@ -2,6 +2,7 @@ import Editor from './Editor';
 import SourceEditor from './SourceEditor';
 import Preview from './Preview';
 import { requiresSource } from './extensions';
+import type { Reference } from '../references';
 
 export type PageMode = 'edit' | 'read' | 'source';
 const names: Record<PageMode, string> = { edit: 'Edit', read: 'Read', source: 'Markdown' };
@@ -27,7 +28,7 @@ export function ModeSwitch({ value, mode, onMode }: {
 interface Props {
   value: string;
   onChange: (value: string) => void;
-  targets: () => string[];
+  references?: () => Reference[];
   nodeId?: string;
   onPage: (id: string) => void;
   onNode?: (id: string) => void;
@@ -37,7 +38,7 @@ export default function Document(props: Props) {
   const mode = shown(props.mode, props.value);
   return <section className="wk-document">
     {mode === 'source' && requiresSource(props.value) && <div className="wk-source-notice">This page contains HTML. Edit its Markdown to preserve it.</div>}
-    {mode === 'source' ? <SourceEditor value={props.value} onChange={props.onChange} targets={props.targets} />
+    {mode === 'source' ? <SourceEditor value={props.value} onChange={props.onChange} references={props.references} />
       : mode === 'read' ? <div className="wk-read"><Preview body={props.value} nodeId={props.nodeId} onPage={props.onPage} onNode={props.onNode} /></div>
       : <Editor {...props} />}
   </section>;

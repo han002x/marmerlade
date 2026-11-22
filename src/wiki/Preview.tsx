@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useDiagram } from '../store';
+import { useDiagram, useEntities } from '../store';
 import { activeAppearance, useAppearance } from '../theme';
 import { diagramSvg } from '../mermaid/svg';
 import { toMermaid } from '../mermaid/io';
-import { embedDiagram, embedNode } from '../pages';
-import { openNode, pageHref, parseRoute } from '../route';
+import { embedDiagram, entityDiagram, resolveEmbed } from '../pages';
+import { openBoard, openNode, openSlides, pageHref, parseRoute } from '../route';
 import { renderPage } from './render';
 import { decodeDiagramTarget } from '../diagramEmbed';
 
@@ -14,6 +14,8 @@ export default function Preview({
   nodeId,
   onPage = (id) => (window.location.hash = pageHref(id)),
   onNode = openNode,
+  onDeck = (id) => openSlides(id),
+  onDiagram = openBoard,
   onDiagramWidth,
 }: {
   body: string;
@@ -22,16 +24,22 @@ export default function Preview({
   onPage?: (pageId: string) => void;
   /** a node in the embedded diagram was clicked */
   onNode?: (nodeId: string) => void;
+  /** a `[[deck:…]]` link was followed */
+  onDeck?: (deckId: string) => void;
+  /** a `[[diagram:…]]` link, or a whole embedded diagram, was followed */
+  onDiagram?: (diagramId: string) => void;
   onDiagramWidth?: (width: number) => void;
 }) {
   const nodes = useDiagram((s) => s.nodes);
   const sequence = useDiagram(s => s.sequence);
   const edges = useDiagram((s) => s.edges);
   const pages = useDiagram((s) => s.pages);
+  const decks = useDiagram((s) => s.decks);
+  const diagrams = useEntities();
   const appearance = activeAppearance(useAppearance());
   const root = useRef<HTMLDivElement>(null);
 
-  const html = useMemo(() => renderPage(body, { nodes, pages }), [body, nodes, pages]);
+  const html = useMemo(() => renderPage(body, { nodes, pages, decks, diagrams }), [body, nodes, pages, decks, diagrams]);
 
   useEffect(() => {
     const hosts = root.current?.querySelectorAll<HTMLElement>('[data-embed], [data-mermaid], [data-sequence]');
@@ -40,12 +48,21 @@ export default function Preview({
     hosts.forEach((host) => {
       // a fence carries its own source; an embed draws a node of the live diagram
       const fence = host.dataset.mermaid === undefined ? undefined : decodeURIComponent(host.dataset.mermaid);
-      let source = host.hasAttribute('data-sequence') ? sequence ?? '' : fence ?? '';
+      let source = fence ?? '';
+      delete host.dataset.entity;
+      if (host.dataset.sequence !== undefined) {
+        const pick = host.dataset.sequence ? resolveEmbed(host.dataset.sequence, nodes, diagrams, undefined, true) : undefined;
+        if (pick?.kind === 'entity' && pick.entity.kind === 'sequence') host.dataset.entity = pick.entity.id;
+        source = host.dataset.sequence ? (pick?.kind === 'entity' && pick.entity.kind === 'sequence' ? pick.entity.source : '') : sequence ?? '';
+      }
       if (host.dataset.embed !== undefined) {
         const target = host.dataset.slideDiagram === undefined ? host.dataset.embed : decodeDiagramTarget(host.dataset.slideDiagram);
-        const id = embedNode(target, nodes, nodeId);
-        const sub = id ? embedDiagram({ nodes, edges }, id) : null;
-        source = sub?.nodes.length ? toMermaid(sub) : '';
+        const pick = resolveEmbed(target, nodes, diagrams, nodeId);
+        if (pick?.kind === 'entity') host.dataset.entity = pick.entity.id;
+        const sub = pick?.kind === 'node' ? embedDiagram({ nodes, edges }, pick.id)
+          : pick?.kind === 'entity' && pick.entity.kind === 'flowchart' ? entityDiagram(pick.entity) : null;
+        source = pick?.kind === 'entity' && pick.entity.kind === 'sequence' ? pick.entity.source
+          : sub?.nodes.length ? toMermaid(sub) : '';
       }
       const key = `${JSON.stringify(appearance)}\u0000${source}`;
       if (host.dataset.shown === key) return;
@@ -68,12 +85,19 @@ export default function Preview({
       else show();
     });
     return () => render.abort();
-  }, [html, sequence, nodes, edges, nodeId, appearance, onDiagramWidth]);
+  }, [html, sequence, nodes, edges, diagrams, nodeId, appearance, onDiagramWidth]);
 
   const onClick = (e: React.MouseEvent) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || !(e.target instanceof Element)) return;
     const t = e.target;
     const link = t.closest<HTMLAnchorElement>('a.wl');
+    const [kind, refId] = (link?.dataset.ref ?? '').split(/:(.*)/s);
+    if (link && (kind === 'deck' || kind === 'diagram')) {
+      e.preventDefault();
+      if (kind === 'deck') onDeck(refId);
+      else onDiagram(refId);
+      return;
+    }
     if (link) {
       e.preventDefault();
       const st = useDiagram.getState();
@@ -82,6 +106,12 @@ export default function Preview({
         : link.dataset.create ? st.createPage(link.dataset.create)
         : route.kind === 'wiki' ? route.id : null;
       if (id) onPage(id);
+      return;
+    }
+    // a whole diagram opens as itself: node ids are only unique within one flowchart
+    const entity = t.closest<HTMLElement>('[data-entity]')?.dataset.entity;
+    if (entity) {
+      if (t.closest('svg')) onDiagram(entity);
       return;
     }
     const hit = /^flowchart-(.+)-\d+$/.exec(t.closest('[data-embed] .node')?.id ?? '');

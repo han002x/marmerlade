@@ -20,8 +20,10 @@ Use ordinary Markdown plus these extensions:
 | --- | --- |
 | `[[Target]]` | Wiki link resolved by page title, then by node label |
 | `[[Target\|Alias]]` | The same lookup with different visible text |
+| `[[deck:Title]]`, `[[diagram:Title]]` | Link to a deck, or a canvas diagram, by title |
 | `{{diagram}}` on its own line | Embed the sub-diagram for the current linked node |
-| `{{diagram:Target}}` on its own line | Embed the node matching the exact ID, otherwise its label |
+| `{{diagram:Target}}` on its own line | Embed the node matching the exact ID, otherwise its label, otherwise the whole diagram with that title |
+| `{{sequence:Title}}` on its own line | Embed the sequence diagram with that title |
 | A fenced `mermaid` block | Render a diagram stored in the document itself |
 
 Wikilinks compare trimmed titles and labels case-insensitively. A page title
@@ -47,8 +49,7 @@ styling, or animation. It derives current structure and renders through Mermaid.
 External renderers may need icon support. Inspect renders when icons matter.
 Prose around an embed stays authored text after a structural change.
 
-The rich-text editor recognizes bare `{{diagram}}`; author explicit targeted
-embeds in Markdown mode. A page containing raw HTML uses Markdown editing to
+The rich-text editor recognizes bare and targeted embeds. A page containing raw HTML uses Markdown editing to
 preserve that content.
 
 ## Slide Markdown

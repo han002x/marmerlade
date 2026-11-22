@@ -2,6 +2,8 @@ import { diagramEntities, projectDiagrams, uniqueTitle } from './diagramEntities
 import type { DiagramEntity } from './types';
 import { restyleDeck } from './slides.ts';
 import { create } from 'zustand';
+import { useMemo } from 'react';
+import { references, retarget, type RefKind, type Reference } from './references.ts';
 import { structural } from './stable.ts';
 import { newNodeId } from './nodeId.ts';
 import { remapSequenceStyles, type SequenceStyles } from './sequence/styleMap.ts';
@@ -20,7 +22,7 @@ import type {
 import { fromMermaid, mergeDiagram, parseMermaid, toMermaid } from './mermaid/io.ts';
 import { layout, layoutShown, nodeSize, type Direction } from './layout.ts';
 import type { NodeClipboard } from './clipboard.ts';
-import { createPageFor, mergePages, newPageId, normalizeDiagram, type LinkKey } from './pages.ts';
+import { createPageFor, mergePages, newPageId, normalizeDiagram, resolveLink, type LinkKey } from './pages.ts';
 import { folderTrail, placeWikiPage } from './wikiFolders.ts';
 import {
   childrenOf,
@@ -226,6 +228,8 @@ interface State {
   unlinkDeck: (deckId: string, nodeId: string) => void;
   makeDefaultDeck: (deckId: string, nodeId: string) => void;
   updateDeck: (id: string, patch: Partial<Pick<Deck, 'title' | 'body'>>) => void;
+  /** after a rename from `from`, point every page and deck link at the new title */
+  retitle: (kind: RefKind, id: string, from: string) => void;
 
   // mutations
   addNode: (
@@ -788,6 +792,22 @@ export const useDiagram = create<State>((set, get) => {
   unlinkDeck: decks.unlink,
   makeDefaultDeck: decks.makeDefault,
   updateDeck: decks.update,
+  retitle: (kind, id, from) =>
+    set((s) => {
+      const list: { id: string; title: string }[] =
+        kind === 'page' ? s.pages : kind === 'deck' ? s.decks : diagramEntities(workspaceDiagram(s));
+      const to = list.find((item) => item.id === id)?.title ?? '';
+      const taken = (title: string) =>
+        list.some((item) => item.id !== id && item.title.trim().toLowerCase() === title.trim().toLowerCase());
+      // a clash would merge links to two things into one; leave them alone
+      if (!from.trim() || !to.trim() || from.trim() === to.trim() || taken(from) || taken(to)) return s;
+      const fix = <T extends Page>(docs: T[]) =>
+        docs.map((doc) => {
+          const body = retarget(doc.body, kind, from, to);
+          return body === doc.body ? doc : { ...doc, body, updatedAt: Date.now() };
+        });
+      return { pages: fix(s.pages), decks: fix(s.decks) };
+    }),
 
   updateNodeImage: (id, patch) =>
     set((s) => {
@@ -1180,6 +1200,36 @@ export const useDiagram = create<State>((set, get) => {
   },
   };
 });
+
+/** Everything a `[[link]]` can name in the workspace right now. */
+export function workspaceReferences(): Reference[] {
+  const s = useDiagram.getState();
+  return references({ nodes: s.nodes, pages: s.pages, decks: s.decks, diagrams: diagramEntities(workspaceDiagram(s)) });
+}
+
+/** The RefCard key for a link target, resolved against the live workspace; null for a page yet to be created. */
+export function linkRefKey(target: string): string | null {
+  const s = useDiagram.getState();
+  const r = resolveLink(target, s.nodes, s.pages, { decks: s.decks, diagrams: diagramEntities(workspaceDiagram(s)) });
+  if (r.kind === 'page') return `page:${r.page.id}`;
+  if (r.kind === 'deck') return `deck:${r.deck.id}`;
+  if (r.kind === 'diagram') return `diagram:${r.entity.id}`;
+  if (r.kind === 'node') return `node:${r.node.id}`;
+  return /^(deck|diagram):\S/.test(target.trim()) ? `missing:${target.trim()}` : null;
+}
+
+/** Every diagram on the canvas, live: the open one carries the store's current content. */
+export function useEntities(): DiagramEntity[] {
+  const diagrams = useDiagram((s) => s.diagrams);
+  const nodes = useDiagram((s) => s.nodes);
+  const edges = useDiagram((s) => s.edges);
+  const sequence = useDiagram((s) => s.sequence);
+  const active = useDiagram((s) => s.activeDiagramId);
+  return useMemo(
+    () => diagramEntities(workspaceDiagram({ ...useDiagram.getState(), diagrams, nodes, edges, sequence, activeDiagramId: active } as State)),
+    [diagrams, nodes, edges, sequence, active],
+  );
+}
 
 export function workspaceDiagram(state: Diagram = useDiagram.getState()): Diagram {
   const { nodes, edges, pages, decks, wikiFolders } = state;

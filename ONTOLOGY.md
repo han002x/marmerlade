@@ -29,7 +29,8 @@ the top level. Pages outside folders appear at the top level.
 | node → decks | `node.deckIds` | many : many | Ordered. First = default deck. |
 | page/deck → node | *not stored* | | Derived by scanning nodes (`nodesOfPage`). |
 | page → page | Markdown `[[Target]]` | many : many | Derived (`extractLinks`, `backlinks`). |
-| page/deck → diagram | `{{diagram}}` embed | | Derived live at render time. |
+| page/deck → deck | Markdown `[[deck:Title]]` | many : many | Derived at render time. |
+| page/deck → diagram | `[[diagram:Title]]` link, `{{diagram}}` embed | | Derived live at render time. |
 
 Links live only on the node. A page never points at a node. Pages and decks
 have the same shape but are separate namespaces (`pages[]` vs `decks[]`), and a
@@ -127,8 +128,10 @@ label. The page keeps its own title when the node is renamed.
 | Syntax | Meaning |
 | --- | --- |
 | `[[Target]]`, `[[Target\|alias]]` | Link. Resolves to a page whose **title** matches, else a node whose **label** matches (its page is created on first visit). Case-insensitive; first match wins. |
+| `[[deck:Title]]`, `[[diagram:Title]]` | Link to a deck, or to a diagram on the canvas, by **title**. Shows the title without its prefix; aliases work. |
 | `{{diagram}}` | Live sub-diagram of the node the page is opened from. |
-| `{{diagram:Target}}` | Sub-diagram of the node whose **id** or **label** matches. |
+| `{{diagram:Target}}` | Sub-diagram of the node whose **id** or **label** matches, else the whole diagram whose **title** matches. |
+| `{{sequence}}`, `{{sequence:Title}}` | The first sequence diagram, or the one with that title. |
 | `{{diagram}}{width=60%}` | A resized embed. The width suffix also works on named embeds. |
 | ```` ```mermaid ```` | A static Mermaid diagram. |
 
@@ -138,6 +141,10 @@ between them. Page and deck links are dropped from embeds.
 
 The rich-text editor supports bare and named embeds as movable blocks.
 Pages with raw HTML open in Markdown mode.
+
+Renaming a page, deck or diagram rewrites the links (and, for diagrams, the
+named embeds) that used the old title, unless another item of that kind
+already holds either title. Hovering any link previews what it names.
 
 ### Slide deck Markdown
 
@@ -225,6 +232,7 @@ links by node id, and `style`/`order` by `source→target` pair. Use
 | --- | --- |
 | `#/diagrams`, `#/` | diagram canvas |
 | `#/node/<nodeId>` | canvas, unfolds ancestors and frames the node |
+| `#/diagrams/<diagramId>` | canvas, opens and frames that diagram |
 | `#/wiki`, `#/wiki/<pageId>[?node=<nodeId>]` | wiki index / page (`node` picks the diagram embed context) |
 | `#/slides`, `#/slides/<deckId>[?node=<id>&slide=<n>&presenter=1]` | deck index / deck, presenting from slide *n* |
 | `#/docs` | this document (More actions → Docs) |

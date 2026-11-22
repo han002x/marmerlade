@@ -10,12 +10,18 @@ import { DiagramEmbed, editorExtensions } from './extensions';
 import DiagramView from './DiagramView';
 import TableControls from './TableControls';
 import { resolveLink } from '../pages';
-import { useDiagram } from '../store';
+import { useDiagram, workspaceDiagram, workspaceReferences } from '../store';
+import { diagramEntities } from '../diagramEntities';
+import { filterReferences, referenceKey, type Reference } from '../references';
+import { openBoard, openSlides } from '../route';
+import { Icon, type IconName } from '../components/Icon';
+import { RefPopover } from '../components/RefHover';
 
 interface Props {
   value: string;
   onChange: (value: string) => void;
-  targets: () => string[];
+  /** what `[[` offers; the whole workspace by default */
+  references?: () => Reference[];
   nodeId?: string;
   onPage: (id: string) => void;
   onNode?: (id: string) => void;
@@ -29,7 +35,16 @@ const RichDiagram = DiagramEmbed.extend({
   addNodeView: () => ReactNodeViewRenderer(ContextDiagram),
 });
 const bubbleOptions = { placement: 'top', offset: 8, flip: true, shift: true } as const;
-type Choice = { label: string; aliases: string; run: (chain: ChainedCommands) => ChainedCommands };
+type Choice = {
+  label: string;
+  aliases: string;
+  run: (chain: ChainedCommands) => ChainedCommands;
+  /** previewed beside the menu while highlighted */
+  ref?: Reference;
+  icon?: IconName;
+  /** the command opens the `[[` picker, so the menu stays up */
+  opens?: boolean;
+};
 const commands: Choice[] = [
   { label: 'Text', aliases: 'paragraph', run: (e: ChainedCommands) => e.setParagraph() },
   ...([1, 2, 3] as const).map((level) => ({ label: `Heading ${level}`, aliases: `h${level} title`, run: (e: ChainedCommands) => e.setHeading({ level }) })),
@@ -42,7 +57,19 @@ const commands: Choice[] = [
   { label: 'Table', aliases: 'grid cells', run: (e: ChainedCommands) => e.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) },
   { label: 'Sequence diagram', aliases: 'embed lifelines', run: (e: ChainedCommands) => e.insertContent({ type: 'diagramEmbed', attrs: { sequence: true } }) },
   { label: 'Diagram', aliases: 'embed canvas', run: (e: ChainedCommands) => e.insertContent({ type: 'diagramEmbed' }) },
+  { label: 'Link page', aliases: 'wiki reference [[', icon: 'page', opens: true, run: (e: ChainedCommands) => e.insertContent('[[') },
+  { label: 'Link deck', aliases: 'slides presentation reference', icon: 'deck', opens: true, run: (e: ChainedCommands) => e.insertContent('[[deck:') },
+  { label: 'Link diagram', aliases: 'canvas flowchart sequence reference', icon: 'flowchart', opens: true, run: (e: ChainedCommands) => e.insertContent('[[diagram:') },
 ];
+/** `/name` also offers to embed any diagram by name. */
+const embedChoices = (refs: Reference[]): Choice[] =>
+  refs.filter((r) => r.kind === 'diagram').map((r) => ({
+    label: `Embed ${r.title}`,
+    aliases: 'diagram',
+    ref: r,
+    icon: r.icon,
+    run: (e: ChainedCommands) => e.insertContent({ type: 'diagramEmbed', attrs: { target: r.title, sequence: r.icon === 'sequence' } }),
+  }));
 type Suggestion = { from: number; to: number; query: string; kind: 'slash' | 'wiki'; x: number; y: number };
 
 export default function Editor(props: Props) {
@@ -78,9 +105,14 @@ export default function Editor(props: Props) {
         const name = target.dataset.wikilink ?? '';
         if (event.ctrlKey || event.metaKey) {
           const st = useDiagram.getState();
-          const resolved = resolveLink(name, st.nodes, st.pages);
-          const id = resolved.kind === 'page' ? resolved.page.id : resolved.kind === 'node' ? st.openPage(resolved.node.id) : st.createPage(name);
-          if (id) latest.current.onPage(id);
+          const resolved = resolveLink(name, st.nodes, st.pages, { decks: st.decks, diagrams: diagramEntities(workspaceDiagram(st)) });
+          if (resolved.kind === 'deck') openSlides(resolved.deck.id);
+          else if (resolved.kind === 'diagram') openBoard(resolved.entity.id);
+          else if (resolved.kind === 'none' && /^(deck|diagram):\S/.test(name)) return true;
+          else {
+            const id = resolved.kind === 'page' ? resolved.page.id : resolved.kind === 'node' ? st.openPage(resolved.node.id) : st.createPage(name);
+            if (id) latest.current.onPage(id);
+          }
           return true;
         }
         return false;
@@ -105,14 +137,21 @@ export default function Editor(props: Props) {
       setSuggestion(next);
     },
   });
+  const query = suggestion?.query.toLowerCase() ?? '';
+  const allowed = (c: Choice) => (!editor?.isActive('table') || c.label === 'Text') && (!editor || !suggestion || c.run(editor.can().chain().deleteRange({ from: suggestion.from, to: suggestion.to })).run());
   const choices: Choice[] = suggestion?.kind === 'wiki'
-    ? props.targets().filter((name) => name.toLowerCase().includes(suggestion.query.toLowerCase())).sort((a, b) => Number(b.toLowerCase().startsWith(suggestion.query.toLowerCase())) - Number(a.toLowerCase().startsWith(suggestion.query.toLowerCase())) || a.localeCompare(b)).map((name) => ({ label: name, aliases: '', run: (e: ChainedCommands) => e.insertContent({ type: 'wikiLink', attrs: { target: name } }) }))
-    : commands.filter((c) => `${c.label} ${c.aliases}`.toLowerCase().includes(suggestion?.query.toLowerCase() ?? '') && (!editor?.isActive('table') || c.label === 'Text') && (!editor || !suggestion || c.run(editor.can().chain().deleteRange({ from: suggestion.from, to: suggestion.to })).run()));
+    ? filterReferences((props.references ?? workspaceReferences)(), suggestion.query).map((r) => ({ label: r.title, aliases: '', ref: r, icon: r.icon, run: (e: ChainedCommands) => e.insertContent({ type: 'wikiLink', attrs: { target: r.target } }) }))
+    : [
+      ...commands.filter((c) => `${c.label} ${c.aliases}`.toLowerCase().includes(query)),
+      ...(query.trim() ? embedChoices((props.references ?? workspaceReferences)()).filter((c) => c.label.toLowerCase().includes(query) || query.startsWith('embed')) : []),
+    ].filter(allowed);
+  const [option, setOption] = useState<HTMLElement | null>(null);
+  const previewed = suggestion ? choices[Math.min(selected, choices.length - 1)]?.ref : undefined;
   const apply = (index: number) => {
     const choice = choices[index];
     if (!editor || !suggestion || !choice) return;
     choice.run(editor.chain().focus().command(({ tr }) => { closeHistory(tr); return true; }).deleteRange({ from: suggestion.from, to: suggestion.to })).run();
-    setSuggestion(null);
+    if (!choice.opens) setSuggestion(null);
   };
   useLayoutEffect(() => { actions.current.key = (event) => {
     if (!suggestion) return false;
@@ -164,7 +203,12 @@ export default function Editor(props: Props) {
       </div>
     </BubbleMenu>
     {suggestion && createPortal(<div id="wk-suggestions" className="wk-command-menu" role="listbox" aria-label={suggestion.kind === 'slash' ? 'Slash commands' : 'Wiki links'} style={{ left: Math.max(8, Math.min(suggestion.x, window.innerWidth - 272)), top: Math.max(8, Math.min(suggestion.y + 6, window.innerHeight - 310)) }} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') { setSuggestion(null); editor.commands.focus(); } }}>
-      {choices.length ? choices.map((c, i) => <button type="button" role="option" id={`wk-choice-${i}`} aria-selected={i === selected} key={c.label} onMouseDown={(e) => e.preventDefault()} onClick={() => apply(i)}>{c.label}</button>) : <span>No matches</span>}
+      {choices.length ? choices.map((c, i) => <button type="button" role="option" id={`wk-choice-${i}`} aria-selected={i === selected} key={`${i}:${c.label}`}
+        ref={i === Math.min(selected, choices.length - 1) ? setOption : undefined}
+        className={c.icon ? 'ref-option' : undefined} onMouseDown={(e) => e.preventDefault()} onClick={() => apply(i)}>
+        {c.icon && <Icon name={c.icon} size={13} />}<span>{c.label}</span>
+      </button>) : <span>No matches</span>}
     </div>, document.body)}
+    {previewed && option && <RefPopover anchor={option} refKey={referenceKey(previewed)} placement="right-start" />}
   </div></EmbedContext.Provider>;
 }

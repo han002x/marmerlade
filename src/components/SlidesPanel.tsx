@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { retitleField } from '../retitle';
 import { useDiagram } from '../store';
 import { useDock } from '../dock';
 import { nodesOfPage, pageOf, pathTo } from '../pages';
@@ -110,6 +111,7 @@ export default function SlidesPanel() {
           value={deck.title}
           placeholder="Untitled"
           onChange={(e) => useDiagram.getState().updateDeck(deck.id, { title: e.target.value })}
+              {...retitleField('deck', deck.id)}
         />
         {node && (
           <Menu className="wk-icon" align="end" label="Decks on this node" button="⌄">
@@ -158,7 +160,6 @@ export default function SlidesPanel() {
         <SourceEditor
           key={deck.id}
           value={deck.body}
-          targets={() => [...new Set([...useDiagram.getState().pages.map((p) => p.title), ...nodes.map((n) => n.label)].filter(Boolean))]}
           onChange={(body) => {
             const cur = useDiagram.getState().decks.find((d) => d.id === deck.id);
             if (cur && cur.body !== body) useDiagram.getState().updateDeck(deck.id, { body });

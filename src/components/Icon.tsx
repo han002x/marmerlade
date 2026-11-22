@@ -4,7 +4,7 @@ import { documentIcon } from '../appearance';
 // Tiny inline-SVG icon set. Icons inherit `currentColor` and a 1.6 stroke so
 // they sit consistently next to text and flip with the theme automatically.
 
-type IconName =
+export type IconName =
   | 'cursor'
   | 'text'
   | 'line'

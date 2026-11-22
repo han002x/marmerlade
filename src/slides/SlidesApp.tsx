@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDiagram } from '../store';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { retitleField } from '../retitle';
+import { useDiagram, useEntities } from '../store';
 import { openAppearance, activeAppearance } from '../theme';
 import { nodesOfPage, pathTo } from '../pages';
 import {
@@ -75,11 +76,8 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
     document.title = deck ? `${deck.title || 'Untitled'} · Slide decks · marmerlade` : 'Slide decks · marmerlade';
   }, [deck]);
 
-  const targets = useCallback(() => {
-    const st = useDiagram.getState();
-    const names = [...st.pages.map((p) => p.title), ...st.nodes.map((n) => n.label)];
-    return [...new Set(names.filter(Boolean))];
-  }, []);
+
+  const diagrams = useEntities();
 
   // the caret says which slide is being written; slide tools move it
   const [caret, setCaret] = useState(0);
@@ -505,9 +503,15 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                   </button>
                 </div>
                 <div className="sl-tool-group" role="group" aria-label="Content">
-                  <button type="button" className="wk-icon" aria-label="Diagram" title="Diagram" onClick={() => place('diagram')}>
-                    <Icon name="shapes" />
-                  </button>
+                  <Menu label="Diagram" className="wk-icon" button={<Icon name="shapes" />}>
+                    <button role="menuitem" onClick={() => place('diagram')}>Linked node</button>
+                    {diagrams.length > 0 && <hr />}
+                    {diagrams.map((d) => (
+                      <button key={d.id} role="menuitem" className="ref-option" data-ref={`diagram:${d.id}`} onClick={() => place('diagram', d.title)}>
+                        <Icon name={d.kind} size={13} /><span>{d.title}</span>
+                      </button>
+                    ))}
+                  </Menu>
                   {BLOCK_TOOLS.map(({ name, icon }) => (
                     <button key={name} type="button" className="wk-icon" aria-label={name} title={name}
                       onClick={() => rewrite(insertBlock(body, caret, BLOCKS[name]))}>
@@ -584,7 +588,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                           setPicked(undefined);
                           select(i);
                         }}>
-                        <Slide slide={s} nodeId={node?.id} onNode={ignoreDiagramLink} />
+                        <Slide slide={s} nodeId={node?.id} onNode={ignoreDiagramLink} onDiagram={ignoreDiagramLink} />
                         {i === current && box && <ObjectSelection key={`${deck.id}:${i}:${boxAt}`} box={box} index={boxAt} editing={editing}
                           onCommit={(html) => {
                             setEditing(false);
@@ -634,6 +638,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                 value={deck.title}
                 placeholder="Untitled"
                 onChange={(e) => useDiagram.getState().updateDeck(deck.id, { title: e.target.value })}
+              {...retitleField('deck', deck.id)}
               />
               <div className="sl-panel-tabs wk-seg" role="tablist" aria-label="Slide settings"
                 onKeyDown={(e) => {
@@ -661,7 +666,6 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                   value={deck.body}
                   historyRef={sourceHistory}
                   onHistoryChange={setHistoryState}
-                  targets={targets}
                   onCaret={setCaret}
                   caret={jump}
                   onChange={(body) => {

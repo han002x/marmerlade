@@ -1,0 +1,61 @@
+/* Quick previews of pages, decks and diagrams (RefHover, RefCard). */
+.ref-card {
+  position: fixed;
+  z-index: 1001;
+  box-sizing: border-box;
+  width: min(300px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius, 8px);
+  background: var(--mf-grain), var(--mf-panel);
+  box-shadow: var(--mf-lift, 0 8px 28px var(--mf-shadow));
+  color: var(--mf-text);
+  font: 12px var(--mf-ui-font, var(--mf-sans));
+}
+.ref-card-link { cursor: pointer; }
+.ref-card-link:hover { border-color: var(--mf-accent); }
+.ref-card header { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ref-card header strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.ref-card header small { color: var(--mf-muted); white-space: nowrap; }
+.ref-empty { margin: 0; color: var(--mf-muted); }
+
+/* a page reads as its first lines, faded out */
+.ref-page {
+  max-height: 200px;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 70%, transparent);
+}
+.ref-page .wk-preview { padding: 0; font-size: 12px; }
+.ref-page .wk-prose h1 { font-size: 1.35em; margin: 0 0 .4em; }
+.ref-page .wk-prose h2 { font-size: 1.2em; }
+.ref-page .wk-prose h3 { font-size: 1.05em; }
+.ref-page .embed svg { max-width: 100%; height: auto; }
+
+.ref-slide { aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--mf-border); border-radius: 6px; background: var(--mf-bg); }
+
+.ref-picture { display: grid; place-items: center; min-height: 80px; max-height: 200px; overflow: hidden; }
+.ref-picture svg { max-width: 100%; max-height: 200px; height: auto; }
+
+/* links name their kind at a glance */
+.wl.deck::before, .wl.diagram::before {
+  display: inline-block;
+  margin-right: .2em;
+  font-size: .85em;
+  opacity: .7;
+}
+.wl.deck::before { content: '▭'; }
+.wl.diagram::before { content: '◇'; }
+.wl.missing { color: var(--mf-muted); text-decoration: line-through dotted; cursor: default; }
+
+/* the `[[` picker */
+.wk-command-menu .ref-option { display: flex; align-items: center; gap: 8px; }
+.wk-command-menu .ref-option svg { flex: none; color: var(--mf-muted); }
+.wk-command-menu .ref-option span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* inside CodeMirror's completion info panel */
+.ref-card.ref-inline { position: static; width: 280px; padding: 0; border: 0; box-shadow: none; background: none; }
+.wk-menu .ref-option { display: flex; align-items: center; gap: 8px; }
+.wk-menu .ref-option svg { flex: none; color: var(--mf-muted); }

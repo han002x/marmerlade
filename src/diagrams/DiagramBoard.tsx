@@ -26,7 +26,7 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import { useDiagram, workspaceDiagram } from '../store';
-import { diagramEntities } from '../diagramEntities';
+import { diagramEntities, uniqueTitle } from '../diagramEntities';
 import type { DiagramEntity } from '../types';
 import { toMermaid } from '../mermaid/io';
 import { diagramSvg } from '../mermaid/svg';
@@ -48,6 +48,7 @@ import { useDock } from '../dock';
 import { useHotkeys } from '../useHotkeys';
 import { settleFoldMotion } from '../foldMotion';
 import { WorkspaceTree } from './WorkspaceTree';
+import { DiagramName } from './DiagramName';
 import { ToolbarMenu } from './ToolbarMenu';
 import type { EditorSlots, SequenceTarget } from './editorSlots';
 const SequenceEditor = lazy(() => import('../sequence/SequenceEditor'));
@@ -106,11 +107,10 @@ function DiagramFrame({ data }: NodeProps<EntityNode>) {
   return (
     <article className={'diagram-entity' + (editing ? ' is-editing' : '')} aria-label={entity.title} data-diagram-id={entity.id}>
       <header className="diagram-title">
-        <input
+        <DiagramName
           className="nodrag workspace-nopan"
-          aria-label="Diagram name"
           value={entity.title}
-          onChange={(e) => data.rename(entity.id, e.target.value)}
+          onSave={(title) => data.rename(entity.id, title)}
         />
         {editing && (
           <span className="diagram-editing-status" role="status" aria-label="Editing diagram" title="Editing diagram">
@@ -395,7 +395,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     const size = { width: 900, height: 650 };
     const base = {
       id: crypto.randomUUID(),
-      title: kind === 'flowchart' ? 'Flowchart' : 'Sequence',
+      title: uniqueTitle(entities, '', kind === 'flowchart' ? 'Flowchart' : 'Sequence'),
       position: freeSpot(screenToFlowPosition(client), size),
       size,
     };
@@ -506,7 +506,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
       editing: active === entity.id,
       open,
       close,
-      rename: (id, title) => save(entities.map((item) => (item.id === id ? { ...item, title } : item))),
+      rename: renameDiagram,
       duplicate: (id) => duplicate([id]),
       remove: (id) => remove([id]),
     },
@@ -536,6 +536,15 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     while (!free(row)) row.x += s.width + gap;
     return row;
   }
+  function renameDiagram(id: string, title: string) {
+    save(
+      entities.map((item) =>
+        item.id === id
+          ? { ...item, title: uniqueTitle(entities, id, title, item.kind === 'flowchart' ? 'Flowchart' : 'Sequence') }
+          : item,
+      ),
+    );
+  }
   function duplicate(ids: string[]) {
     const placed = [...entities];
     const copies: DiagramEntity[] = [];
@@ -543,7 +552,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
       const copy = {
         ...structuredClone(entity),
         id: crypto.randomUUID(),
-        title: entity.title + ' copy',
+        title: uniqueTitle(placed, '', entity.title + ' copy'),
         position: copySpot(entity, placed),
       };
       placed.push(copy);
@@ -653,7 +662,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
                         closeMenu();
                       }}
                     >
-                      <Icon name={kind === 'flowchart' ? 'group' : 'arrow'} />
+                      <Icon name={kind === 'flowchart' ? 'flowchart' : 'sequence'} />
                       {title}
                     </button>
                   </DragPlacement>
@@ -900,6 +909,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
               entities={entities}
               active={active}
               open={openFromTree}
+              rename={renameDiagram}
               expansion={expansion}
               setExpanded={(id, expanded) => setExpansion((prev) => new Map(prev).set(id, expanded))}
               sequenceOutline={setSequenceOutline}

@@ -35,7 +35,7 @@ const SHAPE_TOOLS = [
   { shape: 'arrow', label: 'Arrow', icon: 'arrow' },
 ] as const;
 const BLOCK_TOOLS = [
-  { name: 'Sequence diagram', icon: 'shapes' },
+  { name: 'Sequence diagram', icon: 'sequence' },
   { name: 'Mermaid', icon: 'group' },
   { name: 'Table', icon: 'grid' },
   { name: 'Code', icon: 'code' },

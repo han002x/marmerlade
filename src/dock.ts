@@ -25,7 +25,7 @@ interface Dock {
 
 export const useDock = create<Dock>((set) => ({
   open: true,
-  view: 'mermaid',
+  view: 'tree',
   mode: 'edit',
   page: null,
   deck: null,

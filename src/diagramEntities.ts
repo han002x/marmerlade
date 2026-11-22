@@ -28,6 +28,15 @@ export function diagramEntities(diagram: Diagram): DiagramEntity[] {
   ];
 }
 
+/** A name no other diagram uses (case-insensitive): "Flow" becomes "Flow 2" when taken. */
+export function uniqueTitle(entities: DiagramEntity[], id: string, wanted: string, fallback = 'Diagram'): string {
+  const base = wanted.trim() || fallback;
+  const taken = new Set(entities.filter((e) => e.id !== id).map((e) => e.title.trim().toLowerCase()));
+  let title = base;
+  for (let n = 2; taken.has(title.toLowerCase()); n++) title = `${base} ${n}`;
+  return title;
+}
+
 /** Keep the original fields as a projection for older tools and node links. */
 export function projectDiagrams(diagram: Diagram, diagrams: DiagramEntity[]): Diagram {
   const flow = diagrams.find((entity) => entity.kind === 'flowchart');

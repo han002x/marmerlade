@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Icon } from '../components/Icon';
+import { DiagramName } from './DiagramName';
 import { TreePanel } from '../components/TreePanel';
 import { participants, statements } from '../sequence/model';
 import { summary } from '../sequence/selection';
@@ -33,10 +35,47 @@ function InactiveSequence({ source, pick }: { source: string; pick: (target: Seq
   );
 }
 
+function DiagramTreeTitle({ entity, title, current, activate, rename }: {
+  entity: DiagramEntity;
+  title: string;
+  current: boolean;
+  activate: () => void;
+  rename: (id: string, title: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    return (
+      <DiagramName
+        className="mf-tree-edit"
+        label={`Rename diagram ${title}`}
+        value={entity.title || title}
+        onSave={(next) => rename(entity.id, next)}
+        onDone={() => setEditing(false)}
+      />
+    );
+  }
+  return (
+    <button
+      className="mf-tree-page mf-diagram-tree-title"
+      aria-current={current}
+      title="Double-click to rename"
+      onClick={activate}
+      onDoubleClick={() => setEditing(true)}
+      onKeyDown={(e) => {
+        if (e.key === 'F2') setEditing(true);
+      }}
+    >
+      <Icon name={entity.kind === 'flowchart' ? 'flowchart' : 'sequence'} size={14} />
+      <span>{title}</span>
+    </button>
+  );
+}
+
 export function WorkspaceTree({
   entities,
   active,
   open,
+  rename,
   pickSequence,
   sequenceOutline,
   expansion,
@@ -45,6 +84,7 @@ export function WorkspaceTree({
   entities: DiagramEntity[];
   active: string | null;
   open: (id: string) => void;
+  rename: (id: string, title: string) => void;
   pickSequence: (id: string, target: SequenceTarget) => void;
   sequenceOutline: (element: HTMLDivElement | null) => void;
   expansion: ReadonlyMap<string, boolean>;
@@ -73,14 +113,7 @@ export function WorkspaceTree({
                 >
                   <span className={expanded ? 'mf-tree-chevron expanded' : 'mf-tree-chevron'}>›</span>
                 </button>
-                <button
-                  className="mf-tree-page mf-diagram-tree-title"
-                  aria-current={current}
-                  onClick={activate}
-                >
-                  <Icon name={entity.kind === 'flowchart' ? 'group' : 'arrow'} size={14} />
-                  <span>{title}</span>
-                </button>
+                <DiagramTreeTitle entity={entity} title={title} current={current} activate={activate} rename={rename} />
               </div>
               {entity.kind === 'sequence' && current ? (
                 <div className="mf-diagram-tree-children" hidden={!expanded} ref={sequenceOutline} />

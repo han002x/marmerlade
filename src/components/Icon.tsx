@@ -32,6 +32,8 @@ type IconName =
   | 'group'
   | 'more'
   | 'shapes'
+  | 'flowchart'
+  | 'sequence'
   | 'product-diagrams'
   | 'product-wiki'
   | 'product-slides'
@@ -211,6 +213,26 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <circle cx="17" cy="7" r="3.5" />
       <path d="M7 13.5l3.8 6.5H3.2z" />
       <rect x="13.5" y="13.5" width="7" height="7" rx="3.5" />
+    </>
+  ),
+  // a start step feeding a decision that branches into two outcomes
+  flowchart: (
+    <>
+      <rect x="8" y="2" width="8" height="5" rx="1.2" />
+      <path d="M12 7v2.5M12 9.5l3.5 3.5-3.5 3.5-3.5-3.5Z" />
+      <path d="M8.5 13H5v4M15.5 13H19v4" />
+      <rect x="2.5" y="17" width="5" height="4.5" rx="1" />
+      <rect x="16.5" y="17" width="5" height="4.5" rx="1" />
+    </>
+  ),
+  // two participants over dotted lifelines, a call across and a reply back
+  sequence: (
+    <>
+      <rect x="2.5" y="2.5" width="7" height="4.5" rx="1" />
+      <rect x="14.5" y="2.5" width="7" height="4.5" rx="1" />
+      <path d="M6 9.5v12M18 9.5v12" strokeDasharray="0 3" />
+      <path d="M8 12h8m-2.5-2.5L16 12l-2.5 2.5" />
+      <path d="M16 18H8m2.5-2.5L8 18l2.5 2.5" />
     </>
   ),
   'product-diagrams': (

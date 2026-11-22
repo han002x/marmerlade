@@ -1,4 +1,4 @@
-import { diagramEntities, projectDiagrams } from './diagramEntities.ts';
+import { diagramEntities, projectDiagrams, uniqueTitle } from './diagramEntities.ts';
 import type { DiagramEntity } from './types';
 import { restyleDeck } from './slides.ts';
 import { create } from 'zustand';
@@ -430,7 +430,7 @@ export const useDiagram = create<State>((set, get) => {
     const entity: DiagramEntity = {
       ...content,
       id: crypto.randomUUID(),
-      title: content.kind === 'sequence' ? 'Sequence' : 'Flowchart',
+      title: uniqueTitle(entities, '', content.kind === 'sequence' ? 'Sequence' : 'Flowchart'),
       position: { x: Math.max(0, ...entities.map((e) => e.position.x + e.size.width)) + 100, y: 0 },
       size: { width: 900, height: 650 },
     };

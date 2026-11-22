@@ -1,5 +1,5 @@
 import { useStyleDefaults } from '../useStyleDefaults';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useDiagram, useStructure } from '../store';
 import { DEFAULT_IMAGE_SIZE, type Arrowheads, type DiagramNode, type ElementStyle } from '../types';
 import { asImageSrc, isDataUri, kb, readImageFile, sizedImage } from '../imageUpload';
@@ -36,8 +36,6 @@ const FONT_GLYPH: Record<string, string> = {
  * selected node/edge at once.
  */
 export function StylePanel() {
-  const STYLE_DEFAULTS = useStyleDefaults();
-  const [recentColor, setRecentColor] = useState<string>();
   const selectedNodeIds = useDiagram((s) => s.selectedNodeIds);
   const selectedEdgeIds = useDiagram((s) => s.selectedEdgeIds);
   const nodes = useStructure();
@@ -64,19 +62,6 @@ export function StylePanel() {
   if (!open) return null;
 
   const selEdgeOrder = edges.find((e) => selectedEdgeIds.includes(e.id) && e.order != null)?.order;
-
-  /** current value for a property across the selection (first element wins). */
-  const val = <T extends K>(key: T): ElementStyle[T] | undefined => {
-    for (const s of selStyles) if (s[key] != null) return s[key];
-    return undefined;
-  };
-
-  /** whether `key` currently equals `value` on every selected element. */
-  const active = <T extends K>(key: T, value: ElementStyle[T]): boolean => {
-    const cur = val(key) ?? STYLE_DEFAULTS[key as keyof typeof STYLE_DEFAULTS];
-    return cur === value;
-  };
-
   const patch = (p: Partial<ElementStyle>) => {
     if (hasNodes) updateNodeStyle(selectedNodeIds, p);
     if (hasEdges) updateEdgeStyle(selectedEdgeIds, p);
@@ -96,6 +81,93 @@ export function StylePanel() {
 
       {imageNode && <ImageSection key={imageNode.id} node={imageNode} />}
 
+      <StyleFields
+        styles={selStyles}
+        patch={patch}
+        resetKey={`${selectedNodeIds.join(',')}:${selectedEdgeIds.join(',')}`}
+        background={hasNodes}
+        corners={hasNodes}
+        animations={{ nodes: hasNodes, edges: hasEdges }}
+      >
+        {hasEdges && (
+          <section className="mf-style-section">
+            <label className="mf-style-label">Arrowheads</label>
+            <div className="mf-seg" role="group" aria-label="Arrowhead position">
+              {([{ value: 'none', glyph: '—' }, { value: 'start', glyph: '←' },
+                { value: 'end', glyph: '→' }, { value: 'both', glyph: '↔' }] satisfies { value: Arrowheads; glyph: string }[]).map(({ value, glyph }) => {
+                const selected = edges.filter((e) => selectedEdgeIds.includes(e.id));
+                const isActive = selected.every((e) => (e.style?.arrowheads ?? 'none') === value);
+                return <button key={value} className={isActive ? 'active' : ''} aria-label={`Arrowheads ${value}`}
+                  aria-pressed={isActive} title={value} onClick={() => updateEdgeStyle(selectedEdgeIds, { arrowheads: value })}>{glyph}</button>;
+              })}
+            </div>
+          </section>
+        )}
+      </StyleFields>
+
+      {hasEdges && (
+        <section className="mf-style-section">
+          <label className="mf-style-label">Flow step</label>
+          <input
+            className="mf-picker-filter"
+            type="number"
+            min={1}
+            step={1}
+            aria-label="Flow step"
+            placeholder="Auto"
+            value={selEdgeOrder ?? ''}
+            onChange={(e) => {
+              const n = Math.floor(Number(e.target.value));
+              setEdgeOrder(selectedEdgeIds, e.target.value === '' || n < 1 ? undefined : n);
+            }}
+          />
+        </section>
+      )}
+    </aside>
+  );
+}
+
+/** current value for a property across the selection (first element wins). */
+function firstValue<T extends K>(styles: ElementStyle[], key: T): ElementStyle[T] | undefined {
+  for (const s of styles) if (s[key] != null) return s[key];
+  return undefined;
+}
+
+/**
+ * The shared style controls: colors, stroke, corners, fonts and opacity. The flowchart
+ * panel and the sequence panel both use them; `children` sit after the stroke style.
+ */
+export function StyleFields({
+  styles,
+  patch,
+  resetKey,
+  background,
+  corners,
+  animations,
+  defaults,
+  children,
+}: {
+  /** style of each selected element; the first one that sets a property shows as active */
+  styles: ElementStyle[];
+  patch: (p: Partial<ElementStyle>) => void;
+  /** changes with the selection, so the native color inputs follow it */
+  resetKey: string;
+  background: boolean;
+  corners: boolean;
+  /** which motion presets fit the selection: node presets, edge presets, or both */
+  animations: { nodes: boolean; edges: boolean };
+  /** what an unset property looks like, where the drawing differs from the flowchart defaults */
+  defaults?: Partial<ElementStyle>;
+  children?: ReactNode;
+}) {
+  const STYLE_DEFAULTS = { ...useStyleDefaults(), ...defaults };
+  const [recentColor, setRecentColor] = useState<string>();
+  const val = <T extends K>(key: T) => firstValue(styles, key);
+  const active = <T extends K>(key: T, value: ElementStyle[T]): boolean =>
+    (val(key) ?? STYLE_DEFAULTS[key as keyof typeof STYLE_DEFAULTS]) === value;
+
+  return (
+    <>
       <section className="mf-style-section">
         <label className="mf-style-label">Stroke</label>
         <div className="mf-swatch-row">
@@ -120,7 +192,7 @@ export function StylePanel() {
           ) : <span className="mf-swatch-placeholder" aria-hidden="true" />}
           <label className="mf-swatch mf-swatch-custom" title="Custom stroke color">
             <CustomColor
-              key={`stroke:${selectedNodeIds.join(',')}:${selectedEdgeIds.join(',')}`}
+              key={`stroke:${resetKey}`}
               value={toHex(val('stroke')) ?? '#2a2723'}
               onPick={(color) => { setRecentColor(color); patch({ stroke: color }); }}
             />
@@ -128,7 +200,7 @@ export function StylePanel() {
         </div>
       </section>
 
-      {hasNodes && (
+      {background && (
         <section className="mf-style-section">
           <label className="mf-style-label">Background</label>
           <div className="mf-swatch-row">
@@ -158,7 +230,7 @@ export function StylePanel() {
               title="Custom background color"
             >
               <CustomColor
-                key={`background:${selectedNodeIds.join(',')}:${selectedEdgeIds.join(',')}`}
+                key={`background:${resetKey}`}
                 value={toHex(val('background')) ?? '#fffdf8'}
                 onPick={(color) => { setRecentColor(color); patch({ background: color }); }}
               />
@@ -202,20 +274,7 @@ export function StylePanel() {
         </div>
       </section>
 
-      {hasEdges && (
-        <section className="mf-style-section">
-          <label className="mf-style-label">Arrowheads</label>
-          <div className="mf-seg" role="group" aria-label="Arrowhead position">
-            {([{ value: 'none', glyph: '—' }, { value: 'start', glyph: '←' },
-              { value: 'end', glyph: '→' }, { value: 'both', glyph: '↔' }] satisfies { value: Arrowheads; glyph: string }[]).map(({ value, glyph }) => {
-              const selected = edges.filter((e) => selectedEdgeIds.includes(e.id));
-              const isActive = selected.every((e) => (e.style?.arrowheads ?? 'none') === value);
-              return <button key={value} className={isActive ? 'active' : ''} aria-label={`Arrowheads ${value}`}
-                aria-pressed={isActive} title={value} onClick={() => updateEdgeStyle(selectedEdgeIds, { arrowheads: value })}>{glyph}</button>;
-            })}
-          </div>
-        </section>
-      )}
+      {children}
 
       <section className="mf-style-section">
         <label className="mf-style-label">Sloppiness</label>
@@ -233,7 +292,7 @@ export function StylePanel() {
         </div>
       </section>
 
-      {hasNodes && (
+      {corners && (
         <section className="mf-style-section">
           <label className="mf-style-label">Edges</label>
           <div className="mf-seg">
@@ -258,7 +317,7 @@ export function StylePanel() {
       <section className="mf-style-section">
         <label className="mf-style-label">Font color</label>
         <div className="mf-swatch-row">
-          <button className={`mf-swatch is-transparent${selStyles.every((s) => !s.fontColor) ? ' active' : ''}`}
+          <button className={`mf-swatch is-transparent${styles.every((s) => !s.fontColor) ? ' active' : ''}`}
             title="Automatic font color" aria-label="Automatic font color" onClick={() => patch({ fontColor: undefined })} />
           {STROKE_COLORS.filter((c) => c !== 'transparent' && c !== 'var(--mf-ink)').map((c) => (
             <button key={c} className={`mf-swatch${val('fontColor') === c ? ' active' : ''}`}
@@ -269,7 +328,7 @@ export function StylePanel() {
             aria-label={`Recent font color ${recentColor}`} onClick={() => patch({ fontColor: recentColor })} />
             : <span className="mf-swatch-placeholder" aria-hidden="true" />}
           <label className="mf-swatch mf-swatch-custom" title="Custom font color">
-            <CustomColor key={`font:${selectedNodeIds.join(',')}:${selectedEdgeIds.join(',')}`}
+            <CustomColor key={`font:${resetKey}`}
               label="Custom font color" value={toHex(val('fontColor')) ?? '#2a2723'}
               onPick={(color) => { setRecentColor(color); patch({ fontColor: color }); }} />
           </label>
@@ -331,8 +390,8 @@ export function StylePanel() {
         // selected, edge-only when only edges, and the union for a mix
         const anims = ANIMATIONS.filter((a) => {
           if (a.appliesTo === 'both') return true;
-          if (a.appliesTo === 'node') return hasNodes;
-          return hasEdges;
+          if (a.appliesTo === 'node') return animations.nodes;
+          return animations.edges;
         });
         const curAnim = (val('animation') ?? STYLE_DEFAULTS.animation) as string;
         return (
@@ -368,25 +427,7 @@ export function StylePanel() {
           </section>
         );
       })()}
-      {hasEdges && (
-        <section className="mf-style-section">
-          <label className="mf-style-label">Flow step</label>
-          <input
-            className="mf-picker-filter"
-            type="number"
-            min={1}
-            step={1}
-            aria-label="Flow step"
-            placeholder="Auto"
-            value={selEdgeOrder ?? ''}
-            onChange={(e) => {
-              const n = Math.floor(Number(e.target.value));
-              setEdgeOrder(selectedEdgeIds, e.target.value === '' || n < 1 ? undefined : n);
-            }}
-          />
-        </section>
-      )}
-    </aside>
+    </>
   );
 }
 

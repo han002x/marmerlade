@@ -1,5 +1,4 @@
-import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useEffectEvent, useId, useRef, useState, type KeyboardEvent } from 'react';
 
 export type ChoiceOption = { value: string; label: string; hint?: string };
 export type ChoiceGroup = { label?: string; options: ChoiceOption[] };
@@ -29,7 +28,6 @@ export function Choice({
   const current = options.find((option) => option.value === value);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
-  const [place, setPlace] = useState<{ left: number; top: number; width: number; maxHeight: number; up: boolean }>();
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const report = (option: string | undefined) => preview?.(option);
@@ -55,20 +53,6 @@ export function Choice({
     setActive(Math.max(0, options.indexOf(current!)));
   };
 
-  useLayoutEffect(() => {
-    if (!open || !button.current) return;
-    const rect = button.current.getBoundingClientRect();
-    const below = innerHeight - rect.bottom - 8;
-    const above = rect.top - 8;
-    const up = below < 180 && above > below;
-    setPlace({
-      left: Math.min(rect.left, innerWidth - Math.max(rect.width, 220) - 8),
-      top: up ? rect.top - 4 : rect.bottom + 4,
-      width: Math.max(rect.width, 220),
-      maxHeight: Math.min(320, up ? above : below),
-      up,
-    });
-  }, [open]);
   const dismiss = useEffectEvent(() => close(false));
   useEffect(() => {
     if (!open) return;
@@ -78,12 +62,8 @@ export function Choice({
       dismiss();
     };
     document.addEventListener('pointerdown', away, true);
-    window.addEventListener('scroll', away, true);
-    window.addEventListener('resize', away);
     return () => {
       document.removeEventListener('pointerdown', away, true);
-      window.removeEventListener('scroll', away, true);
-      window.removeEventListener('resize', away);
     };
   }, [open]);
   useEffect(() => {
@@ -128,12 +108,14 @@ export function Choice({
   };
 
   return (
-    <label className="sq-choice">
-      {label}
+    <div className="sq-choice">
+      <label htmlFor={id}>{label}</label>
       <button
+        id={id}
         ref={button}
         type="button"
         role="combobox"
+        data-field={label}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={id + '-list'}
@@ -148,52 +130,42 @@ export function Choice({
       {required && (
         <input className="sq-choice-required" tabIndex={-1} aria-hidden required value={value} onChange={() => {}} />
       )}
-      {open &&
-        place &&
-        createPortal(
-          <ul
-            ref={list}
-            id={id + '-list'}
-            role="listbox"
-            aria-label={label}
-            className="sq-choice-list"
-            style={{
-              left: place.left,
-              top: place.top,
-              width: place.width,
-              maxHeight: place.maxHeight,
-              transform: place.up ? 'translateY(-100%)' : undefined,
-            }}
-            onPointerLeave={() => consider(-1)}
-          >
-            {groups.map((group, g) => (
-              <li key={g} role="presentation">
-                {group.label && <strong role="presentation">{group.label}</strong>}
-                <ul role="presentation">
-                  {group.options.map((option, o) => {
-                    const i = starts[g] + o;
-                    return (
-                      <li
-                        key={option.value}
-                        id={id + '-' + i}
-                        role="option"
-                        aria-selected={option.value === value}
-                        className={i === active ? 'is-active' : undefined}
-                        onPointerEnter={() => consider(i)}
-                        onPointerDown={(event) => event.preventDefault()}
-                        onClick={() => choose(i)}
-                      >
-                        <span>{option.label}</span>
-                        {option.hint && <code>{option.hint}</code>}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </li>
-            ))}
-          </ul>,
-          document.body,
-        )}
-    </label>
+      {open && (
+        <ul
+          ref={list}
+          id={id + '-list'}
+          role="listbox"
+          aria-label={label}
+          className="sq-choice-list"
+          onPointerLeave={() => consider(-1)}
+        >
+          {groups.map((group, g) => (
+            <li key={g} role="presentation">
+              {group.label && <strong role="presentation">{group.label}</strong>}
+              <ul role="presentation">
+                {group.options.map((option, o) => {
+                  const i = starts[g] + o;
+                  return (
+                    <li
+                      key={option.value}
+                      id={id + '-' + i}
+                      role="option"
+                      aria-selected={option.value === value}
+                      className={i === active ? 'is-active' : undefined}
+                      onPointerEnter={() => consider(i)}
+                      onPointerDown={(event) => event.preventDefault()}
+                      onClick={() => choose(i)}
+                    >
+                      <span>{option.label}</span>
+                      {option.hint && <code>{option.hint}</code>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

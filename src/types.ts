@@ -178,5 +178,10 @@ export type DiagramEntity = {
   size: { width: number; height: number };
 } & (
   | { kind: 'flowchart'; nodes: DiagramNode[]; edges: DiagramEdge[] }
-  | { kind: 'sequence'; source: string }
+  | {
+      kind: 'sequence';
+      source: string;
+      /** per-element styles; Mermaid has no sequence style syntax (see sequence/styleMap.ts) */
+      styles?: Record<string, ElementStyle>;
+    }
 );

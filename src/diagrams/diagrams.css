@@ -16,8 +16,13 @@
   min-width: 0;
   min-height: 0;
 }
-.mf-toolbar-slot {
+.mf-toolbar-slot,
+.mf-style-slot {
   display: contents;
+}
+/* above the board's frame transforms (z 5), below the toolbar (z 7) */
+.mf-style-slot > .mf-style-panel {
+  z-index: 6;
 }
 .mf-toolbar.is-compact > .mf-toolbar-slot > .mf-menu-wrap {
   position: static;
@@ -144,6 +149,19 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
+}
+.diagram-preview svg :is(g.node, g.rough-node).is-hovered :is(rect, path, polygon, circle, ellipse) {
+  stroke: var(--mf-accent) !important;
+  stroke-width: 3px !important;
+}
+.diagram-preview svg :is([data-statement], [data-sequence-actor]).is-hovered:is(line, path, rect, polygon, circle, ellipse),
+.diagram-preview svg g.is-hovered:is([data-statement], [data-sequence-actor]) :is(line, path, rect, polygon, circle, ellipse) {
+  stroke: var(--mf-accent) !important;
+  stroke-width: 3px !important;
+}
+.diagram-preview svg :is([data-statement], [data-sequence-actor]).is-hovered:is(text, tspan),
+.diagram-preview svg g.is-hovered:is([data-statement], [data-sequence-actor]) text {
+  fill: var(--mf-accent) !important;
 }
 .diagram-editor {
   position: absolute;

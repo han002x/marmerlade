@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { randomUUID } from 'node:crypto';
 import { diagramEntities, projectDiagrams } from '../src/diagramEntities.ts';
+import { remapSequenceStyles } from '../src/sequence/styleMap.ts';
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -102,6 +103,9 @@ async function main() {
               size: target?.size ?? { width: 900, height: 650 },
               kind: 'sequence' as const,
               source,
+              // Styles live beside the source: follow its statements through the edit.
+              ...(target?.kind === 'sequence' &&
+                target.styles && { styles: remapSequenceStyles(target.source, source, target.styles) }),
             };
             return projectDiagrams(
               current,

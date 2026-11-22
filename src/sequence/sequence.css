@@ -7,12 +7,6 @@
   color: var(--mf-text);
   font: 14px var(--mf-ui-font);
 }
-.sq-commands {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-}
 :is(.sq-inline, .sq-start, .sq-canvas-error) :is(button, select, input, textarea) {
   font: inherit;
   color: inherit;
@@ -62,7 +56,6 @@
 .sq-image.fit svg {
   height: 100%;
 }
-/* The inspector lives in the right panel's tree, so it uses the panel's type and controls. */
 .sq-inspector {
   display: grid;
   gap: 10px;
@@ -75,14 +68,11 @@
   background: color-mix(in srgb, var(--mf-accent) 18%, transparent);
   box-shadow: inset 2px 0 var(--mf-accent);
 }
-.sq-inspector > :not(.mf-tree-list) {
-  margin-inline: 8px;
-}
-.sq-inspector button:disabled {
+.sq-rail-content button:disabled {
   opacity: 0.5;
   cursor: default;
 }
-.sq-inspector .sq-form button[type='submit'] {
+.sq-rail-content .sq-form button[type='submit'] {
   border-color: var(--mf-accent);
   color: var(--mf-accent);
 }
@@ -92,15 +82,12 @@
 }
 .sq-form h3 {
   margin: 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--mf-border);
   color: var(--mf-muted);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
-.sq-form p,
-.sq-inspector pre {
+.sq-form p {
   margin: 0;
 }
 .sq-form > p:not(.sq-note) {
@@ -114,7 +101,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
 }
-.sq-inspector :is(input:not([type='checkbox'], [type='color']), select, textarea) {
+.sq-rail-content :is(input:not([type='checkbox'], [type='color'], [type='range']), select, textarea) {
   background: var(--mf-input);
   border: 1px solid var(--mf-border);
   border-radius: 7px;
@@ -123,36 +110,21 @@
   letter-spacing: normal;
   padding: 5px 8px;
 }
-.sq-inspector :is(input, select, textarea):focus {
+.sq-rail-content :is(input, select, textarea):focus {
   outline: 0;
   border-color: var(--mf-accent);
 }
-.sq-inspector textarea {
+.sq-rail-content textarea {
   min-height: 5rem;
   resize: vertical;
 }
-.sq-form > pre {
-  padding: 6px 8px;
-  border: 1px solid var(--mf-border);
-  border-radius: 7px;
-  color: var(--mf-muted);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font: 11px/1.5 var(--mf-mono, monospace);
-}
-.sq-inspector [role='alert'] {
+.sq-rail-content [role='alert'] {
   color: var(--mf-seal);
 }
-@media (max-width: 700px) {
-  .sq-work {
-    flex-direction: column;
-  }
-}
-
 .sq-artboard .sq-selected {
   filter: drop-shadow(0 0 2px var(--mf-accent));
 }
-.sq-form > div {
+.sq-form > div:not(.sq-choice) {
   display: flex;
   gap: 6px;
 }
@@ -333,9 +305,6 @@
   background: var(--mf-bg);
 }
 @media (max-width: 700px) {
-  .sq-board {
-    min-height: 200px;
-  }
   .sq-hint {
     bottom: 4px;
   }
@@ -400,32 +369,24 @@
 .sq-placement-guide path { stroke: var(--mf-accent); stroke-width: 2; stroke-dasharray: 5 4; fill: none; }
 .sq-placement-guide circle { fill: var(--mf-accent); fill-opacity: .35; stroke: var(--mf-accent); stroke-width: 1.5; }
 .sq-message-guide path { stroke-dasharray: none; stroke-linejoin: round; }
-.sq-pending { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--mf-accent); border-radius: 7px; }
-.sq-pending > strong { color: var(--mf-accent); font-size: 11px; font-weight: 600; letter-spacing: .04em; }
-.sq-pending .sq-form h3 { padding-top: 0; border-top: 0; }
 .sq-proposal { position: absolute; z-index: 5; top: 8px; left: 50%; transform: translateX(-50%); display: grid; gap: 4px; width: max-content; max-width: min(440px, calc(100% - 24px)); pointer-events: none; }
 .sq-preview-badge, .sq-preview-note { display: block; padding: 6px 10px; background: var(--mf-panel); border: 1px solid var(--mf-border); border-radius: var(--mf-radius); box-shadow: var(--mf-lift); font-size: 12px; }
 .sq-preview-badge { color: var(--mf-accent); }
 .sq-preview-artboard { outline: 1px dashed color-mix(in srgb, var(--mf-accent) 55%, transparent); outline-offset: 6px; }
 .sq-artboard.is-replaced { visibility: hidden; }
-.sq-inspector .sq-note { padding: 6px 8px; border-left: 2px solid var(--mf-accent); background: var(--mf-input); font-size: 12px; }
+:is(.mf-sequence-source, .sq-rail-content) .sq-note { padding: 6px 8px; border-left: 2px solid var(--mf-accent); background: var(--mf-input); font-size: 12px; }
 .sq-form .sq-check { display: flex; align-items: center; gap: 6px; color: var(--mf-text); font-size: 12px; font-weight: 400; letter-spacing: normal; }
 .sq-form .sq-color { display: flex; gap: 6px; }
 .sq-form .sq-color input:last-child { flex: 1; min-width: 0; }
 .sq-form input[type='color'] { padding: 2px; width: 34px; height: 28px; background: var(--mf-input); border: 1px solid var(--mf-border); border-radius: 4px; cursor: pointer; }
-.sq-more { display: grid; }
-.sq-more > summary { cursor: pointer; color: var(--mf-muted); width: fit-content; }
-.sq-more > summary:hover { color: var(--mf-text); }
-.sq-more > div { display: grid; gap: 10px; padding-top: 10px; }
+.sq-more { display: grid; gap: 10px; }
 .drag-placement-preview:has(.sq-drag-thumbnail) { transform: translate(14px, 14px); padding: 4px 6px; opacity: .9; }
 .sq-drag-thumbnail { display: grid; width: 72px; text-align: center; gap: 2px; font-size: 11px; }
 .sq-drag-thumbnail svg { height: 36px; width: 72px; fill: none; stroke: currentColor; stroke-width: 1.3; }
 .sq-drag-thumbnail text { fill: currentColor; stroke: none; text-anchor: middle; font-size: 8px; }
 .sq-empty-block-label { display: block; position: absolute; inset: 50% 0 auto; text-align: center; font: 11px var(--mf-ui-font); color: var(--mf-accent); background: var(--mf-panel); pointer-events: none; }
 .mf-menu:has(.sq-palette.is-dragging) { opacity: 0; pointer-events: none; }
-/* Long option labels (arrow names) must not widen the inspector. */
-.sq-form,
-.sq-pending {
+.sq-form {
   min-width: 0;
 }
 .sq-form :is(input:not([type='checkbox'], [type='color']), select, textarea) {
@@ -440,8 +401,12 @@
 /* Dropdowns that preview the option under the pointer on the canvas. */
 .sq-choice {
   position: relative;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
-.sq-inspector .sq-choice-button {
+.sq-rail-content .sq-choice-button {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -469,8 +434,8 @@
   transform: rotate(45deg);
   content: '';
 }
-.sq-inspector .sq-choice-button:focus-visible,
-.sq-inspector .sq-choice-button[aria-expanded='true'] {
+.sq-rail-content .sq-choice-button:focus-visible,
+.sq-rail-content .sq-choice-button[aria-expanded='true'] {
   outline: 0;
   border-color: var(--mf-accent);
 }
@@ -491,7 +456,7 @@
 }
 .sq-choice-required {
   position: absolute;
-  bottom: 0;
+  top: 28px;
   left: 12px;
   width: 1px;
   height: 1px;
@@ -499,8 +464,7 @@
   pointer-events: none;
 }
 .sq-choice-list {
-  position: fixed;
-  z-index: 1000;
+  max-height: 210px;
   box-sizing: border-box;
   margin: 0;
   padding: 4px;
@@ -509,7 +473,6 @@
   background: var(--mf-panel);
   border: 1px solid var(--mf-border);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.22);
   color: var(--mf-text);
   font: 12px var(--mf-ui-font, var(--mf-sans));
 }
@@ -549,3 +512,98 @@
   }
 }
 .sq-preview-artboard .sq-sample { stroke-dasharray: 0.5 5 !important; stroke-linecap: round; stroke-width: 2px !important; }
+
+.sq-rail-content.mf-style-panel {
+  /* floats like the flowchart style panel; a little wider for statement forms */
+  display: grid;
+  align-content: start;
+  width: 260px;
+  overscroll-behavior: contain;
+  color: var(--mf-text);
+  font: 12px/1.4 var(--mf-ui-font, var(--mf-sans));
+}
+.sq-tool-buttons {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.sq-rail-properties {
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--mf-border);
+}
+.sq-style-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+.sq-rail-statements > ul {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sq-rail-statements button {
+  width: 100%;
+}
+.sq-rail-content button:not(.sq-style-fields *),
+.sq-rail-content summary {
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--mf-radius);
+  background: var(--mf-input);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.sq-rail-content button:not(:disabled, .sq-style-fields *):hover,
+.sq-rail-content summary:hover {
+  border-color: var(--mf-border);
+}
+.sq-rail-statements button,
+.sq-element-actions button {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.sq-element-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex-basis: 100%;
+}
+.sq-element-actions button { display: inline-flex; align-items: center; }
+.sq-move-left svg { transform: rotate(180deg); }
+.sq-move-up svg { transform: rotate(-90deg); }
+.sq-move-down svg { transform: rotate(90deg); }
+
+.sq-form-error {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Motion presets on styled sequence elements, the same keyframes as flowchart
+   (see "Style motion presets" in App.css). applyStyles tags the element with
+   data-sq-anim (pulse, fade) and its stroked shapes with data-sq-shape (draw, flow). */
+@media (prefers-reduced-motion: no-preference) {
+  [data-sq-anim='pulse'] {
+    animation: mf-outline-pulse var(--mf-anim-dur, 1.6s) ease-in-out infinite;
+  }
+  [data-sq-anim='fade'] {
+    animation: mf-anim-fade var(--mf-anim-dur, 1.6s) ease-in-out infinite;
+  }
+  [data-sq-shape='draw'] {
+    stroke-dasharray: 100 !important;
+    animation: mf-outline-draw var(--mf-anim-dur, 1.6s) ease-in-out infinite alternate;
+  }
+  [data-sq-shape='flow'] {
+    animation: mf-anim-flow var(--mf-anim-dur, 1.6s) linear infinite;
+  }
+}

@@ -3,6 +3,8 @@ import type { DiagramEntity } from './types';
 import { restyleDeck } from './slides.ts';
 import { create } from 'zustand';
 import { structural } from './stable.ts';
+import { newNodeId } from './nodeId.ts';
+import { remapSequenceStyles, type SequenceStyles } from './sequence/styleMap.ts';
 import type {
   Diagram,
   DiagramEdge,
@@ -35,11 +37,7 @@ let idSeq = 0;
 const nextId = (prefix: string) => `${prefix}${Date.now().toString(36)}${idSeq++}`;
 
 function nextNodeId(nodes: DiagramNode[]): string {
-  let id: string;
-  do {
-    id = `node${Math.floor(Math.random() * 36 ** 5).toString(36).padStart(5, '0')}`;
-  } while (nodes.some((node) => node.id === id));
-  return id;
+  return newNodeId(nodes.map((node) => node.id));
 }
 
 /**
@@ -134,6 +132,11 @@ interface Snapshot {
   edges: DiagramEdge[];
 }
 
+interface SequenceSnapshot {
+  source: string | undefined;
+  styles: SequenceStyles;
+}
+
 interface State {
   diagrams?: DiagramEntity[];
   activeDiagramId: string | null;
@@ -142,8 +145,12 @@ interface State {
   setDiagrams: (diagrams:DiagramEntity[])=>void;
 
   sequence?: string;
-  sequenceHistory: (string | undefined)[];
+  /** per-element styles of the open sequence, keyed as in sequence/styleMap.ts */
+  sequenceStyles: SequenceStyles;
+  sequenceHistory: SequenceSnapshot[];
   setSequence: (source: string) => void;
+  /** Merge `patch` into the style of each keyed sequence element; undoable with undoSequence. */
+  updateSequenceStyle: (keys: string[], patch: Partial<ElementStyle>) => void;
   undoSequence: () => void;
   nodes: DiagramNode[];
   edges: DiagramEdge[];
@@ -287,6 +294,9 @@ export const useDiagram = create<State>((set, get) => {
   /** true while a run of live mermaid edits is coalescing into one undo step */
   let syncing = false;
 
+  /** key of the last sequence style edit, so a slider/color drag coalesces to one undo */
+  let lastSequenceStyleKey: string | null = null;
+
   /** Snapshot the current diagram onto the undo stack before a mutation. */
   const snapshot = (): Pick<State, 'history'> => {
     lastMoveId = null; // any snapshotted change ends a drag-coalescing run
@@ -407,7 +417,13 @@ export const useDiagram = create<State>((set, get) => {
       if (state.activeDiagramId) return { diagrams };
       const flow = diagrams.find((e) => e.kind === 'flowchart');
       const sequence = diagrams.find((e) => e.kind === 'sequence');
-      return { diagrams, nodes: flow?.nodes ?? [], edges: flow?.edges ?? [], sequence: sequence?.source };
+      return {
+        diagrams,
+        nodes: flow?.nodes ?? [],
+        edges: flow?.edges ?? [],
+        sequence: sequence?.source,
+        sequenceStyles: sequence?.styles ?? {},
+      };
     }),
   createDiagram: (content) => {
     const entities = diagramEntities(workspaceDiagram(get()));
@@ -436,6 +452,7 @@ export const useDiagram = create<State>((set, get) => {
       nodes: flow?.nodes ?? [],
       edges: flow?.edges ?? [],
       sequence: sequence?.source,
+      sequenceStyles: sequence?.styles ?? {},
       history: [],
       sequenceHistory: [],
       selectedNodeIds: [],
@@ -445,25 +462,50 @@ export const useDiagram = create<State>((set, get) => {
       highlight: null,
     });
   },
+  sequenceStyles: {},
   sequenceHistory: [],
   setSequence: (sequence) =>
-    set((s) =>
-      s.sequence === sequence
-        ? s
-        : {
-            sequence,
-            sequenceHistory: [...s.sequenceHistory.slice(-99), s.sequence],
-          },
-    ),
+    set((s) => {
+      if (s.sequence === sequence) return s;
+      lastSequenceStyleKey = null;
+      return {
+        sequence,
+        sequenceStyles: remapSequenceStyles(s.sequence, sequence, s.sequenceStyles),
+        sequenceHistory: [...s.sequenceHistory.slice(-99), { source: s.sequence, styles: s.sequenceStyles }],
+      };
+    }),
+  updateSequenceStyle: (keys, patch) =>
+    set((s) => {
+      if (!keys.length) return s;
+      // A slider drag or color scrub on the same elements is one undo step.
+      const key = Object.keys(patch).join(',') + ':' + keys.join(',');
+      const coalesce = lastSequenceStyleKey === key && s.sequenceHistory.length > 0;
+      lastSequenceStyleKey = key;
+      const sequenceStyles = { ...s.sequenceStyles };
+      for (const k of keys) {
+        const next: ElementStyle = { ...sequenceStyles[k], ...patch };
+        for (const name of Object.keys(next) as (keyof ElementStyle)[]) if (next[name] === undefined) delete next[name];
+        if (Object.keys(next).length) sequenceStyles[k] = next;
+        else delete sequenceStyles[k];
+      }
+      return {
+        sequenceStyles,
+        ...(!coalesce && {
+          sequenceHistory: [...s.sequenceHistory.slice(-99), { source: s.sequence, styles: s.sequenceStyles }],
+        }),
+      };
+    }),
   undoSequence: () =>
-    set((s) =>
-      s.sequenceHistory.length
-        ? {
-            sequence: s.sequenceHistory.at(-1),
-            sequenceHistory: s.sequenceHistory.slice(0, -1),
-          }
-        : s,
-    ),
+    set((s) => {
+      const last = s.sequenceHistory.at(-1);
+      if (!last) return s;
+      lastSequenceStyleKey = null;
+      return {
+        sequence: last.source,
+        sequenceStyles: last.styles,
+        sequenceHistory: s.sequenceHistory.slice(0, -1),
+      };
+    }),
 
   isGroup: (id) => get().nodes.some((n) => n.parentId === id),
 
@@ -1086,6 +1128,7 @@ export const useDiagram = create<State>((set, get) => {
           nodes: flow?.nodes ?? [],
           edges: flow?.edges ?? [],
           sequence: sequence?.source,
+          sequenceStyles: sequence?.styles ?? {},
           pages,
           decks,
           wikiFolders,
@@ -1125,6 +1168,7 @@ export const useDiagram = create<State>((set, get) => {
       history: [],
       sequenceHistory: [],
       sequence: d.sequence,
+      sequenceStyles: d.diagrams?.find((item) => item.kind === 'sequence')?.styles ?? {},
       nodes: d.nodes,
       edges: d.edges,
       pages: d.pages ?? [],
@@ -1147,13 +1191,28 @@ export function workspaceDiagram(state: Diagram = useDiagram.getState()): Diagra
     ...(state.sequence !== undefined && { sequence: state.sequence }),
     ...(wikiFolders?.length && { wikiFolders }),
   };
-  if (!state.diagrams) return base;
+  const sequenceStyles = 'sequenceStyles' in state ? (state.sequenceStyles as SequenceStyles) : undefined;
+  if (!state.diagrams) {
+    // Older documents keep only the source; styles need the sequence entity to live on.
+    if (!sequenceStyles || !Object.keys(sequenceStyles).length) return base;
+    return projectDiagrams(
+      base,
+      diagramEntities(base).map((entity) => (entity.kind === 'sequence' ? { ...entity, styles: sequenceStyles } : entity)),
+    );
+  }
   const active = 'activeDiagramId' in state ? state.activeDiagramId : null;
   const diagrams = state.diagrams.map((entity) => {
     if (entity.id !== active) return entity;
-    return entity.kind === 'flowchart'
-      ? { ...entity, nodes, edges }
-      : { ...entity, source: state.sequence ?? 'sequenceDiagram' };
+    if (entity.kind === 'flowchart') return { ...entity, nodes, edges };
+    // The store keeps the open sequence's styles beside its source.
+    const styles = sequenceStyles ?? entity.styles;
+    const { styles: previous, ...rest } = entity;
+    void previous;
+    return {
+      ...rest,
+      source: state.sequence ?? 'sequenceDiagram',
+      ...(styles && Object.keys(styles).length > 0 && { styles }),
+    };
   });
   return projectDiagrams(base, diagrams);
 }

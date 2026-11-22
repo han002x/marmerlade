@@ -1,4 +1,5 @@
 import { format, lifetimeIssue, participants, referencedActors, statements, type Statement } from './model';
+import { newNodeId } from '../nodeId';
 
 export interface CanvasEdit {
   source: string;
@@ -106,9 +107,7 @@ export function insertParticipant(
   label: string,
 ): CanvasEdit {
   const ids = participants(rows);
-  let index = 1;
-  while (ids.includes('P' + index)) index++;
-  const id = 'P' + index;
+  const id = newNodeId(ids);
   const text = format('participant', [id, label, 'participant', '', '']);
   if (!before) return appendStatement(source, text);
   const first = rows.find((row) => referencedActors(row).includes(before))!;

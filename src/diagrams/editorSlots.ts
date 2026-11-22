@@ -4,6 +4,8 @@ export interface EditorSlots {
   diagramId: string;
   workspaceZoom: number;
   toolbar: HTMLElement | null;
+  /** Board-level host for the flowchart style panel, outside the zoomed editor frame. */
+  stylePanel: HTMLElement | null;
   drafts: Map<string, string>;
   workspaceActions: ReactNode;
   onImport: () => void;

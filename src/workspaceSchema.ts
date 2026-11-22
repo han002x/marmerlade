@@ -42,6 +42,7 @@ export const diagramEntitySchema = z.discriminatedUnion('kind', [
     ...entityBase,
     kind: z.literal('sequence'),
     source: z.string().refine(isSequence, 'Expected a Mermaid sequenceDiagram'),
+    styles: z.record(z.string(), style).optional(),
   }),
 ]);
 export const diagramSchema = z.object({ diagrams:z.array(diagramEntitySchema).optional(), sequence: z.string().refine(isSequence, 'Expected a Mermaid sequenceDiagram').optional(), nodes: z.array(nodeSchema), edges: z.array(edgeSchema), pages: z.array(documentSchema).default([]), decks: z.array(documentSchema).default([]), wikiFolders: wikiFoldersSchema.optional() });

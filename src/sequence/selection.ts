@@ -9,6 +9,8 @@ export function bindSelection(svg: SVGSVGElement, rows: Statement[]) {
     svg.querySelectorAll(selector).forEach((element, i) => tag(element, statements[i]));
   };
   const messages = rows.filter((row) => row.kind === 'message');
+  const title = svg.querySelector(':scope > text[y="-25"]');
+  if (title) tag(title, rows.findLast((row) => row.kind === 'title' && row.values[0].trim() === title.textContent));
   // Mermaid emits each wrapped line as a separate text element just before the arrow.
   let index = 0;
   let labels: Element[] = [];

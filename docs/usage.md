@@ -316,8 +316,8 @@ or the participants you selected first. **Message numbering** and **Title** go
 at the top of the diagram. A block left empty in the Mermaid source is listed
 in **Tree** with its line number.
 
-Every insertion opens editable properties in **Tree** and draws a preview on the
-canvas at the diagram's own scale. Change the fields to update the preview, then
+Every insertion opens properties on the left and draws a preview at the
+diagram's own scale. Change the fields to update the preview, then
 press **Enter** or choose **Insert** to save one undoable change. Enter pressed
 while the preview is still updating is applied once it is ready. **Cancel** or
 **Escape** discards it. When an element does not change the drawing, such as a
@@ -329,9 +329,24 @@ participant header horizontally to reorder its lane. Drag a message vertically
 to change its order within a branch. Drag on the background to select several
 elements. **Delete** removes the selection and **Ctrl/Cmd+Z** undoes an edit.
 
-Expand the sequence in **Tree** to edit existing statement properties. Select a
-block and choose **Add else branch**, **Add and branch**, or **Add option branch**
-to extend it. Use **Mermaid** to edit or copy the complete sequence. During an
+Select an element to open its quick controls and properties in a floating panel
+on the left of the canvas, like the flowchart style panel. The panel closes when
+nothing is selected.
+Its **Style** section has the same options as the flowchart style panel (stroke,
+background, stroke width and style, sloppiness, corners, font, opacity and
+animation) for the selected participants, messages, notes and blocks. Messages
+take the edge animations, like flowchart edges. Mermaid has no style syntax for sequence diagrams, so
+styles are saved with the workspace rather than in the Mermaid source; they follow
+their elements through edits and undo, but **Copy Mermaid** exports the unstyled
+diagram.
+Changes in **Properties** appear in the preview. Choose **Apply edit** to save them.
+Use **Element actions** to move or remove the element. For a block that supports
+branches, the same menu offers **Add else branch**, **Add and branch**, or
+**Add option branch**. While the panel is open, **Diagram statements** lists
+settings and directives without a selectable shape; in the workspace they are
+also listed in **Tree**. Panel sections start expanded and can be collapsed
+individually. Selecting a statement in **Tree** also opens its
+properties in the panel. Use **Mermaid** to edit or copy the complete sequence. During an
 invalid source edit, the panel shows the parser error and the canvas retains the
 last valid drawing.
 

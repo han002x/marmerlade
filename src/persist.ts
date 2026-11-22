@@ -83,7 +83,7 @@ export function startAutosave(debounceMs = 400): () => void {
       write(workspaceDiagram(state));
       return;
     }
-    if (state.diagrams === prev.diagrams && state.sequence === prev.sequence && state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
+    if (state.diagrams === prev.diagrams && state.sequence === prev.sequence && state.sequenceStyles === prev.sequenceStyles && state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks) return;
     window.clearTimeout(timer);
     timer = window.setTimeout(flush, debounceMs);
   });

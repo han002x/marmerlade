@@ -1327,7 +1327,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           )}
         </div>
       )}
-      <StylePanel />
+      {slots ? slots.stylePanel && createPortal(<StylePanel />, slots.stylePanel) : <StylePanel />}
       {notice && (
         <div className="mf-notice" role="status">
           {notice}

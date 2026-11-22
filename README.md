@@ -1,9 +1,9 @@
 <div align="center">
   <img src="public/favicon.svg" width="72" height="72" alt="Marmerlade jar logo">
-  <h1>marmerlade</h1>
-  <p><strong>Diagrams that fold. Docs and slides that stay in sync.</strong></p>
-  <p>Draw your system once, then explain it at any depth: a one-card overview,<br>
-  the full detail, and wiki pages and slides that update with the diagram.</p>
+  <h1>Marmerlade</h1>
+  <p><strong>An open-source jam for Markdown and Mermaid. Diagrams, Wiki pages, Slide decks all-in-one.</strong></p>
+  <p>Style & Edit Mermaid diagram, animate flows, and keep Markdown wiki pages and slide decks in sync with your diagrams.<br>
+  Connect your AI agents through Marmerlade MCP to work on the same canvas.</p>
   <p>
     <a href="https://han002x.github.io/marmerlade/"><strong>Open Marmerlade in your browser →</strong></a>
   </p>

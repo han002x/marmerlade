@@ -30,6 +30,9 @@ import { diagramEntities } from '../diagramEntities';
 import type { DiagramEntity } from '../types';
 import { toMermaid } from '../mermaid/io';
 import { diagramSvg } from '../mermaid/svg';
+import { bindSelection } from '../sequence/selection';
+import { applySequenceStyles } from '../sequence/applyStyles';
+import { statements } from '../sequence/model';
 import { activeAppearance, useAppearance } from '../theme';
 import { exportFile, importFile } from '../persist';
 import { useHash, parseRoute, openDocs } from '../route';
@@ -86,6 +89,17 @@ function DiagramFrame({ data }: NodeProps<EntityNode>) {
       abort.abort();
     };
   }, [source, appearance, editing]);
+  const preview = useRef<HTMLDivElement>(null);
+  // Tag the drawn sequence elements with their source statements so hovering and clicking can find them,
+  // then paint their styles. The preview is rebuilt when its editor closes, so this runs again then.
+  const sequenceStyles = entity.kind === 'sequence' ? entity.styles : undefined;
+  useEffect(() => {
+    const drawing = preview.current?.querySelector('svg');
+    if (!svg || !sequence || !drawing) return;
+    const rows = statements(sequence);
+    bindSelection(drawing, rows);
+    applySequenceStyles(drawing, rows, sequenceStyles);
+  }, [svg, sequence, sequenceStyles, editing]);
   return (
     <article className={'diagram-entity' + (editing ? ' is-editing' : '')} aria-label={entity.title} data-diagram-id={entity.id}>
       <header className="diagram-title">
@@ -111,7 +125,19 @@ function DiagramFrame({ data }: NodeProps<EntityNode>) {
         </button>
       </header>
       {!editing && (
-        <div className="diagram-preview">
+        <div
+          className="diagram-preview"
+          ref={preview}
+          onPointerMove={(event) => {
+            const frame = event.currentTarget;
+            const hit = previewNodeAt(frame, event.clientX, event.clientY)?.els ?? [];
+            for (const el of frame.querySelectorAll('.is-hovered')) if (!hit.includes(el)) el.classList.remove('is-hovered');
+            for (const el of hit) el.classList.add('is-hovered');
+          }}
+          onPointerLeave={(event) => {
+            for (const el of event.currentTarget.querySelectorAll('.is-hovered')) el.classList.remove('is-hovered');
+          }}
+        >
           {error ? (
             <p role="alert">{error}</p>
           ) : svg ? (
@@ -126,12 +152,51 @@ function DiagramFrame({ data }: NodeProps<EntityNode>) {
 }
 const nodeTypes = { diagram: DiagramFrame };
 
+/** The flowchart node or sequence element drawn under a point inside a diagram preview, if any. */
+function previewNodeAt(frame: Element | null | undefined, x: number, y: number) {
+  const pad = 5; // sequence arrows and lifelines are only a pixel or two thick
+  let best: { id?: string; target?: SequenceTarget; els: Element[]; area: number } | undefined;
+  const consider = (el: Element, area: number, id?: string, target?: SequenceTarget, els = [el]) => {
+    if (!best || area < best.area) best = { id, target, els, area };
+  };
+  const inside = (el: Element, margin: number) => {
+    const r = el.getBoundingClientRect();
+    if (x < r.left - margin || x > r.right + margin || y < r.top - margin || y > r.bottom + margin) return 0;
+    return (r.width + 2 * margin) * (r.height + 2 * margin);
+  };
+  for (const el of frame?.querySelectorAll('.diagram-preview svg :is(g.node, g.rough-node)[id]') ?? []) {
+    const id = /-flowchart-(.+)-\d+$/.exec(el.id)?.[1];
+    const area = id ? inside(el, 0) : 0;
+    if (area) consider(el, area, id);
+  }
+  const svg = frame?.querySelector('.diagram-preview svg');
+  for (const el of svg?.querySelectorAll('[data-statement],[data-sequence-actor]') ?? []) {
+    if (el.getAttribute('data-et') === 'life-line' || el.hasAttribute('data-sequence-decoration')) continue;
+    const area = inside(el, pad);
+    if (!area) continue;
+    const start = el.getAttribute('data-statement');
+    const actor = el.getAttribute('data-sequence-actor');
+    const target: SequenceTarget | undefined = actor
+      ? { kind: 'participant', id: actor }
+      : start
+        ? { kind: 'statement', start: Number(start) }
+        : undefined;
+    // An arrow and its label text share one statement, so they light up together.
+    const els = actor
+      ? [...svg!.querySelectorAll('[data-sequence-actor]')].filter((e) => e.getAttribute('data-sequence-actor') === actor && e.getAttribute('data-et') !== 'life-line')
+      : [...svg!.querySelectorAll('[data-statement]')].filter((e) => e.getAttribute('data-statement') === start);
+    if (target) consider(el, area, undefined, target, els);
+  }
+  return best;
+}
+
 type FlowchartEditor = ComponentType<{ showWelcome: boolean; diagramKind: 'flowchart'; slots: EditorSlots }>;
 
 function Board({ Editor }: { Editor: FlowchartEditor }) {
   const state = useDiagram();
   const [error, setError] = useState('');
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null);
+  const [stylePanel, setStylePanel] = useState<HTMLDivElement | null>(null);
   const [sequenceOutline, setSequenceOutline] = useState<HTMLDivElement | null>(null);
   const [sequenceSource, setSequenceSource] = useState<HTMLDivElement | null>(null);
   const [sequenceTarget, setSequenceTarget] = useState<{ id: string; target: SequenceTarget }>();
@@ -289,7 +354,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
   }
   function add(kind: DiagramEntity['kind'], client: XYPosition) {
     const target = document.elementFromPoint(client.x, client.y);
-    if (!target || !board.current?.contains(target) || target.closest('.mf-toolbar,.react-flow__panel,dialog'))
+    if (!target || !board.current?.contains(target) || target.closest('.mf-toolbar,.mf-style-panel,.react-flow__panel,dialog'))
       return;
     const size = { width: 900, height: 650 };
     const base = {
@@ -429,6 +494,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     ? {
         diagramId: opened.id,
         toolbar,
+        stylePanel,
         drafts,
         workspaceActions,
         onImport: () => file.current?.click(),
@@ -443,7 +509,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
         onClickCapture={(event) => {
           // The first click can replace the preview with an editor before the second click.
           if (event.detail !== 2 || placement || panning || !(event.target instanceof Element)) return;
-          if (event.target.closest('input,textarea,select,button,[contenteditable="true"],.react-flow__resize-control')) return;
+          if (event.target.closest('input,textarea,select,button,[contenteditable="true"],.react-flow__resize-control,.sq-flow')) return;
           const id = event.target.closest<HTMLElement>('[data-diagram-id]')?.dataset.diagramId;
           if (id) void fitView({
             nodes: [{ id }],
@@ -534,6 +600,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
           </ToolbarMenu>
           <ProductNav current="canvas" iconOnly={compact} />
         </nav>
+        <div className="mf-style-slot" ref={setStylePanel} />
         {placement && (
           <div className="diagram-placement-hint" role="status">
             Click the canvas to place the {placement}.{' '}
@@ -601,7 +668,16 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
             else if (
               !event.shiftKey && !event.ctrlKey && !event.metaKey &&
               !(event.target instanceof Element && event.target.closest('input,button,.react-flow__resize-control'))
-            ) open(node.id);
+            ) {
+              const hit = previewNodeAt(
+                event.currentTarget.querySelector('.diagram-entity'), event.clientX, event.clientY,
+              );
+              open(node.id);
+              const entity = entities.find((e) => e.id === node.id);
+              if (hit?.id && entity?.kind === 'flowchart' && entity.nodes.some((n) => n.id === hit.id))
+                useDiagram.getState().setSelection([hit.id], []);
+              else if (hit?.target && entity?.kind === 'sequence') setSequenceTarget({ id: node.id, target: hit.target });
+            }
           }}
           onPaneClick={(event) => {
             if (placement) add(placement, { x: event.clientX, y: event.clientY });
@@ -659,8 +735,12 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
                 className="diagram-editor"
                 data-diagram-id={opened.id}
                 onPointerDownCapture={(event) => {
+                  // Working on a node or element inside the editor selects its diagram.
+                  if (event.button === 0 && !placement)
+                    setSelection((current) => (current.length === 1 && current[0] === opened.id ? current : [opened.id]));
                   // Keep pan gestures on the workspace when they start over an editor.
                   if (event.button !== 1 && event.button !== 2) return;
+                  if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
                   event.preventDefault();
                   event.stopPropagation();
                   event.currentTarget.setPointerCapture(event.pointerId);
@@ -671,7 +751,8 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
                   };
                 }}
                 onContextMenu={(event) => {
-                  if (event.button === 2) event.preventDefault();
+                  if (event.button === 2 && event.target instanceof Node && event.currentTarget.contains(event.target))
+                    event.preventDefault();
                 }}
                 onPointerMove={(event) => {
                   const start = pan.current;

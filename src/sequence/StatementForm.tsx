@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
 import { arrowGroups, arrowName, descriptions, nameOf, format, type Statement } from './model';
 import { Choice } from './Choice';
+import { newNodeId } from '../nodeId';
 
 const participantFields = ['activate', 'deactivate', 'destroy', 'link', 'links', 'properties', 'details'];
 const blockPlaceholders: Record<string, string> = {
@@ -41,11 +42,7 @@ const typePattern = /(?:^|,)\s*["']?type["']?\s*:\s*["']?(\w+)["']?\s*(?=,|$)/i;
 function defaults(kind: string, ids: string[]) {
   const first = ids[0] || 'A',
     next = ids[1] || first;
-  if (kind === 'participant') {
-    let i = 1;
-    while (ids.includes('P' + i)) i++;
-    return ['P' + i, '', 'participant', '', ''];
-  }
+  if (kind === 'participant') return [newNodeId(ids), '', 'participant', '', ''];
   if (kind === 'message') return [first, next, '->>', '', '', ''];
   if (kind === 'note') return ['over', first, ''];
   if (kind === 'rect') return ['rgb(235, 241, 250)'];
@@ -232,12 +229,7 @@ function ParticipantPicker({
 }
 
 function More({ children }: { children: ReactNode }) {
-  return (
-    <details className="sq-more">
-      <summary>More options</summary>
-      <div>{children}</div>
-    </details>
-  );
+  return <div className="sq-more">{children}</div>;
 }
 
 export function StatementForm({
@@ -248,6 +240,7 @@ export function StatementForm({
   save,
   cancel,
   busy,
+  invalid,
   inserting = false,
   note,
   onDraft,
@@ -258,16 +251,17 @@ export function StatementForm({
   ids: string[];
   names?: Record<string, string>;
   busy: boolean;
+  invalid?: boolean;
   inserting?: boolean;
   /** Explains a change the drawing cannot show. */
   note?: string;
-  onDraft?: (text: string) => void;
+  onDraft?: (text: string, changed: boolean) => void;
   /** The statement as it would read with the option under the pointer, or undefined. */
   onTrial?: (text: string | undefined) => void;
   save: (statement: string) => void;
   cancel: () => void;
 }) {
-  const [values, setValues] = useState(row?.values ?? defaults(kind, ids));
+  const [values, setValues] = useState(() => row?.values ?? defaults(kind, ids));
   const [partner, setPartner] = useState(ids[0] ?? 'A');
   const [queued, setQueued] = useState(false);
   const primary = useRef<HTMLInputElement>(null);
@@ -298,8 +292,9 @@ export function StatementForm({
     (!row || inserting) && (kind === 'destroy' || (kind === 'participant' && values[4] === 'create'));
   const closer = partner === values[0] ? (ids.find((id) => id !== values[0]) ?? partner) : partner;
   const preview = compose(values, partner);
+  const initial = useRef(preview);
   const trialText = trial ? compose(trial.values, trial.partner) : undefined;
-  const reportDraft = useEffectEvent((text: string) => onDraft?.(text));
+  const reportDraft = useEffectEvent((text: string) => onDraft?.(text, text !== initial.current));
   useEffect(() => {
     reportDraft(preview);
   }, [preview]);
@@ -311,17 +306,16 @@ export function StatementForm({
   useEffect(() => {
     if (!inserting || !primary.current) return;
     primary.current.focus({ preventScroll: true });
-    // Typing replaces a suggested value such as P1.
     primary.current.select();
   }, [inserting]);
   // Enter pressed while the preview is still rendering is kept and applied once it is ready.
   const flush = useEffectEvent(() => {
     setQueued(false);
-    save(preview);
+    if (!invalid) save(preview);
   });
   useEffect(() => {
-    if (queued && !busy) flush();
-  }, [queued, busy]);
+    if (queued && (!busy || invalid)) flush();
+  }, [queued, busy, invalid]);
   const wrapping = (i: number) => (
     <Choice
       label="Text wrapping"
@@ -343,6 +337,7 @@ export function StatementForm({
       {label}
       <input
         ref={props.main ? primary : undefined}
+        data-field={label}
         value={values[i] ?? ''}
         placeholder={props.placeholder}
         required={props.required}
@@ -365,8 +360,6 @@ export function StatementForm({
     const type = typePattern.exec(values[3] ?? '')?.[1]?.toLowerCase() ?? (values[2] || 'participant');
     body = (
       <>
-        {text('Name', 0, { required: true, main: true })}
-        {text('Display label', 1, { placeholder: 'Same as name' })}
         <Choice
           label="Shape"
           value={type}
@@ -574,6 +567,8 @@ export function StatementForm({
       className="sq-form"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!inserting && preview === initial.current) return cancel();
+        if (invalid) return;
         if (busy) setQueued(true);
         else save(preview);
       }}
@@ -599,10 +594,9 @@ export function StatementForm({
           {note}
         </p>
       )}
-      <pre aria-label="Statement preview">{preview}</pre>
       <div>
-        <button type="submit" aria-busy={queued}>
-          {queued ? 'Inserting…' : row && !inserting ? 'Apply edit' : 'Insert'}
+        <button type="submit" aria-busy={queued} disabled={invalid}>
+          {queued ? 'Checking…' : inserting ? 'Insert' : 'Apply edit'}
         </button>
         <button type="button" onClick={cancel}>
           Cancel

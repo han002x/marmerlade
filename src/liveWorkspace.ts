@@ -90,7 +90,7 @@ export async function initializeWorkspace() {
   // really differs is decided when the timer fires, not on every drag frame.
   useDiagram.subscribe((state, prev) => {
     if (applying) return;
-    if (state.diagrams === prev.diagrams && state.sequence === prev.sequence && state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks && state.wikiFolders === prev.wikiFolders) return;
+    if (state.diagrams === prev.diagrams && state.sequence === prev.sequence && state.sequenceStyles === prev.sequenceStyles && state.nodes === prev.nodes && state.edges === prev.edges && state.pages === prev.pages && state.decks === prev.decks && state.wikiFolders === prev.wikiFolders) return;
     clearTimeout(timer); timer = setTimeout(() => { void save(); }, 400);
   });
   reload = async () => {

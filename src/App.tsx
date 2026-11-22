@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import type { EditorSlots } from './diagrams/editorSlots';
 import DiagramBoard from './diagrams/DiagramBoard';
-import { useWorkspaceZoom } from './diagrams/useWorkspaceZoom';
+import { useEmbeddedFit, useWorkspaceZoom } from './diagrams/useWorkspaceZoom';
 import { ToolButton } from './components/ToolButton';
 import { ExportMenu, type ExportFormat } from './components/ExportMenu';
 import { Activity, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -127,6 +127,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const undo = useDiagram((s) => s.undo);
   const { fitView, screenToFlowPosition, getZoom, setViewport } = useReactFlow();
   useWorkspaceZoom(slots?.workspaceZoom);
+  useEmbeddedFit(slots ? { maxZoom: slots.workspaceZoom, padding: 0.18 } : undefined);
   const embedded = Boolean(slots);
   const canvasRef = useRef<HTMLDivElement>(null);
   const flowStore = useStoreApi();
@@ -1121,8 +1122,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         autoPanOnNodeDrag={!slots}
         autoPanOnConnect={!slots}
         minZoom={slots ? 0.05 : undefined}
-        fitViewOptions={slots ? { maxZoom: slots.workspaceZoom, padding: 0.18 } : undefined}
-        fitView
+        fitView={!slots}
       >
         <NodeToolbar
           nodeId={selected.map(shown.endOf)}

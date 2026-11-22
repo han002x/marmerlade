@@ -284,20 +284,20 @@ sequenceDiagram
     end
 ```
 
-Open **Add element** (the lifeline icon beside **Select**) to browse
-participants, messages, notes, blocks, and advanced Mermaid constructs. Hover
-or focus an element to draw an example of it in your diagram, with what it
+Use **Participant**, **Message**, and **Note** in the main toolbar to add those
+elements. Open **Blocks** or **Advanced** to browse the remaining Mermaid constructs. Hover
+or focus a tool or an element to draw an example of it in your diagram, with what it
 means and how to place it above the canvas. The example goes where the element
 would be inserted and wraps the selected message when one is selected. Elements
 that do not change the drawing, such as links and accessibility text, show a
 card instead. When the list is unavailable, the card says why, for example
-while another element waits for **Insert**. Drag a participant tile onto the canvas to choose its
-lane, or click the tile and then the canvas. Press **R** for participant
+while another element waits for **Insert**. Drag the participant tool onto the canvas to choose its
+lane, or click the tool and then the canvas. Press **R** for participant
 placement. A dashed line follows the pointer to show where it will go.
 
 Choose **Message** and click the sender and receiver, or drag a connection
 handle between participant headers. After the sender, an arrow follows the
-pointer until you click the receiver. Dragging a message tile onto a lane
+pointer until you click the receiver. Dragging the message tool onto a lane
 chooses the sender and insertion position; then click the receiver. Choose the
 same participant twice for a self-message. The **Arrow** list names each style,
 such as *Reply · dashed arrow*, next to its Mermaid token.

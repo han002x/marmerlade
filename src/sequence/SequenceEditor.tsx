@@ -7,7 +7,7 @@ import { ToolButton } from '../components/ToolButton';
 import { FlowControls } from '../components/FlowControls';
 import { ExportMenu, type ExportFormat } from '../components/ExportMenu';
 import { Icon } from '../components/Icon';
-import { ElementPalette } from './ElementPalette';
+import { ElementPalette, ElementTool } from './ElementPalette';
 import { closeActivation, insertElement, sampleEdit } from './insertion';
 import { moveLane, removeSelection, type CanvasEdit } from './canvasEdits';
 import SequenceCanvas, { type PlacementHandle, type Tool } from './SequenceCanvas';
@@ -800,44 +800,44 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
         : undefined,
     );
   };
+  const paletteProps = {
+    disabledReason: pending
+      ? 'Insert or cancel the ' + nameOf(pending.kind).toLowerCase() + ' you are adding first.'
+      : draft !== source
+        ? 'Fix or restore the Mermaid source first.'
+        : busy
+          ? 'Updating the diagram…'
+          : undefined,
+    hasActors: !!ids.length,
+    choose: (kind: string) => {
+      closeProperties();
+      if (kind === 'participant' || kind === 'message') {
+        setPlacementKind(undefined);
+        setTool(kind);
+      } else if (spatial(kind)) {
+        setPlacementKind(kind);
+        setTool('select');
+      } else beginInsertion(kind, placeAt(kind));
+    },
+    sample: showSample,
+    hasSample: (kind: string) => !!sampleFor(kind),
+    move: (kind: string, point: Parameters<PlacementHandle['move']>[1]) => placement.current?.move(kind, point),
+    drop: (kind: string, point: Parameters<PlacementHandle['drop']>[1]) => placement.current?.drop(kind, point),
+    cancel: () => placement.current?.cancel(),
+  };
   const toolbar = (
     <>
       <div className="mf-group-btns">
-        <ToolButton
-          label="Select"
-          hotkey="V"
-          active={tool === 'select' && !placementKind}
-          onClick={() => { discardInsertion(); closeProperties(); }}
-        >
-          <Icon name="cursor" />
-        </ToolButton>
-        <ElementPalette
-          disabledReason={
-            pending
-              ? 'Insert or cancel the ' + nameOf(pending.kind).toLowerCase() + ' you are adding first.'
-              : draft !== source
-                ? 'Fix or restore the Mermaid source first.'
-                : busy
-                  ? 'Updating the diagram…'
-                  : undefined
-          }
-          hasActors={!!ids.length}
-          choose={(kind) => {
-            closeProperties();
-            if (kind === 'participant' || kind === 'message') {
-              setPlacementKind(undefined);
-              setTool(kind);
-            } else if (spatial(kind)) {
-              setPlacementKind(kind);
-              setTool('select');
-            } else beginInsertion(kind, placeAt(kind));
-          }}
-          sample={showSample}
-          hasSample={(kind) => !!sampleFor(kind)}
-          move={(kind, point) => placement.current?.move(kind, point)}
-          drop={(kind, point) => placement.current?.drop(kind, point)}
-          cancel={() => placement.current?.cancel()}
-        />
+        {([
+          { kind: 'participant', icon: 'lifeline-start', hotkey: 'R' },
+          { kind: 'message', icon: 'arrow', hotkey: undefined },
+          { kind: 'note', icon: 'note-over', hotkey: undefined },
+        ] as const).map(({ kind, icon, hotkey }) => (
+          <ElementTool key={kind} {...paletteProps} kind={kind} icon={icon} hotkey={hotkey}
+            active={kind === 'note' ? placementKind === kind : tool === kind} />
+        ))}
+        <ElementPalette {...paletteProps} group="blocks" />
+        <ElementPalette {...paletteProps} group="advanced" />
       </div>
       <ToolButton
         label="Undo"
@@ -1073,11 +1073,9 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           {!slots && <div className="mf-style-slot" ref={setLocalPanel} />}
           {trialSvg && !pending && (
             <div className="sq-proposal" aria-label="Option preview" role="status">
-              <span className="sq-preview-badge">
-                {sampleSource !== undefined && trialSource === sampleSource
-                  ? 'Example · ' + nameOf(sample!.kind) + ' · choose it to place your own'
-                  : 'Preview of the highlighted option · click it to apply'}
-              </span>
+              {!(sampleSource !== undefined && trialSource === sampleSource) && (
+                <span className="sq-preview-badge">Preview of the highlighted option · click it to apply</span>
+              )}
               {sampleSource !== undefined && trialSource === sampleSource && (
                 <span className="sq-preview-note">
                   {descriptions[sample!.kind]} {placementInstruction(sample!.kind)}

@@ -378,7 +378,7 @@
 .sq-placement-guide circle { fill: var(--mf-accent); fill-opacity: .35; stroke: var(--mf-accent); stroke-width: 1.5; }
 .sq-message-guide path { stroke-dasharray: none; stroke-linejoin: round; }
 .sq-proposal { position: absolute; z-index: 5; top: 8px; left: 50%; transform: translateX(-50%); display: grid; gap: 4px; width: max-content; max-width: min(440px, calc(100% - 24px)); pointer-events: none; }
-.sq-preview-badge, .sq-preview-note { display: block; padding: 6px 10px; background: var(--mf-panel); border: 1px solid var(--mf-border); border-radius: var(--mf-radius); box-shadow: var(--mf-lift); font-size: 12px; }
+.sq-preview-badge, .sq-preview-note { display: block; padding: 6px 10px; background: var(--mf-panel); border: 1px solid var(--mf-border); border-radius: var(--mf-radius); box-shadow: var(--mf-lift); font-size: 10px; }
 .sq-preview-badge { color: var(--mf-accent); }
 .sq-preview-artboard { outline: 1px dashed color-mix(in srgb, var(--mf-accent) 55%, transparent); outline-offset: 6px; }
 .sq-artboard.is-replaced { visibility: hidden; }
@@ -405,6 +405,7 @@
 /* Hints describe the next click, so they must not intercept it. */
 .sq-hint {
   pointer-events: none;
+  font-size: 10px;
 }
 /* Dropdowns that preview the option under the pointer on the canvas. */
 .sq-choice {

@@ -4,6 +4,8 @@ import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/d
 import type { XYPosition } from '@xyflow/react';
 import { ToolbarMenu } from '../diagrams/ToolbarMenu';
 import { DragPlacement } from '../components/DragPlacement';
+import { ToolButton } from '../components/ToolButton';
+import { Icon, type IconName } from '../components/Icon';
 import { blocks, descriptions, kinds, nameOf, placementInstruction, spatial } from './model';
 
 function Thumbnail({ kind }: { kind: string }) {
@@ -141,21 +143,15 @@ function PaletteContent({
   drop,
   cancel,
   close,
-}: PaletteProps & { close: () => void }) {
+  group,
+}: PaletteProps & { close: () => void; group: 'blocks' | 'advanced' }) {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState<{ kind: string; anchor: HTMLElement }>();
   const report = useEffectEvent((kind?: string) => sample?.(kind));
-  const groups = [
-    {
-      title: 'Participants and messages',
-      entries: kinds.filter((kind) => ['participant', 'message', 'note'].includes(kind)),
-    },
-    { title: 'Blocks', entries: blocks },
-    {
-      title: 'Advanced',
-      entries: kinds.filter((kind) => !['participant', 'message', 'note', ...blocks].includes(kind)),
-    },
-  ];
+  const title = group === 'blocks' ? 'Blocks' : 'Advanced';
+  const entries = group === 'blocks'
+    ? blocks
+    : kinds.filter((kind) => !['participant', 'message', 'note', ...blocks].includes(kind));
   const pointer = useRef<{ x: number; y: number }>(undefined);
   const needsActor = (kind: string) =>
     !hasActors &&
@@ -194,8 +190,7 @@ function PaletteContent({
           );
         }}
       >
-        {groups.map(({ title, entries }) => (
-          <section key={title}>
+          <section>
             <h3>{title}</h3>
             <div className="sq-palette-grid">
               {entries.map((kind) => {
@@ -256,7 +251,6 @@ function PaletteContent({
               })}
             </div>
           </section>
-        ))}
       </div>
       {preview && !dragging && !(shown && hasSample?.(shown)) && (
         <HoverPreview kind={preview.kind} anchor={preview.anchor} instruction={instruction(preview.kind)} />
@@ -265,10 +259,56 @@ function PaletteContent({
   );
 }
 
-export function ElementPalette(props: PaletteProps) {
+export function ElementPalette({ group, ...props }: PaletteProps & { group: 'blocks' | 'advanced' }) {
   return (
-    <ToolbarMenu label="Add element" icon="insert" viewportBounded alignToPageLeft>
-      {(close) => <PaletteContent {...props} close={close} />}
+    <ToolbarMenu label={group === 'blocks' ? 'Blocks' : 'Advanced'} icon={group === 'blocks' ? 'group' : 'shapes'} viewportBounded alignToPageLeft>
+      {(close) => <PaletteContent {...props} group={group} close={close} />}
     </ToolbarMenu>
+  );
+}
+
+export function ElementTool({ kind, icon, hotkey, active, disabledReason, hasActors, choose, sample, hasSample, move, drop, cancel }: PaletteProps & {
+  kind: string;
+  icon: IconName;
+  hotkey?: string;
+  active: boolean;
+}) {
+  const [anchor, setAnchor] = useState<HTMLElement>();
+  const [dragging, setDragging] = useState(false);
+  const report = useEffectEvent((value?: string) => sample?.(value));
+  const reason = disabledReason || (!hasActors && kind !== 'participant' ? 'Add a participant first.' : undefined);
+  const shown = anchor && !dragging && !reason ? kind : undefined;
+  useEffect(() => {
+    const timer = setTimeout(() => report(shown), shown ? 120 : 100);
+    return () => clearTimeout(timer);
+  }, [shown]);
+  useEffect(() => () => report(undefined), []);
+  return (
+    <span
+      onPointerEnter={(event) => setAnchor(event.currentTarget)}
+      onPointerLeave={() => setAnchor(undefined)}
+      onFocus={(event) => setAnchor(event.currentTarget)}
+      onBlur={() => setAnchor(undefined)}
+    >
+      <DragPlacement
+        disabled={!!reason}
+        previewLabel={nameOf(kind)}
+        previewContent={<span className="sq-drag-thumbnail"><Thumbnail kind={kind} />{nameOf(kind)}</span>}
+        onMove={(point) => { setDragging(true); move(kind, point); }}
+        onDrop={(point) => drop(kind, point)}
+        onCancel={() => { setDragging(false); cancel(); }}
+      >
+        <ToolButton label={nameOf(kind)} hotkey={hotkey} active={active} disabled={!!reason} onClick={() => {
+          setAnchor(undefined);
+          sample?.(undefined);
+          choose(kind);
+        }}>
+          <Icon name={icon} />
+        </ToolButton>
+      </DragPlacement>
+      {anchor && !dragging && !(shown && hasSample?.(shown)) && (
+        <HoverPreview kind={kind} anchor={anchor} instruction={reason || placementInstruction(kind)} />
+      )}
+    </span>
   );
 }

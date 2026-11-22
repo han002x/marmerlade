@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 import { ToolButton } from '../components/ToolButton';
 
 export function ToolbarMenu({
@@ -12,7 +12,7 @@ export function ToolbarMenu({
   alignToPageLeft = false,
 }: {
   label: string;
-  icon: 'plus' | 'more' | 'export' | 'insert';
+  icon: IconName;
   children: (close: () => void) => ReactNode;
   viewportBounded?: boolean;
   alignToPageLeft?: boolean;

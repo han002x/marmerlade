@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Slide as SlideData } from '../slides';
+import { matchesTitle } from '../wiki/libraryTitles';
 import Slide from './Slide';
+import ContextMenu from '../wiki/ContextMenu';
+import type { SlideEdit } from '../slides';
 
 function Thumbnail({ slide, nodeId }: { slide: SlideData; nodeId?: string }) {
   const frame = useRef<HTMLDivElement>(null);
@@ -17,26 +20,40 @@ function Thumbnail({ slide, nodeId }: { slide: SlideData; nodeId?: string }) {
   </div>;
 }
 
-export default function SlideThumbnails({ slides, nodeId, current, onSelect }: {
+export default function SlideThumbnails({ slides, query, nodeId, current, onSelect, onEdit }: {
   slides: SlideData[];
+  query: string;
   nodeId?: string;
   current: number;
   onSelect: (index: number) => void;
+  onEdit: (kind: SlideEdit, index: number) => void;
 }) {
   const list = useRef<HTMLOListElement>(null);
   useEffect(() => {
-    list.current?.children[current]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [current]);
+    list.current?.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [current, query]);
+  const matching = slides.map((slide, index) => ({ slide, index })).filter(({ slide }) => matchesTitle(slide.body, query));
   return (
+    <>
     <ol ref={list} className="sl-thumbnails wk-navigation" aria-label="Slide thumbnails">
-      {slides.map((slide, index) => (
+      {matching.map(({ slide, index }) => (
         <li key={index} className="sl-thumbnail">
+          <ContextMenu label={`Slide ${index + 1} actions`} items={<>
+            <button role="menuitem" onClick={() => onEdit('add', index)}>Add slide after</button>
+            <button role="menuitem" onClick={() => onEdit('duplicate', index)}>Duplicate</button>
+            <button role="menuitem" disabled={index === 0} onClick={() => onEdit('up', index)}>Move up</button>
+            <button role="menuitem" disabled={index === slides.length - 1} onClick={() => onEdit('down', index)}>Move down</button>
+            <button role="menuitem" className="danger" onClick={() => onEdit('remove', index)}>Delete slide</button>
+          </>}>
           <span aria-hidden="true" className="sl-thumbnail-number">{index + 1}</span>
           <Thumbnail slide={slide} nodeId={nodeId} />
           <button className="sl-thumbnail-select" aria-label={`Go to slide ${index + 1}`}
             aria-current={current === index ? 'true' : undefined} onClick={() => onSelect(index)} />
+          </ContextMenu>
         </li>
       ))}
     </ol>
+    {matching.length === 0 && <p className="wk-index-empty" role="status">No matching slides</p>}
+    </>
   );
 }

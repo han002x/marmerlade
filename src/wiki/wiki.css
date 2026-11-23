@@ -718,7 +718,14 @@ a.wk-item {
   font: inherit;
   font-size: 13px;
 }
-.wk-library-actions .wk-btn { white-space: nowrap; }
+.wk-library-actions .wk-library-search { flex: 1 1 0; width: 0; }
+.wk-library-actions .wk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  white-space: nowrap;
+}
 .wk-library-row > .wk-item { flex: 1; min-width: 0; }
 .wk-library-row > a[draggable='true'] { cursor: grab; }
 .wk-library-row.drop-target {
@@ -762,6 +769,7 @@ a.wk-item {
   border: 0;
   border-radius: 0;
 }
+.wk-library-views button.wk-library-appearance { flex: 0 0 32px; }
 .wk-library-views button + button { border-left: 1px solid var(--mf-border); }
 .wk-library-views [aria-pressed='true'] {
   background: color-mix(in srgb, var(--mf-accent) 18%, transparent);

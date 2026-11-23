@@ -6,6 +6,7 @@ import { folderTrail } from '../wikiFolders';
 import LibrarySearch from './LibrarySearch';
 import { byLibraryTitle, libraryTitle, matchesTitle } from './libraryTitles';
 import Menu from './Menu';
+import ContextMenu from './ContextMenu';
 
 const wikiPageDragType = 'application/x-marmerlade-wiki-page';
 
@@ -131,8 +132,17 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
   };
   const pageRow = (page: Page, showPath = false) => {
     const canMoveByDrag = !showPath && folders.length > 0;
+    const remove = () => {
+      if (page.body.trim() && !window.confirm(`Delete "${page.title || 'Untitled'}"?`)) return;
+      if (page.id === pageId) window.location.hash = '#/wiki';
+      useDiagram.getState().deletePage(page.id);
+    };
     return (
       <li className="wk-library-row" key={page.id}>
+        <ContextMenu label={`Actions for ${libraryTitle(page)}`} items={<>
+          {folders.length > 0 && <button role="menuitem" onClick={() => setAction({ kind: 'page', page })}>Move to folder</button>}
+          <button role="menuitem" className="danger" onClick={remove}>Delete page</button>
+        </>}>
         <a className={`wk-item${page.id === pageId ? ' on' : ''}`} href={href(page.id)} onClick={primaryClick}
           aria-current={page.id === pageId ? 'page' : undefined} title={libraryTitle(page)}
           draggable={canMoveByDrag || undefined}
@@ -151,6 +161,7 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
         {folders.length > 0 && <Menu className="wk-icon" label={`Actions for ${libraryTitle(page)}`} button={<Icon name="more" size={14} />}>
           <button role="menuitem" onClick={() => setAction({ kind: 'page', page })}>Move to folder</button>
         </Menu>}
+        </ContextMenu>
       </li>
     );
   };
@@ -158,6 +169,13 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
     <ul className="wk-tree-list" style={{ paddingInlineStart: depth > 0 && depth <= 8 ? 9 : 0 }}>
       {(model.children.get(parentId) ?? []).map(folder => (
         <li key={folder.id}>
+          <ContextMenu label={`Actions for ${folder.name}`} items={<>
+            <button role="menuitem" onClick={() => onCreate(folder.id)}>New page</button>
+            <button role="menuitem" onClick={() => setAction({ kind: 'create', parentId: folder.id })}>New subfolder</button>
+            <button role="menuitem" onClick={() => setAction({ kind: 'rename', folder })}>Rename folder</button>
+            <button role="menuitem" onClick={() => setAction({ kind: 'move', folder })}>Move folder</button>
+            <button role="menuitem" className="danger" onClick={() => setAction({ kind: 'delete', folder })}>Delete folder</button>
+          </>}>
           <div className={`wk-library-row${dropFolderId === folder.id ? ' drop-target' : ''}`}
             onDragOver={event => {
               const draggedId = draggedPageId.current;
@@ -197,6 +215,7 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
               <button role="menuitem" className="danger" onClick={() => setAction({ kind: 'delete', folder })}>Delete folder</button>
             </Menu>
           </div>
+          </ContextMenu>
           {open.has(folder.id) && tree(folder.id, depth + 1)}
         </li>
       ))}

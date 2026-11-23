@@ -18,6 +18,7 @@ import BrandMark from '../components/BrandMark';
 import ProductNav from '../components/ProductNav';
 import { Icon } from '../components/Icon';
 import Menu from '../wiki/Menu';
+import ContextMenu from '../wiki/ContextMenu';
 import LibrarySearch from '../wiki/LibrarySearch';
 import { byLibraryTitle, libraryTitle, matchesTitle } from '../wiki/libraryTitles';
 import SlideThumbnails from './SlideThumbnails';
@@ -69,6 +70,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   const indexOpen = index !== null && index.at === deckId;
   const [sidebar, setSidebar] = useState<{ at: string | null; view: 'slides' | 'decks' | 'appearance' }>({ at: deckId, view: 'slides' });
   const [deckQuery, setDeckQuery] = useState('');
+  const [slideQuery, setSlideQuery] = useState('');
   const showAppearance = sidebar.view === 'appearance' && sidebar.at === deckId;
   const showDecks = !showAppearance && (!deck || sidebar.view === 'decks' && sidebar.at === deckId);
   useHotkeys([{ key: 't', run: () => { if (!slide) { setSidebar({ at: deckId, view: 'appearance' }); setIndex({ at: deckId }); } } }]);
@@ -394,20 +396,29 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
       <aside className="wk-index" id="deck-sidebar">
         <div className="wk-index-head">
           <ProductNav current="slides" onNavigate={() => setIndex(null)} />
-          {showDecks && <button className="wk-icon" onClick={create} title="New deck" aria-label="New deck">
-            <Icon name="plus" size={15} />
-          </button>}
         </div>
         <div className="wk-library-views" role="group" aria-label="Sidebar view">
           <button className="wk-btn" aria-label="Decks" title="Decks" aria-pressed={showDecks} onClick={() => setSidebar({ at: deckId, view: 'decks' })}><Icon name="deck" size={16} /><span>Decks</span></button>
           {deck && <button className="wk-btn" aria-label="Slides" title="Slides" aria-pressed={!showDecks && !showAppearance} onClick={() => setSidebar({ at: deckId, view: 'slides' })}><Icon name="grid" size={16} /><span>Slides</span></button>}
-          <button className="wk-btn" aria-label="Appearance" title="Appearance" aria-pressed={showAppearance} onClick={() => setSidebar({ at: deckId, view: 'appearance' })}><Icon name="palette" size={16} /><span>Appearance</span></button>
+          <button className="wk-btn wk-library-appearance" aria-label="Appearance" title="Appearance" aria-pressed={showAppearance} onClick={() => setSidebar({ at: deckId, view: 'appearance' })}><Icon name="palette" size={16} /></button>
         </div>
         {showAppearance ? <div className="mf-appearance mf-appearance-docked" role="region" aria-label="Appearance"><AppearanceSettings /></div> : showDecks ? <>
-          <LibrarySearch label="Search decks" value={deckQuery} onChange={setDeckQuery} />
+          <div className="wk-library-actions">
+            <LibrarySearch label="Search decks" value={deckQuery} onChange={setDeckQuery} />
+            <button className="wk-btn" onClick={create} title="New deck" aria-label="New deck">
+              <Icon name="plus" size={14} /> New
+            </button>
+          </div>
           <nav className="wk-navigation" aria-label="Slide decks">
             {filteredDecks.length > 0 ? <ul className="wk-tree-list">
               {filteredDecks.map(entry => <li key={entry.id}>
+                <ContextMenu label={`Actions for ${libraryTitle(entry)}`} items={<>
+                  <button role="menuitem" className="danger" onClick={() => {
+                    if (entry.body.trim() && !window.confirm(`Delete "${entry.title || 'Untitled'}"?`)) return;
+                    if (entry.id === deckId) window.location.hash = '#/slides';
+                    useDiagram.getState().deleteDeck(entry.id);
+                  }}>Delete deck</button>
+                </>}>
                 <a className={`wk-item${entry.id === deckId ? ' on' : ''}`} title={libraryTitle(entry)}
                   href={deckHref(entry.id, entry.id === deckId ? nodeId : undefined)}
                   aria-current={entry.id === deckId ? 'page' : undefined}
@@ -418,10 +429,19 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                   }}>
                   <Icon name="deck" size={14} /><span>{libraryTitle(entry)}</span>
                 </a>
+                </ContextMenu>
               </li>)}
             </ul> : <p className="wk-index-empty" role="status">{deckQuery.trim() ? 'No matching decks' : 'No decks yet'}</p>}
           </nav>
-        </> : <SlideThumbnails key={deckId} slides={slides} nodeId={node?.id} current={current} onSelect={pickThumbnail} />}
+        </> : <>
+          <div className="wk-library-actions">
+            <LibrarySearch label="Search slides" value={slideQuery} onChange={setSlideQuery} />
+            <button className="wk-btn" onClick={() => { setSlideQuery(''); edit('add', current); }} title="Add slide" aria-label="Add slide">
+              <Icon name="plus" size={14} /> New
+            </button>
+          </div>
+          <SlideThumbnails key={deckId} slides={slides} query={slideQuery} nodeId={node?.id} current={current} onSelect={pickThumbnail} onEdit={edit} />
+        </>}
       </aside>
       <button className="wk-scrim" aria-label="Close decks" onClick={() => setIndex(null)} />
 

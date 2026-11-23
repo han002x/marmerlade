@@ -1,10 +1,9 @@
-import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
-import { arrowGroups, arrowName, descriptions, nameOf, format, type Statement } from './model';
+import { useEffect, useEffectEvent, useState, type ReactNode } from 'react';
+import { arrowGroups, arrowName, format, type Statement } from './model';
 import { Choice } from './Choice';
 import { ArrowGlyph, IconChoice, type ArrowHead } from './IconChoice';
 import { Icon } from '../components/Icon';
 type IconProps = Parameters<typeof Icon>[0];
-import { newNodeId } from '../nodeId';
 
 const participantFields = ['activate', 'deactivate', 'destroy', 'link', 'links', 'properties', 'details'];
 const blockPlaceholders: Record<string, string> = {
@@ -18,17 +17,6 @@ const blockPlaceholders: Record<string, string> = {
   else: 'e.g. Payment declined',
   and: 'e.g. Send SMS',
   option: 'e.g. Timeout',
-};
-const guidance: Record<string, string> = {
-  message: 'Choose the same participant at both ends for a self-message.',
-  box: 'To group more participants, cancel, select them on the canvas, then place the box again.',
-  alt: 'After inserting, choose Add else branch for the other path.',
-  par: 'After inserting, choose Add and branch for the next parallel path.',
-  par_over: 'After inserting, choose Add and branch for the next parallel path.',
-  critical: 'After inserting, choose Add option branch for each failure case.',
-  activate: 'A matching Deactivate is added after this participant’s last message here. Move it to shorten the bar.',
-  deactivate: 'Choose a participant with an open activation at this point.',
-  details: 'Mermaid reads details from a JSON element with this ID in the page that shows the diagram.',
 };
 const shapes: [string, string][] = [
   ['participant', 'Box'],
@@ -60,17 +48,6 @@ const notePositions = [
   { value: 'right of', label: 'Right of', icon: <Icon name="note-right" size={18} /> },
 ];
 const typePattern = /(?:^|,)\s*["']?type["']?\s*:\s*["']?(\w+)["']?\s*(?=,|$)/i;
-
-function defaults(kind: string, ids: string[]) {
-  const first = ids[0] || 'A',
-    next = ids[1] || first;
-  if (kind === 'participant') return [newNodeId(ids), '', 'participant', '', ''];
-  if (kind === 'message') return [first, next, '->>', '', '', ''];
-  if (kind === 'note') return ['over', first, ''];
-  if (kind === 'rect') return ['rgb(235, 241, 250)'];
-  if (participantFields.includes(kind)) return [first, ['links', 'properties'].includes(kind) ? '{}' : ''];
-  return [''];
-}
 
 /** Read a CSS colour into the #rrggbb form a colour input accepts. */
 function hex(color: string) {
@@ -254,7 +231,6 @@ function ParticipantPicker({
 }
 
 export function StatementForm({
-  kind,
   row,
   ids,
   names = {},
@@ -263,37 +239,30 @@ export function StatementForm({
   actions,
   busy,
   invalid,
-  inserting = false,
-  note,
   onDraft,
   onTrial,
   onPick,
 }: {
-  kind: string;
-  row?: Statement;
+  row: Statement;
   ids: string[];
   names?: Record<string, string>;
   busy: boolean;
   invalid?: boolean;
-  inserting?: boolean;
-  /** Explains a change the drawing cannot show. */
-  note?: string;
   onDraft?: (text: string, changed: boolean) => void;
   /** The statement as it would read with the option under the pointer, or undefined. */
   onTrial?: (text: string | undefined) => void;
-  /** A setting was picked (not typed); an edit form applies it straight away. */
+  /** A setting was picked and should apply once its preview is ready. */
   onPick?: () => void;
   save: (statement: string) => void;
   cancel: () => void;
   /** Extra buttons shown beside the element's icon toggles. */
   actions?: ReactNode;
 }) {
-  const [values, setValues] = useState(() => row?.values ?? defaults(kind, ids));
-  const [partner, setPartner] = useState(ids[0] ?? 'A');
+  const { kind } = row;
+  const [values, setValues] = useState(row.values);
   const [queued, setQueued] = useState(false);
   const [moreArrows, setMoreArrows] = useState(false);
-  const primary = useRef<HTMLInputElement>(null);
-  const [trial, setTrial] = useState<{ values: string[]; partner: string }>();
+  const [trial, setTrial] = useState<string[]>();
   const change = (i: number, value: string) =>
     setValues((old) => {
       const copy = [...old];
@@ -303,31 +272,19 @@ export function StatementForm({
   const pick = (next: string[]) => {
     setTrial(undefined);
     setValues(next);
-    if (!inserting) onPick?.();
+    onPick?.();
   };
   const replaced = (i: number, value: string) => values.map((old, j) => (j === i ? value : old));
   /** Props for a dropdown whose options each produce a whole new set of values. */
   const options = (next: (value: string) => string[]) => ({
     change: (value: string) => pick(next(value)),
     preview: (value: string | undefined) =>
-      setTrial(value === undefined ? undefined : { values: next(value), partner }),
+      setTrial(value === undefined ? undefined : next(value)),
   });
-  const compose = (vals: string[], who: string) => {
-    const lifecycle =
-      (!row || inserting) && (kind === 'destroy' || (kind === 'participant' && vals[4] === 'create'));
-    const closer = who === vals[0] ? (ids.find((id) => id !== vals[0]) ?? who) : who;
-    return (
-      format(kind, vals) +
-      (lifecycle ? '\n' + closer + '->>' + vals[0] + ': ' + (kind === 'destroy' ? 'Close' : 'Create') : '')
-    );
-  };
-  const lifecycle =
-    (!row || inserting) && (kind === 'destroy' || (kind === 'participant' && values[4] === 'create'));
-  const closer = partner === values[0] ? (ids.find((id) => id !== values[0]) ?? partner) : partner;
-  const preview = compose(values, partner);
-  const initial = useRef(preview);
-  const trialText = trial ? compose(trial.values, trial.partner) : undefined;
-  const reportDraft = useEffectEvent((text: string) => onDraft?.(text, text !== initial.current));
+  const preview = format(kind, values);
+  const [initial] = useState(preview);
+  const trialText = trial ? format(kind, trial) : undefined;
+  const reportDraft = useEffectEvent((text: string) => onDraft?.(text, text !== initial));
   useEffect(() => {
     reportDraft(preview);
   }, [preview]);
@@ -336,11 +293,6 @@ export function StatementForm({
     reportTrial(trialText === preview ? undefined : trialText);
   }, [trialText, preview]);
   useEffect(() => () => reportTrial(undefined), []);
-  useEffect(() => {
-    if (!inserting || !primary.current) return;
-    primary.current.focus({ preventScroll: true });
-    primary.current.select();
-  }, [inserting]);
   // Enter pressed while the preview is still rendering is kept and applied once it is ready.
   const flush = useEffectEvent(() => {
     setQueued(false);
@@ -358,7 +310,7 @@ export function StatementForm({
       aria-pressed={pressed}
       aria-label={label}
       title={label}
-      onPointerEnter={() => setTrial({ values: next(), partner })}
+      onPointerEnter={() => setTrial(next())}
       onPointerLeave={() => setTrial(undefined)}
       onClick={() => pick(next())}
     >
@@ -371,15 +323,13 @@ export function StatementForm({
     const next = () => replaced(i, (wrapped ? '' : 'wrap:') + (values[i] ?? '').replace(/^(?:wrap|nowrap):/i, ''));
     return toggle('wrap-text', 'Wrap text', wrapped, next);
   };
-  const text = (label: string, i: number, props: { placeholder?: string; required?: boolean; main?: boolean } = {}) => (
+  const text = (label: string, i: number, placeholder?: string) => (
     <label>
       {label}
       <input
-        ref={props.main ? primary : undefined}
         data-field={label}
         value={values[i] ?? ''}
-        placeholder={props.placeholder}
-        required={props.required}
+        placeholder={placeholder}
         onChange={(e) => change(i, e.target.value)}
       />
     </label>
@@ -443,7 +393,7 @@ export function StatementForm({
             className="sq-icon-toggle"
             aria-label="Swap direction"
             title="Swap direction"
-            onPointerEnter={() => setTrial({ values: swapped(), partner })}
+            onPointerEnter={() => setTrial(swapped())}
             onPointerLeave={() => setTrial(undefined)}
             onClick={() => pick(swapped())}
           >
@@ -451,7 +401,6 @@ export function StatementForm({
           </button>
           <ParticipantPicker label="To" hideLabel value={values[1] ?? ''} ids={ids} names={names} {...options((v) => replaced(1, v))} />
         </div>
-        {inserting && text('Message', 3, { placeholder: 'e.g. Submit order', main: true })}
         <div className="sq-arrows">
           <IconChoice label="Arrow" columns={5} value={values[2]} options={arrowIcons} {...options((v) => replaced(2, v))} />
           <button
@@ -525,7 +474,6 @@ export function StatementForm({
             />
           )}
         </div>
-        {inserting && text('Note', 2, { placeholder: 'e.g. Validates the cart', main: true })}
         <div className="sq-element-actions">
           {wrapping(2)}
           {actions}
@@ -540,7 +488,6 @@ export function StatementForm({
         <label>
           Label
           <input
-            ref={primary}
             value={label}
             placeholder="e.g. Payments service"
             onChange={(e) => set(color, e.target.value)}
@@ -566,7 +513,7 @@ export function StatementForm({
         Highlight colour
         <span className="sq-color">
           <input type="color" aria-label="Pick colour" value={hex(values[0])} onChange={(e) => change(0, rgb(e.target.value))} />
-          <input ref={primary} aria-label="Colour value" value={values[0]} onChange={(e) => change(0, e.target.value)} />
+          <input aria-label="Colour value" value={values[0]} onChange={(e) => change(0, e.target.value)} />
         </span>
       </label>
     );
@@ -581,7 +528,6 @@ export function StatementForm({
             <label>
               Link label
               <input
-                ref={primary}
                 value={(values[1] ?? '').split(' @ ')[0]}
                 required
                 onChange={(e) => change(1, e.target.value + ' @ ' + (values[1] ?? '').split(' @ ').slice(1).join(' @ '))}
@@ -601,7 +547,7 @@ export function StatementForm({
         {(kind === 'links' || kind === 'properties') && (
           <PropertyFields initial={values[1]} links={kind === 'links'} change={(value) => change(1, value)} />
         )}
-        {kind === 'details' && text('Details element ID', 1, { main: true })}
+        {kind === 'details' && text('Details element ID', 1)}
       </>
     );
   } else if (kind === 'accdescr') {
@@ -613,7 +559,7 @@ export function StatementForm({
     );
   } else {
     const label = kind === 'title' ? 'Title' : kind === 'acctitle' ? 'Accessible title' : 'Label';
-    body = text(label, 0, { placeholder: blockPlaceholders[kind], main: true });
+    body = text(label, 0, blockPlaceholders[kind]);
   }
 
   return (
@@ -621,40 +567,17 @@ export function StatementForm({
       className="sq-form"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!inserting && preview === initial.current) return cancel();
+        if (preview === initial) return cancel();
         if (invalid) return;
         if (busy) setQueued(true);
         else save(preview);
       }}
     >
-      {(!row || inserting) && <h3>Add {nameOf(kind).toLowerCase()}</h3>}
-      {inserting && descriptions[kind] && <p className="sq-meaning">{descriptions[kind]}</p>}
-      {inserting && guidance[kind] && <p>{guidance[kind]}</p>}
       {body}
-      {lifecycle && (
-        <ParticipantPicker
-          label={kind === 'destroy' ? 'Closed by' : 'Created by'}
-          value={closer}
-          ids={ids.filter((id) => id !== values[0])}
-          names={names}
-          change={setPartner}
-          preview={(v) => setTrial(v === undefined ? undefined : { values, partner: v })}
-        />
-      )}
-      {note && (
-        <p className="sq-note" role="note">
-          {note}
-        </p>
-      )}
-      {inserting && (
-        <div>
-          <button type="submit" aria-busy={queued} disabled={invalid}>
-            {queued ? 'Checking…' : 'Insert'}
-          </button>
-          <button type="button" onClick={cancel}>
-            Cancel
-          </button>
-        </div>
+      {preview !== initial && !['participant', 'message', 'note'].includes(kind) && (
+        <button type="submit" aria-busy={queued} disabled={invalid}>
+          Apply edit
+        </button>
       )}
     </form>
   );

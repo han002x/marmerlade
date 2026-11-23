@@ -8,7 +8,7 @@ import { FlowControls } from '../components/FlowControls';
 import { ExportMenu, type ExportFormat } from '../components/ExportMenu';
 import { Icon } from '../components/Icon';
 import { ElementPalette, ElementTool } from './ElementPalette';
-import { closeActivation, insertElement, sampleEdit } from './insertion';
+import { insertElement, placeElement, sampleEdit } from './insertion';
 import { moveLane, removeSelection, type CanvasEdit } from './canvasEdits';
 import SequenceCanvas, { type PlacementHandle, type Tool } from './SequenceCanvas';
 import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -26,6 +26,7 @@ import {
   branches,
   nameOf,
   renameReferences,
+  format,
   header,
   isSequence,
   participants,
@@ -71,7 +72,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   }, [rows]);
   const ids = useMemo(() => participants(rows), [rows]);
   const [index, setIndex] = useState(-1);
-  // Inserting selects the new statement for editing. Only a selection the user made may be wrapped.
+  // Only a selection the user made may be wrapped.
   const [explicit, setExplicit] = useState(false);
   const select = (i: number, chosen = false) => {
     setIndex(i);
@@ -89,12 +90,6 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   const [action, setAction] = useState<Action>();
   const [propertyFocus, setPropertyFocus] = useState<PropertyFocus>();
   const [placementKind, setPlacementKind] = useState<string>();
-  const [pending, setPending] = useState<{
-    base: string;
-    kind: string;
-    row?: Statement;
-    build: (text: string) => CanvasEdit;
-  }>();
   const [candidate, setCandidate] = useState<{ source: string; svg: string }>();
   const [proposal, setProposal] = useState<string>();
   const [previewError, setPreviewError] = useState('');
@@ -132,16 +127,17 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       revision.current++;
     };
   }, []);
+  const syncSource = useEffectEvent(() => {
+    cancel();
+    setDraft(source);
+    closeProperties();
+    select(-1);
+    setSelectedActor(undefined);
+    setError('');
+    base.current = source;
+  });
   useEffect(() => {
-    if (base.current !== source) {
-      cancel();
-      setDraft(source);
-      setAction(undefined);
-      select(-1);
-      setSelectedActor(undefined);
-      setError('');
-      base.current = source;
-    }
+    if (base.current !== source) syncSource();
   }, [source]);
   useEffect(() => {
     const render = new AbortController();
@@ -164,7 +160,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     return () => render.abort();
   }, [source, appearance, rows]);
   const undo = () => {
-    discardInsertion();
+    resetPlacement();
     closeProperties();
     cancel();
     useDiagram.getState().undoSequence();
@@ -244,30 +240,20 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     return () => clearTimeout(timer);
   }, [source, draft]);
 
-  function discardInsertion() {
-    previewRevision.current++;
-    setPending(undefined);
-    setCandidate(undefined);
-    setProposal(undefined);
-    setPreviewError('');
+  function resetPlacement() {
     setPlacementKind(undefined);
     setTool('select');
   }
   function cancelForm() {
-    if (owner) {
-      cancel();
-      setError('');
-    }
-    if (pending) discardInsertion();
-    else closeProperties();
+    if (action) cancel();
+    closeProperties();
   }
   useEffect(() => {
-    discardInsertion();
+    resetPlacement();
   }, [source, slots?.diagramId]);
   const dismissCanvasEdits = useEffectEvent(() => {
     cancelForm();
-    setPlacementKind(undefined);
-    setTool('select');
+    resetPlacement();
   });
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -279,77 +265,23 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   useEffect(() => {
     if (view === 'mermaid') dismissCanvasEdits();
   }, [view]);
-  function openInsertion(value: NonNullable<typeof pending>) {
-    previewRevision.current++;
-    setAction(undefined);
-    setCandidate(undefined);
-    setProposal(undefined);
-    setPreviewError('');
-    setError('');
-    setPending({
-      ...value,
-      build: (text) => {
-        const edit = value.build(text);
-        const safe = safeNames(edit.source, edit.at);
-        return { source: safe.source, at: safe.at ?? edit.at };
-      },
-    });
-    setPlacementKind(undefined);
-    setTool('select');
-  }
-  function proposeEdit(edit: CanvasEdit) {
-    const row = statements(edit.source).find((item) => item.start >= edit.at);
-    if (!row) return;
-    openInsertion({
-      base: source,
-      kind: row.kind,
-      row,
-      build: (text) => ({
-        source: edit.source.slice(0, row.start) + text + edit.source.slice(row.end),
-        at: row.start,
-      }),
-    });
-  }
-  function beginInsertion(
-    kind: string,
-    at = insertion ?? source.length,
-    selection: Statement[] = [],
-    actor?: string,
-  ) {
-    const row =
-      actor && ['note', 'activate', 'deactivate', 'destroy'].includes(kind)
-        ? {
-            start: 0,
-            end: 0,
-            line: 0,
-            text: '',
-            kind,
-            depth: 0,
-            values: kind === 'note' ? ['over', actor, ''] : [actor],
-          }
-        : undefined;
-    openInsertion({
-      base: source,
-      kind,
-      row,
-      build: (text) => {
-        const edit = insertElement(source, text, kind, at, selection, actor);
-        return kind === 'activate' ? closeActivation(edit) : edit;
-      },
-    });
-  }
-  const owner = pending ?? action;
-  function buildDraft(text: string): CanvasEdit {
-    if (pending?.base === source) {
-      const edit = pending.build(text);
-      if (pending.kind === 'participant') {
-        const actor = statements(edit.source).find((row) => row.start >= edit.at)?.values[0];
-        if (actor && ids.includes(actor)) throw new Error('This participant identifier is already in use.');
-      }
-      return edit;
+  function insertPlaced(build: () => CanvasEdit) {
+    if (!clean) return;
+    closeProperties();
+    resetPlacement();
+    setSample(undefined);
+    try {
+      const edit = build();
+      const safe = safeNames(edit.source, edit.at);
+      const issue = lifetimeIssue(statements(safe.source));
+      if (issue) throw new Error(issue);
+      void commit(safe.source, safe.at ?? edit.at);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
     }
-    if (action) return buildExisting(action, text);
-    throw new Error('Choose an element to edit.');
+  }
+  function insertAt(kind: string, at = insertion ?? source.length, selection: Statement[] = [], actor?: string) {
+    insertPlaced(() => placeElement(source, kind, at, selection, actor));
   }
 
   // Icon and dropdown picks in an open edit form apply as soon as their preview is ready;
@@ -361,8 +293,9 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     draftText.current = text;
     // Picking the original value again leaves nothing to apply.
     if (!changed) autoApply.current = false;
+    if (!action) return;
     try {
-      setProposal(pending || changed ? buildDraft(text).source : source);
+      setProposal(changed ? buildExisting(action, text).source : source);
       setPreviewError('');
     } catch (reason) {
       setProposal(undefined);
@@ -373,12 +306,10 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   useEffect(() => {
     const revision = ++previewRevision.current;
     setCandidate(undefined);
-    if (!owner || proposal === undefined) return;
+    if (!action || proposal === undefined) return;
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const issue = 'build' in owner && lifetimeIssue(statements(proposal));
-          if (issue) throw new Error(issue);
           const svg = proposal === source ? '' : await diagramSvg(proposal, appearance);
           if (revision === previewRevision.current) {
             setCandidate({ source: proposal, svg });
@@ -394,16 +325,16 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       clearTimeout(timer);
       previewRevision.current++;
     };
-  }, [owner, proposal, appearance, source]);
+  }, [action, proposal, appearance, source]);
   // The option under the pointer in an open dropdown, drawn in place until the pointer leaves.
   // Owned by the open form, so a trial left behind by a closed form is never drawn.
   const [trial, setTrial] = useState<{ owner: object; base: string; source: string }>();
   // A palette tile under the pointer, drawn as an example in this diagram.
   const [sample, setSample] = useState<{ kind: string; base: string; source: string; message?: number }>();
   const hasPropertyDraft = !!previewError || (proposal !== undefined && proposal !== source);
-  const sampleSource = sample && sample.base === source && !pending && !hasPropertyDraft ? sample.source : undefined;
+  const sampleSource = sample && sample.base === source && !hasPropertyDraft ? sample.source : undefined;
   const trialSource =
-    (trial && trial.owner === owner && trial.base === source ? trial.source : undefined) ?? sampleSource;
+    (trial && trial.owner === action && trial.base === source ? trial.source : undefined) ?? sampleSource;
   // The last drawn trial stays up while the next option renders, so hovering down a list does not flicker.
   const [trialDrawing, setTrialDrawing] = useState<{ source: string; svg: string }>();
   // A sample Mermaid cannot draw falls back to the palette's hover card.
@@ -436,51 +367,24 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       ? sample?.message
       : undefined;
   const offer = (next?: string) =>
-    setTrial(next === undefined || !owner ? undefined : { owner, base: source, source: next });
+    setTrial(next === undefined || !action ? undefined : { owner: action, base: source, source: next });
   const trialProperties = (text: string | undefined) => {
-    if (text === undefined || !owner) return offer();
+    if (text === undefined || !action) return offer();
     try {
-      offer(buildDraft(text).source);
+      offer(buildExisting(action, text).source);
     } catch {
       offer();
     }
   };
-  const quiet = useMemo(() => {
-    if (!pending || proposal === undefined) return undefined;
-    const kind = pending.kind;
-    const next = statements(proposal);
-    const added = next.find(
-      (row) => row.kind === kind && !rows.some((old) => old.text === row.text && old.line === row.line),
-    );
-    const actor = added?.values[0];
-    if (kind === 'activate' && added) {
-      const later = next.slice(next.indexOf(added) + 1);
-      const stop = later.findIndex((row) => row.kind === 'deactivate' && row.values[0] === actor);
-      const span = stop < 0 ? later : later.slice(0, stop);
-      if (!span.some((row) => row.kind === 'message' && row.values.slice(0, 2).includes(actor!)))
-        return 'Nothing to draw yet: the bar appears once a later message reaches ' + (names[actor!] ?? actor) + '.';
-    }
-    if (kind === 'autonumber' && added && !next.slice(next.indexOf(added)).some((row) => row.kind === 'message'))
-      return 'Numbers appear on messages added after this point.';
-    if (['link', 'links'].includes(kind))
-      return 'The drawing does not change. Viewers open these links from ' + (names[actor!] ?? actor ?? 'the participant') + '’s menu in exported SVGs and embeds.';
-    if (['properties', 'details'].includes(kind))
-      return 'The drawing does not change. This data is stored with the participant for tools that read it.';
-    if (['acctitle', 'accdescr'].includes(kind))
-      return 'The drawing does not change. Screen readers announce this text.';
-    return undefined;
-  }, [pending, proposal, rows, names]);
   async function applyProperties(text: string) {
-    if (!owner || !candidate) return;
+    if (!action || !candidate) return;
     try {
-      const edit = buildDraft(text);
+      const edit = buildExisting(action, text);
       if (edit.source !== candidate.source) return;
       if (edit.source === source) closeProperties();
       else {
-        const editing = !pending;
-        if (editing) reopenAfter.current = source;
-        if (await commit(edit.source, edit.at)) discardInsertion();
-        else if (editing) reopenAfter.current = undefined;
+        reopenAfter.current = source;
+        if (!(await commit(edit.source, edit.at))) reopenAfter.current = undefined;
       }
     } catch (reason) {
       setPreviewError(reason instanceof Error ? reason.message : String(reason));
@@ -488,7 +392,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   }
 
   const applyPick = useEffectEvent(() => {
-    if (!autoApply.current || pending || !action) return;
+    if (!autoApply.current || !action) return;
     if (previewError) autoApply.current = false;
     if (!candidate || candidate.source !== proposal || proposal === source) return;
     autoApply.current = false;
@@ -497,12 +401,12 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   useEffect(() => applyPick(), [candidate, proposal, previewError]);
   // A commit closes the form; an edit made from it keeps it open on the same element.
   const reopen = useEffectEvent(() => {
-    if (reopenAfter.current === undefined || reopenAfter.current === source || action || pending || busy || draft !== source)
+    if (reopenAfter.current === undefined || reopenAfter.current === source || action || busy || draft !== source)
       return;
     reopenAfter.current = undefined;
     if (selected || selectedActor) openProperties(selected, selectedActor);
   });
-  useLayoutEffect(() => reopen(), [source, draft, action, pending, busy, selected, selectedActor]);
+  useLayoutEffect(() => reopen(), [source, draft, action, busy, selected, selectedActor]);
 
   const implicit = ids.filter(
     (id) => !rows.some((row) => row.kind === 'participant' && row.values[0] === id),
@@ -519,7 +423,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     if (action) setError('');
   }
   function openProperties(row: Statement | undefined, actor: string | undefined, focus?: PropertyFocus) {
-    if (!clean || pending) return;
+    if (!clean) return;
     if (action && (actor ? action.implicitId === actor : action.edit === row)) {
       if (focus) setPropertyFocus(focus);
       return;
@@ -559,6 +463,20 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       value = nextId !== id
         ? renameReferences(rows, id, nextId, source, edit, text)
         : source.slice(0, at) + text + source.slice(edit.end);
+    }
+    if (edit.kind === 'participant' && !edit.values[4] && next.values[4]) {
+      const updated = statements(value);
+      const creation = updated.findIndex((row) => row.start === at);
+      if (creation >= 0) {
+        const following = updated.slice(creation + 1).find(
+          (row) => row.kind === 'message' || (row.kind === 'participant' && row.values[4]),
+        );
+        if (following?.kind !== 'message' || following.values[1] !== nextId) {
+          const sender = participants(updated.slice(0, creation)).find((actor) => actor !== nextId) ?? nextId;
+          const message = format('message', [sender, nextId, '->>', 'Create']);
+          value = insertElement(value, message, 'message', updated[creation + 1]?.start ?? value.length).source;
+        }
+      }
     }
     const safe = safeNames(value, at);
     return { source: safe.source, at: safe.at ?? at };
@@ -604,7 +522,6 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     void commit(next, direction < 0 ? first.start : toEnd - (end - selected.start));
   }
   function pick(row?: Statement, actor?: string, inspect = false) {
-    if (pending) return;
     const implicitActor = actor && implicit.includes(actor) ? actor : undefined;
     select(row && !implicitActor ? rows.indexOf(row) : -1, true);
     setSelectedActor(implicitActor);
@@ -625,10 +542,9 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
   const isBranch = selected && ['else', 'and', 'option'].includes(selected.kind);
   const native = window.__marmerladeRender;
   const openSource = () => {
-    discardInsertion();
+    resetPlacement();
     closeProperties();
     useDock.setState({ open: true, view: 'mermaid' });
-    setTool('select');
     requestAnimationFrame(() => textarea.current?.focus());
   };
   const toggleSource = () => useDock.getState().setOpen(!useDock.getState().open);
@@ -741,7 +657,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           inside it or remove it.
         </p>
       ))}
-      {!owner && (renderError || (draft !== source && error)) && (
+      {!action && (renderError || (draft !== source && error)) && (
         <div className="mf-err" role="alert">
           <pre>{error || renderError}</pre>
           {errorLine > 0 && (
@@ -775,7 +691,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     return first?.start ?? source.length;
   };
   const sampleFor = (kind: string) => {
-    if (pending || hasPropertyDraft || !clean) return undefined;
+    if (hasPropertyDraft || !clean) return undefined;
     try {
       const at = kind === 'destroy' ? source.length : placeAt(kind);
       const edit = sampleEdit(source, kind, at, explicit && selected ? [selected] : []);
@@ -801,23 +717,22 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     );
   };
   const paletteProps = {
-    disabledReason: pending
-      ? 'Insert or cancel the ' + nameOf(pending.kind).toLowerCase() + ' you are adding first.'
-      : draft !== source
-        ? 'Fix or restore the Mermaid source first.'
-        : busy
-          ? 'Updating the diagram…'
-          : undefined,
+    disabledReason: draft !== source
+      ? 'Fix or restore the Mermaid source first.'
+      : busy
+        ? 'Updating the diagram…'
+        : undefined,
     hasActors: !!ids.length,
     choose: (kind: string) => {
+      if (!spatial(kind)) return insertAt(kind, placeAt(kind));
       closeProperties();
       if (kind === 'participant' || kind === 'message') {
         setPlacementKind(undefined);
         setTool(kind);
-      } else if (spatial(kind)) {
+      } else {
         setPlacementKind(kind);
         setTool('select');
-      } else beginInsertion(kind, placeAt(kind));
+      }
     },
     sample: showSample,
     hasSample: (kind: string) => !!sampleFor(kind),
@@ -879,7 +794,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
             cancel();
             if (slots) slots.drafts.set(slots.diagramId, value);
             setDraft(value);
-            discardInsertion();
+            resetPlacement();
             closeProperties();
             setRenderError('');
           }}
@@ -938,11 +853,11 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       </ol>
     </div>
   );
-  const propertyKind = pending?.kind ?? action?.edit.kind;
-  const propertyRow = pending?.row ?? action?.edit;
+  const propertyRow = action?.edit;
+  const propertyKind = propertyRow?.kind;
   const propertyError = previewError || error;
   const participantSelected = !!selectedActor || selected?.kind === 'participant';
-  const inForm = !!propertyKind && ['participant', 'message', 'note'].includes(propertyKind) && !pending;
+  const inForm = !!propertyKind && ['participant', 'message', 'note'].includes(propertyKind);
   /** Runs an action from the open form, keeping the form open if it changes the source. */
   const keepForm = (run: () => void) => {
     const keep = inForm ? source : undefined;
@@ -972,16 +887,13 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
           </button>
     </>
   );
-  const properties = propertyKind && (
+  const properties = action && propertyRow && (
     <>
       <StatementForm
-        key={[propertyKind, propertyRow?.start, action?.implicitId, !!pending].join(':')}
-        kind={propertyKind}
+        key={[propertyKind, propertyRow.start, action.implicitId].join(':')}
         row={propertyRow}
-        inserting={!!pending}
         ids={ids}
         names={names}
-        note={quiet}
         busy={busy || !candidate || candidate.source !== proposal}
         invalid={!!previewError}
         onDraft={draftProperties}
@@ -999,7 +911,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
     <>
       <div className="sq-element-actions">
           {selected && branch && (
-            <button onClick={() => beginInsertion(branch, selected.close?.start)}>
+            <button onClick={() => insertAt(branch, selected.close?.start)}>
               Add {branch} branch
             </button>
           )}
@@ -1035,12 +947,12 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
             <SequenceCanvas
               ref={placement}
               placementKind={placementKind}
-              onPlace={beginInsertion}
-              previewSvg={trialSvg || (owner && candidate && candidate.source === proposal ? candidate.svg : undefined)}
-              fitPreview={!!pending || (sampleSource !== undefined && trialSource === sampleSource)}
+              onPlace={insertAt}
+              previewSvg={trialSvg || (action && candidate && candidate.source === proposal ? candidate.svg : undefined)}
+              fitPreview={sampleSource !== undefined && trialSource === sampleSource}
               sampleMessage={trialSvg ? sampleMessage : undefined}
               wrapSelected={explicit}
-              onPropose={proposeEdit}
+              onInsert={insertPlaced}
               workspaceZoom={slots?.workspaceZoom}
               svg={svg}
               source={source}
@@ -1053,11 +965,11 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               controls={commands}
               properties={propertyKind ? {
                 content: properties,
-                label: (pending ? 'Add ' : 'Edit ') + nameOf(propertyKind).toLowerCase(),
+                label: 'Edit ' + nameOf(propertyKind).toLowerCase(),
                 cancel: cancelForm,
-                ...(pending ? { kind: 'insert' } : { kind: 'edit', focus: propertyFocus }),
+                focus: propertyFocus,
               } : undefined}
-              editable={!pending && clean && (drawing.source === source || !rows.length)}
+              editable={clean && (drawing.source === source || !rows.length)}
               tool={tool}
               onTool={(tool) => {
                 setPlacementKind(undefined);
@@ -1071,7 +983,7 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
             />
           </ReactFlowProvider>
           {!slots && <div className="mf-style-slot" ref={setLocalPanel} />}
-          {trialSvg && !pending && (
+          {trialSvg && (
             <div className="sq-proposal" aria-label="Option preview" role="status">
               {!(sampleSource !== undefined && trialSource === sampleSource) && (
                 <span className="sq-preview-badge">Preview of the highlighted option · click it to apply</span>
@@ -1083,27 +995,14 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
               )}
             </div>
           )}
-          {pending && (
-            <div className="sq-proposal" aria-label="Insertion preview" role="status">
-              <span className="sq-preview-badge">
-                {trialSvg
-                  ? 'Preview of the highlighted option · click it to choose'
-                  : previewError
-                  ? 'Preview unavailable · see the form for details'
-                  : candidate
-                    ? 'Preview · Insert to keep it, Escape to cancel'
-                    : 'Preparing preview…'}
-              </span>
-            </div>
-          )}
-          {!owner && !rows.length && tool === 'select' && (
+          {!action && !rows.length && tool === 'select' && (
             <div className="sq-empty sq-start">
               <h2>Sequence diagram</h2>
               <button onClick={() => setTool('participant')}>Add participant</button>
               <button onClick={openSource}>Paste Mermaid</button>
             </div>
           )}
-          {!owner && (error || renderError) && !(panel && view === 'mermaid' && draft !== source) && (
+          {!action && (error || renderError) && !(panel && view === 'mermaid' && draft !== source) && (
             <div role="alert" className="sq-canvas-error">
               {error || renderError}
               <button onClick={openSource}>Open source</button>

@@ -355,4 +355,4 @@ export const placementInstruction = (kind: string) =>
           ? 'Wraps selected messages. Otherwise click between messages.'
           : spatial(kind)
             ? 'Click a lane at the point in time, or drag it there.'
-            : 'Opens its settings with a live preview.';
+            : 'Adds the default statement. Select it to edit its settings.';

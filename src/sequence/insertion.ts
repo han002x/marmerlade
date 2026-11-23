@@ -1,5 +1,5 @@
-import { blocks, nameOf, participants, statements, type Statement } from './model';
-import type { CanvasEdit } from './canvasEdits';
+import { blocks, format, nameOf, participants, statements, type Statement } from './model';
+import { changeLabel, type CanvasEdit } from './canvasEdits';
 
 /** The selected statements a block can wrap: participants for a box, messages otherwise. */
 export function wrappable(kind: string, selected: Statement[]) {
@@ -126,6 +126,55 @@ export function closeActivation(edit: CanvasEdit): CanvasEdit {
     source: edit.source.slice(0, end) + '\n' + indent + 'deactivate ' + actor + edit.source.slice(end),
     at: edit.at,
   };
+}
+
+export function placeElement(source: string, kind: string, at: number, chosen: Statement[], lane?: string) {
+  const rows = statements(source);
+  const ids = participants(rows);
+  const actor = lane ?? ids[0];
+  if (kind === 'box' && !chosen.length && lane) {
+    const declared = changeLabel(source, rows, undefined, lane, '');
+    const participant = statements(declared.source).find((row) => row.start === declared.at);
+    if (participant) return insertElement(declared.source, 'box Group', kind, declared.at, [participant]);
+  }
+  let values: string[];
+  switch (kind) {
+    case 'note':
+      values = ['over', actor, 'Note'];
+      break;
+    case 'rect':
+      values = ['rgb(235, 241, 250)'];
+      break;
+    case 'activate':
+    case 'deactivate':
+    case 'destroy':
+      values = [actor];
+      break;
+    case 'link':
+      values = [actor, 'Link @ https://example.com'];
+      break;
+    case 'links':
+    case 'properties':
+      values = [actor, '{}'];
+      break;
+    case 'details':
+      values = [actor, 'details'];
+      break;
+    case 'autonumber':
+      values = [''];
+      break;
+    default:
+      values = [kind === 'box' ? 'Group' : nameOf(kind)];
+  }
+  if (['note', 'activate', 'deactivate', 'destroy', 'link', 'links', 'properties', 'details'].includes(kind) && !actor)
+    throw new Error('Add a participant first.');
+  let text = format(kind, values);
+  if (kind === 'destroy') {
+    const sender = ids.find((id) => id !== actor) ?? actor;
+    text += '\n' + format('message', [sender, actor, '->>', 'Close']);
+  }
+  const edit = insertElement(source, text, kind, at, chosen, actor);
+  return kind === 'activate' ? closeActivation(edit) : edit;
 }
 
 /**

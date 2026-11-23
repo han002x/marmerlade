@@ -291,7 +291,7 @@ means and how to place it above the canvas. The example goes where the element
 would be inserted and wraps the selected message when one is selected. Elements
 that do not change the drawing, such as links and accessibility text, show a
 card instead. When the list is unavailable, the card says why, for example
-while another element waits for **Insert**. Drag the participant tool onto the canvas to choose its
+when the Mermaid source has an error. Drag the participant tool onto the canvas to choose its
 lane, or click the tool and then the canvas. Press **R** for participant
 placement. A dashed line follows the pointer to show where it will go.
 
@@ -305,7 +305,7 @@ such as *Reply · dashed arrow*, next to its Mermaid token.
 In the element forms, pointing at an option in any list (arrow, shape,
 participant, note position, wrapping) draws the diagram with that option on the
 canvas before you choose it; the arrow keys do the same. Moving off the list
-restores the current preview. This works while inserting and while editing.
+restores the current preview.
 
 Click or drag notes and activation elements onto a lane; a dot marks the lane
 and a line marks the point in time. A note can stretch across a second
@@ -323,13 +323,10 @@ or the participants you selected first. **Message numbering** and **Title** go
 at the top of the diagram. A block left empty in the Mermaid source is listed
 in **Tree** with its line number.
 
-Every insertion opens properties on the left and draws a preview at the
-diagram's own scale. Change the fields to update the preview, then
-press **Enter** or choose **Insert** to save one undoable change. Enter pressed
-while the preview is still updating is applied once it is ready. **Cancel** or
-**Escape** discards it. When an element does not change the drawing, such as a
-link, the preview says so. Pending previews are not saved or exported. Changing
-diagrams or opening **Mermaid** also cancels them.
+The placement click or drop adds the element with its default settings.
+For a message, choosing the receiver adds the arrow. Commands for directives
+such as **Title** add their default statement when chosen. Press **Escape**
+before placement to exit the tool, or **Ctrl/Cmd+Z** to undo a placement.
 
 Double-click a participant, message arrow, or note to edit its label. Drag a
 participant header horizontally to reorder its lane. Drag a message vertically
@@ -346,7 +343,7 @@ take the edge animations, like flowchart edges. Mermaid has no style syntax for 
 styles are saved with the workspace rather than in the Mermaid source; they follow
 their elements through edits and undo, but **Copy Mermaid** exports the unstyled
 diagram.
-Changes in **Properties** appear in the preview. Choose **Apply edit** to save them.
+Property choices apply when their preview is ready. For typed changes, choose **Apply edit**.
 Use **Element actions** to move or remove the element. For a block that supports
 branches, the same menu offers **Add else branch**, **Add and branch**, or
 **Add option branch**. While the panel is open, **Diagram statements** lists

@@ -88,16 +88,13 @@ type Properties = {
   content: ReactNode;
   label: string;
   cancel: () => void;
-} & (
-  | { kind: 'insert' }
-  | { kind: 'edit'; focus?: PropertyFocus }
-);
-const firstPropertyField: PropertyFocus = {};
+  focus?: PropertyFocus;
+};
 interface Props {
   ref: React.Ref<PlacementHandle>;
   placementKind?: string;
   onPlace: (kind: string, at: number, selected: Statement[], actor?: string) => void;
-  onPropose: (edit: CanvasEdit) => void;
+  onInsert: (build: () => CanvasEdit) => void;
   workspaceZoom?: number;
   svg: string;
   source: string;
@@ -118,7 +115,7 @@ interface Props {
   onCommit: (source: string, at: number) => Promise<boolean>;
   onError: (error: string) => void;
   onSource: () => void;
-  /** A pending insertion, drawn in place of the diagram at the same scale. */
+  /** A palette or property preview, drawn in place of the diagram. */
   previewSvg?: string;
   fitPreview: boolean;
   /** The position, among the preview's messages, of a palette sample to draw dotted. */
@@ -170,7 +167,7 @@ export default function SequenceCanvas({
   ref,
   placementKind,
   onPlace,
-  onPropose,
+  onInsert,
   workspaceZoom,
   svg,
   source,
@@ -424,7 +421,6 @@ export default function SequenceCanvas({
     lines.forEach((line, i) => line.classList.toggle('sq-sample', i === sampleMessage));
   }, [previewSvg, previewBox, sampleMessage]);
   // Keep a growing preview in view; the committed drawing keeps the same scale otherwise.
-  const editingProperties = properties?.kind === 'edit';
   useLayoutEffect(() => {
     const area = root.current;
     if (!previewBox || !area || !fitPreview) return;
@@ -478,7 +474,7 @@ export default function SequenceCanvas({
           !n.data.footer &&
           ['Participant', 'message'].includes(n.data.kind) &&
           !editor,
-        connectable: canEdit && !n.data.footer && tool !== 'participant' && !editor,
+        connectable: canEdit && !placementKind && !n.data.footer && tool !== 'participant' && !editor,
         ...(drag?.id === n.id && { position: drag.position, dragging: true }),
       })),
     [geometry, drag, selected, selectedActor, activeActor, tool, canEdit, editor, group, placementKind, previewSvg],
@@ -517,15 +513,14 @@ export default function SequenceCanvas({
       (value) => changeLabel(source, rows, row, data.actor, value),
     );
   }
-  function proposeMessage(from: string, to: string) {
-    // No trailing space: the form replaces only the statement, so a space would stay behind in the source.
-    const text = from + '->>' + to + ':';
+  function insertMessage(from: string, to: string) {
+    if (!canEdit) return;
     const at =
       messageAt ??
       (selected?.kind === 'participant'
         ? source.length
         : (selected?.close?.start ?? selected?.end ?? source.length));
-    onPropose(insertElement(source, text, 'message', at));
+    onInsert(() => insertElement(source, from + '->>' + to + ': Message', 'message', at));
     setSender(undefined);
     setMessageAt(undefined);
     onTool('select');
@@ -557,7 +552,7 @@ export default function SequenceCanvas({
         !best || Math.abs(centreX(node) - point.x) < Math.abs(centreX(best) - point.x) ? node : best,
       undefined,
     )?.data.actor;
-    if (kind === 'participant') onPropose(insertParticipant(source, rows, laneAfter(point), ''));
+    if (kind === 'participant') onInsert(() => insertParticipant(source, rows, laneAfter(point), ''));
     else if (kind === 'message') {
       setMessageAt(slot(point));
       setSender(actor);
@@ -625,7 +620,8 @@ export default function SequenceCanvas({
   function clickItem(data: Item, point: XYPosition) {
     if (placementKind && canEdit) {
       const block = rows.find((row) => row.start === data.start);
-      if (data.kind === 'emptyBlock' && block?.close) onPlace(placementKind, block.close.start, []);
+      if (placementKind !== 'box' && data.kind === 'emptyBlock' && block?.close)
+        onPlace(placementKind, block.close.start, []);
       else placeElement(placementKind, point);
       return;
     }
@@ -639,7 +635,7 @@ export default function SequenceCanvas({
     }
     if (tool === 'message' && data.actor) {
       // Choosing the sender is part of drawing the message, so the inspector keeps its current item.
-      if (sender) proposeMessage(sender, data.actor);
+      if (sender) insertMessage(sender, data.actor);
       else setSender(data.actor);
     } else selectItem(data);
   }
@@ -745,7 +741,7 @@ export default function SequenceCanvas({
       ? !actors.some((actor) => actor.data.actor === row.values[0])
       : !geometry.targets.has(row.start)),
   ) : [];
-  const selecting = tool === 'select' && !placementKind && properties?.kind !== 'insert';
+  const selecting = tool === 'select' && !placementKind;
   const showControls = selecting && !group && !drag && !joining && !editor;
   // Style keys of the selection: participants by id, other statements by position.
   const keyOf = (id: string) => {
@@ -805,9 +801,9 @@ export default function SequenceCanvas({
       )}
       {properties && (
         <RailProperties
-          key={editingProperties ? 'edit:' + (selectedLane ?? selected?.start) : 'insertion'}
+          key={selectedLane ?? selected?.start}
           label={properties.label}
-          focus={properties.kind === 'edit' ? properties.focus : firstPropertyField}
+          focus={properties.focus}
           canvas={root}
         >
           {properties.content}
@@ -854,7 +850,7 @@ export default function SequenceCanvas({
   return (
     <div
       className={
-        'mf-canvas sq-flow' + (joining ? ' is-connecting' : '') + (tool !== 'select' ? ' is-placing' : '')
+        'mf-canvas sq-flow' + (joining ? ' is-connecting' : '') + (tool !== 'select' || placementKind ? ' is-placing' : '')
       }
       ref={root}
       aria-label="Sequence canvas"
@@ -910,7 +906,7 @@ export default function SequenceCanvas({
         autoPanOnNodeDrag={!workspaceZoom}
         autoPanOnConnect={!workspaceZoom}
         onSelectionStart={() => {
-          if (properties?.kind === 'edit') properties.cancel();
+          properties?.cancel();
           marquee.current = true;
           setGroup([]);
         }}
@@ -930,7 +926,7 @@ export default function SequenceCanvas({
               return [...ids];
             });
         }}
-        connectOnClick={tool === 'select'}
+        connectOnClick={tool === 'select' && !placementKind}
         connectionMode={ConnectionMode.Loose}
         connectionLineComponent={JoinPreview}
         onConnectStart={() => setJoining(true)}
@@ -939,7 +935,7 @@ export default function SequenceCanvas({
           const a = actors.find((n) => n.id === from),
             b = actors.find((n) => n.id === to);
           if (a?.data.actor && b?.data.actor) {
-            proposeMessage(a.data.actor, b.data.actor);
+            insertMessage(a.data.actor, b.data.actor);
             setSender(undefined);
             onTool('select');
           }
@@ -956,8 +952,8 @@ export default function SequenceCanvas({
           }
         }}
         onNodeClick={(e, n) => {
-          if (tool === 'select' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-            if (properties?.kind === 'edit') properties.cancel();
+          if (tool === 'select' && !placementKind && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+            properties?.cancel();
             const ids = nodes.filter((node) => node.selected).map((node) => node.id);
             setGroup(ids.includes(n.id) ? ids.filter((id) => id !== n.id) : [...ids, n.id]);
           } else clickItem(n.data, screenToFlowPosition({ x: e.clientX, y: e.clientY }));
@@ -1062,7 +1058,7 @@ export default function SequenceCanvas({
             <div
               ref={previewRef}
               className="sq-artboard sq-preview-artboard"
-              aria-label="Insertion preview drawing"
+              aria-label="Preview drawing"
               style={{ left: previewBox.x, top: previewBox.y, width: previewBox.width, height: previewBox.height }}
             >
               <Drawing svg={previewSvg} />

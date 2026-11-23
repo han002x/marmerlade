@@ -155,8 +155,8 @@ function PaletteContent({
   const pointer = useRef<{ x: number; y: number }>(undefined);
   const needsActor = (kind: string) =>
     !hasActors &&
-    (['message', 'note', 'activate', 'deactivate', 'destroy'].includes(kind) ||
-      (blocks.includes(kind) && kind !== 'box'));
+    (['message', 'note', 'activate', 'deactivate', 'destroy', 'link', 'links', 'properties', 'details'].includes(kind) ||
+      blocks.includes(kind));
   const instruction = (kind: string) =>
     disabledReason
       ? disabledReason

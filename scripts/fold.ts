@@ -1,7 +1,7 @@
 // Fold logic check: creases reroute edges onto folded cards, fold levels step
 // from the leaves inward, and sheets wrap their unfolded subtrees.
 // Run with: node --experimental-strip-types scripts/fold.ts
-import { SHEET_PAD, SHEET_TITLE, foldEdges, foldWithRoom, groupOrigin, groupPlan, hiddenIds, nextFoldLevel, nextUnfoldLevel, sheets } from '../src/fold.ts';
+import { SHEET_PAD, SHEET_TITLE, foldEdges, foldWithRoom, groupOrigin, groupPlan, hiddenIds, nextFoldLevel, nextUnfoldLevel, sheets, visibleGraph } from '../src/fold.ts';
 import { fromMermaid, toMermaid } from '../src/mermaid/io.ts';
 import { layoutShown } from '../src/layout.ts';
 import type { DiagramEdge, DiagramNode } from '../src/types.ts';
@@ -137,6 +137,20 @@ const edges = [E('1', 'A', 'x', 'calls'), E('2', 'A', 'y'), E('3', 'y', 'B', 'wr
   const b = laid.find((n) => n.id === 'B')!.position;
   check('the folded card lands where layout put it', !!g && Math.abs(g.x - laid.find((n) => n.id === 'G')!.position.x) < 1e-6 && Math.abs(g.y - laid.find((n) => n.id === 'G')!.position.y) < 1e-6, { g, laid });
   check('creases rank the card between A and B', !!g && a.y < g.y && g.y < b.y, { a, g, b });
+}
+
+{
+  // visibleGraph: folded card, open sheet, and an edge between a group and its own child
+  const folded = visibleGraph(tree(true), edges);
+  check('folded: contents are offscreen', ['x', 'y', 'H', 'z'].every((id) => folded.offscreen.has(id)) && !folded.offscreen.has('G'), [...folded.offscreen]);
+  check('folded: creases cover edges into the card', folded.folded.some((e) => e.source === 'A' && e.target === 'G') && folded.folded.some((e) => e.source === 'G' && e.target === 'B'), folded.folded);
+  const open = visibleGraph(tree(false), edges);
+  check('open: the group is a sheet, not a card', open.offscreen.has('G') && !open.offscreen.has('x'), [...open.offscreen]);
+  check('open: edges between visible nodes are placed', open.placed.length === edges.length && open.folded.length === 0, open.placed);
+  const own = visibleGraph(tree(false), [E('6', 'G', 'x')]);
+  check('open: an edge from a group to its own child waits', own.placed.length === 0, own.placed);
+  const empty = visibleGraph([], []);
+  check('empty graph', empty.placed.length === 0 && empty.offscreen.size === 0);
 }
 
 if (failed) process.exit(1);

@@ -23,6 +23,7 @@ export const gifOptionsSchema = z.object({
 export type RenderGifOptions = z.infer<typeof gifOptionsSchema>;
 export const previewRequestSchema = renderOptionsSchema.extend({ revision: z.number().int().nonnegative() });
 export const gifRequestSchema = previewRequestSchema.extend(gifOptionsSchema.shape);
+export const pptxRequestSchema = previewRequestSchema;
 
 export interface RenderBridge {
   fit(): Promise<void>;
@@ -32,6 +33,8 @@ export interface RenderBridge {
   layout(direction: 'TB' | 'LR'): Diagram;
   importImage(base64: string, name: string, mime: string): Promise<NodeImage>;
   gif(options: RenderGifOptions): Promise<string>;
+  /** the shown flowchart as a .pptx, base64 */
+  pptx(): Promise<string>;
 }
 declare global {
   interface Window {

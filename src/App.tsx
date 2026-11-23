@@ -37,8 +37,6 @@ import { NodeTransforms, type ResizePreview } from './components/NodeTransforms'
 import { boundsOf, snapMove, type Guide } from './canvasTransform';
 import {
   childrenOf,
-  descendants,
-  foldEdges,
   groupOrigin,
   groupPlan,
   ungroupTarget,
@@ -46,6 +44,7 @@ import {
   nextFoldLevel,
   nextUnfoldLevel,
   sheets,
+  visibleGraph,
 } from './fold';
 import { setFoldSizes, useFoldMotion } from './foldMotion';
 import { GHOST_SIZE, IMAGE_LABEL_SPACE, nodeSize, sizeFor } from './layout';
@@ -264,6 +263,18 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     const el = canvasRef.current;
     if (!el) return;
     setExporting(format);
+    if (format === 'pptx') {
+      try {
+        const { nodes: ns, edges: es } = useDiagram.getState();
+        const { exportDiagramPptx } = await import('./pptx/export.ts');
+        await exportDiagramPptx(ns, es);
+      } catch (error) {
+        flash(`Couldn't export PowerPoint: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setExporting(null);
+      }
+      return;
+    }
     setSelection([], []);
     fitView({ padding: 0.2, duration: 0 });
     // wait a frame for the fit + deselect to paint before capturing
@@ -316,24 +327,11 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   // the edges on screen: those into a folded card crease onto the card instead
   // of vanishing, and ones on an unfolded group land on its sheet, as in Mermaid
   const shown = useMemo(() => {
-    const { direct, folded } = foldEdges(nodes, edges, hidden);
-    // One between a group and its own contents has no sensible path, so it
-    // waits until the group folds (and then folds away inside it).
-    const kids = childrenOf(nodes);
-    const inside = new Map<string, Set<string>>();
-    const within = (g: string, id: string) => {
-      if (!inside.has(g)) inside.set(g, new Set(descendants(g, kids)));
-      return inside.get(g)!.has(id);
-    };
+    const graph = visibleGraph(nodes, edges);
     const endOf = (id: string) => (offscreen.has(id) ? SHEET_PREFIX + id : id);
-    const placed = direct.flatMap((e) => {
-      const s = offscreen.has(e.source);
-      const t = offscreen.has(e.target);
-      if ((s && within(e.source, e.target)) || (t && within(e.target, e.source))) return [];
-      return [{ ...e, source: endOf(e.source), target: endOf(e.target) }];
-    });
-    return { direct, placed, folded, endOf };
-  }, [nodes, edges, hidden, offscreen]);
+    const placed = graph.placed.map((e) => ({ ...e, source: endOf(e.source), target: endOf(e.target) }));
+    return { direct: graph.direct, placed, folded: graph.folded, endOf };
+  }, [nodes, edges, offscreen]);
 
   // the order the sequenced flow travels them
   const flow = useMemo(

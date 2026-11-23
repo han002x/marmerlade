@@ -1,7 +1,7 @@
 # Live workspace contract
 
 Discover the installed Marmerlade tool names; the client may prefix these names
-with its server namespace. The current server exposes twelve tools, two
+with its server namespace. The current server exposes thirteen tools, two
 resources, and two prompts. Validate calls against that server's registered input schemas.
 
 ## Tools
@@ -18,6 +18,7 @@ resources, and two prompts. Validate calls against that server's registered inpu
 | `layout_diagram` | `{revision, direction?}` | Measure labels and arrange expanded graph; direction `TB` or `LR`, default `TB` |
 | `render_preview` | `{revision, ...renderOptions}` | PNG image, local file, revision, and diagnostics |
 | `export_gif` | `{revision, ...renderOptions, fps?, maxWidth?, flow?}` | Queues native GIF; returns `jobId` and pinned revision |
+| `export_pptx` | `{revision, ...renderOptions}` | Queues a PowerPoint file (one slide of editable shapes, flowchart canvas only); returns `jobId` and pinned revision |
 | `get_render_job` | `{jobId}` | Queued/running/complete/failed job status |
 | `open_workspace` | `{view?, id?, diagramKind?}` | Opens the requested view and returns `{url}`; `view` defaults to `canvas` |
 
@@ -82,7 +83,7 @@ does not preserve authored geometry. Use `apply_changes` for incremental edits.
 an ID; omitted wiki/slide IDs open their indexes. Opening a view does not
 capture a screenshot or verify content. Layout, folds, appearance, presentation,
 and custom walkthrough recordings can also use browser controls. Native
-`layout_diagram`, `render_preview`, and `export_gif` run isolated browser contexts.
+`layout_diagram`, `render_preview`, `export_gif`, and `export_pptx` run isolated browser contexts.
 
 ## Native media options
 
@@ -132,7 +133,7 @@ revision exists. They report the revision they actually rendered.
 Tools carry MCP annotations. `get_workspace`, `export_mermaid`, `list_icons`,
 `diagnose_environment`, `render_preview`, `get_render_job`, and `open_workspace`
 are read-only. `apply_changes` and `import_mermaid` are destructive: they replace
-or delete data. `import_image`, `layout_diagram`, and `export_gif` write files or
+or delete data. `import_image`, `layout_diagram`, `export_gif`, and `export_pptx` write files or
 state without deleting workspace content.
 
 Run `apply_changes` with `dryRun: true` before a large batch. It applies the same

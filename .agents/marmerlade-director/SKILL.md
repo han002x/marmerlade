@@ -192,7 +192,7 @@ and meaningful filenames. Keep synthetic examples separate from factual claims.
 for the complete editable project. `export_mermaid` carries structure and
 document references, not document bodies or styling. Use the slide window's
 Export Markdown or print from Present view for PDF. Use `export_gif` for native
-animation and poll `get_render_job` until complete or failed. The export pins
+animation, `export_pptx` for an editable PowerPoint slide, and poll `get_render_job` until complete or failed. The export pins
 the requested revision. Previews and exports are saved in `marmerlade-output/`
 beside the workspace file. Browser automation and FFmpeg
 can produce walkthrough recordings when those are requested. Do not label a

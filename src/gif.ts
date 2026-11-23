@@ -163,7 +163,8 @@ function captureOptions(srcW: number, srcH: number, outW: number, outH: number, 
   };
 }
 
-export async function exportImage(element: HTMLElement, width: number): Promise<void> {
+/** Capture `element` as a PNG `width` px wide. */
+export async function captureImage(element: HTMLElement, width: number): Promise<Blob> {
   const rect = element.getBoundingClientRect();
   const srcW = Math.round(rect.width);
   const srcH = Math.round(rect.height);
@@ -174,15 +175,18 @@ export async function exportImage(element: HTMLElement, width: number): Promise<
   const restoreStyles = prepareSvgStyles(element);
   try {
     const canvas = await toCanvas(element, captureOptions(srcW, srcH, width, exportHeight(width, rect), bg));
-    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Could not encode PNG')), 'image/png'));
-    download(blob, 'diagram.png');
+    return await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Could not encode PNG')), 'image/png'));
   } finally {
     restoreStyles();
     restoreTexture();
   }
 }
 
-function download(blob: Blob, filename: string) {
+export async function exportImage(element: HTMLElement, width: number): Promise<void> {
+  download(await captureImage(element, width), 'diagram.png');
+}
+
+export function download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

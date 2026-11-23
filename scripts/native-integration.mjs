@@ -192,6 +192,21 @@ try {
   assert.equal(result.status, 'complete', JSON.stringify(result));
   assert.equal(result.revision, recordedRevision);
   assert(gifFrames(await readFile(result.file)) >= 2, 'Native GIF must contain multiple image frames');
+  state = (await call('get_workspace')).data;
+  await rejects('export_pptx', { revision: state.revision, diagramKind: 'sequence' });
+  const pptxJob = (await call('export_pptx', { revision: state.revision, fold: 'expanded' })).data;
+  let pptx;
+  const pptxDeadline = Date.now() + 60_000;
+  do {
+    pptx = (await call('get_render_job', { jobId: pptxJob.jobId })).data;
+    if (pptx.status === 'complete' || pptx.status === 'failed') break;
+    await new Promise(resolve => setTimeout(resolve, 200));
+  } while (Date.now() < pptxDeadline);
+  assert.equal(pptx.status, 'complete', JSON.stringify(pptx));
+  assert.match(pptx.file, /\.pptx$/);
+  const pptxBytes = await readFile(pptx.file);
+  assert.equal(pptxBytes.subarray(0, 2).toString(), 'PK');
+  assert(pptxBytes.includes('ppt/slides/slide1.xml'), 'PowerPoint file must contain a slide');
   await rejects('get_render_job', { jobId: randomUUID() });
   state = (await call('get_workspace')).data;
   const clientNode = state.diagram.nodes.find(node => node.id === 'client');
@@ -212,5 +227,5 @@ try {
   await connect();
   assert.equal((await call('get_workspace')).data.diagram.nodes.find(node => node.id === 'cache').image.src, embedded);
   await rejects('get_render_job', { jobId: job.jobId });
-  console.log('PASS: idempotent setup and preserved configuration, diagnostics, icons, measured layouts, isolated previews, image import and path boundaries, native GIF jobs, revisions and restart persistence');
+  console.log('PASS: idempotent setup and preserved configuration, diagnostics, icons, measured layouts, isolated previews, image import and path boundaries, native GIF and PowerPoint jobs, revisions and restart persistence');
 } finally { await browser?.close(); await client?.close(); await rm(directory, { recursive: true, force: true }); }

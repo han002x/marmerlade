@@ -13,6 +13,12 @@ highest-leverage unchecked task, executes it, and checks it off here.
       wikilinks + backlinks, `{{diagram}}` embed, drill down/up, cross-window
       sync, orphan re-link/delete, `click` round trip.
 
+## Done — PowerPoint export
+
+- [x] Export the shown flowchart as one `.pptx` slide of editable shapes and
+      connectors (folded cards, open-group containers, icons and images as
+      pictures); sequence diagrams as one picture; Export menu and MCP `export_pptx`.
+
 ## Done — Slides
 
 - [x] Slide decks linked to nodes: Marp / Slidev Markdown, source editor beside

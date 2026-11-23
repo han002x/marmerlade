@@ -4,7 +4,7 @@ import { exportFile } from '../persist';
 import { Icon } from './Icon';
 import { ToolButton } from './ToolButton';
 
-export type ExportFormat = 'png' | 'gif';
+export type ExportFormat = 'png' | 'gif' | 'pptx';
 
 const widths = [900, 1440, 1920];
 
@@ -73,6 +73,10 @@ export function ExportMenu({ size, disabled, exporting, onExport }: {
           <button type="button" className="mf-menu-item" disabled={disabled || exporting !== null} onClick={() => save('gif')}>
             <Icon name="film" />
             <span>{exporting === 'gif' ? 'Exporting GIF…' : 'Export GIF'}</span>
+          </button>
+          <button type="button" className="mf-menu-item" disabled={disabled || exporting !== null} onClick={() => save('pptx')}>
+            <Icon name="deck" />
+            <span>{exporting === 'pptx' ? 'Exporting PowerPoint…' : 'Export PowerPoint'}</span>
           </button>
         </div>
       )}

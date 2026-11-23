@@ -219,6 +219,32 @@ export function createRenderer(workspace: Workspace, url: string) {
       void work.catch(error => jobs.set(id, { ...base, status: 'failed', error: error instanceof Error ? error.message : String(error) }));
       return { jobId: id, revision: value.revision, status: 'queued' };
     },
+    exportPptx(revision: number, options: RenderOptions) {
+      if (options.diagramKind === 'sequence') throw new Error('PowerPoint export requires a flowchart');
+      if (options.view !== 'canvas') throw new Error('PowerPoint export supports the canvas view');
+      const value = snapshot(revision);
+      if (!value.diagram.nodes.length) throw new Error('Add diagram nodes before exporting PowerPoint');
+      const id = randomUUID();
+      const base = { id, revision: value.revision, createdAt: new Date().toISOString() };
+      for (const [key, job] of jobs) if (jobs.size > 100 && (job.status === 'complete' || job.status === 'failed')) jobs.delete(key);
+      const work = exclusive(async () => {
+        jobs.set(id, { ...base, status: 'running', progress: 0 });
+        const session = await pageFor(value, options, 90_000);
+        try {
+          const encoded = await session.page.evaluate(() => {
+            if (!window.marmerladeRenderer) throw new Error('Renderer not ready');
+            return window.marmerladeRenderer.pptx();
+          });
+          const file = await outputFile(`diagram-${id}.pptx`);
+          const data = Buffer.from(encoded, 'base64');
+          await writeFile(file, data, { flag: 'wx' });
+          jobs.set(id, { ...base, status: 'complete', file, bytes: data.length });
+        } finally { await session.close(); }
+      });
+      jobs.set(id, { ...base, status: 'queued' });
+      void work.catch(error => jobs.set(id, { ...base, status: 'failed', error: error instanceof Error ? error.message : String(error) }));
+      return { jobId: id, revision: value.revision, status: 'queued' };
+    },
     job(id: string) {
       const job = jobs.get(id);
       if (!job) throw new Error('Render job not found in this server session');

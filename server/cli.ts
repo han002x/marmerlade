@@ -17,7 +17,7 @@ import { createRenderer } from './renderer.ts';
 import { diagnoseEnvironment } from './environment.ts';
 import { hostNames, setupProject } from './setup.ts';
 import { isSequence, validateSequence } from '../src/sequence/model.ts';
-import { diagramKindSchema, previewRequestSchema, gifRequestSchema } from '../src/renderContract.ts';
+import { diagramKindSchema, previewRequestSchema, gifRequestSchema, pptxRequestSchema } from '../src/renderContract.ts';
 import { ICONS } from '../src/icons/catalog.ts';
 
 async function main() {
@@ -222,6 +222,11 @@ async function main() {
     inputSchema: gifRequestSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   }, ({ revision, fps, maxWidth, flow, ...options }) => tool(() => renderer.exportGif(revision, options, { fps, maxWidth, flow })));
+  server.registerTool('export_pptx', {
+    description: 'Start native PowerPoint export of the flowchart from an isolated revision: one slide of editable shapes and connectors in the current fold state. Returns a job ID immediately; poll get_render_job for the local .pptx file. Does not change the workspace.',
+    inputSchema: pptxRequestSchema.shape,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  }, ({ revision, ...options }) => tool(() => renderer.exportPptx(revision, options)));
   server.registerTool('get_render_job', {
     description: 'Read an asynchronous render job: queued, running with progress, complete with file, or failed with an error. Job IDs belong to this server session.',
     inputSchema: { jobId: z.string().uuid() },

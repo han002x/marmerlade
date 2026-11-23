@@ -16,7 +16,7 @@ import { useDiagram } from '../store';
 import { parseParticipantOwner, participantOwner } from '../linkOwners';
 import { activeAppearance, useAppearance } from '../theme';
 import { diagramSvg } from '../mermaid/svg';
-import { exportGif, exportImage, GIF_DEFAULTS } from '../gif';
+import { captureImage, exportGif, exportImage, GIF_DEFAULTS } from '../gif';
 import { exportHeight, GIF_PIXEL_BUDGET } from '../gifMath';
 import { flowCycle, flowSeconds, FLOW_LEAD } from '../flow';
 import { usePlayer } from '../flowPlayer';
@@ -611,6 +611,12 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
       picture.appendChild(fonts);
       if (format === 'png') {
         await exportImage(picture, width);
+        return;
+      }
+      if (format === 'pptx') {
+        const png = await captureImage(picture, 1920);
+        const { exportPicturePptx } = await import('../pptx/export.ts');
+        await exportPicturePptx(png, exportSize.width, exportSize.height);
         return;
       }
 

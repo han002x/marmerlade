@@ -30,7 +30,7 @@ try {
   const kinds = ((tools.find(t => t.name === 'apply_changes')!.inputSchema.properties as any).changes.items.oneOf as any[]).map(o => o.properties.kind.const as string);
   for (const kind of kinds) need(mcp.includes(`\`${kind}\``), `references/mcp.md does not mention change kind ${kind}`);
   for (const prompt of prompts) need(mcp.includes(`\`${prompt.name}\``), `references/mcp.md does not mention prompt ${prompt.name}`);
-  const words: Record<number, string> = { 2: 'two', 12: 'twelve' };
+  const words: Record<number, string> = { 2: 'two', 12: 'twelve', 13: 'thirteen' };
   need(mcp.includes(`${words[tools.length] ?? tools.length} tools`), `references/mcp.md tool count differs from ${tools.length}`);
 
   for (const host of hostNames) need(setup.includes(`\`${host}\``), `marmerlade-setup does not mention host ${host}`);

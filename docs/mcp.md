@@ -201,6 +201,10 @@ as the arguments.
 - `export_gif` queues native canvas animation from the selected revision. It takes
   the same canvas render options plus `fps`, `maxWidth`, and `flow`. Poll
   `get_render_job` with its `jobId` for progress, a completed file, or an error.
+- `export_pptx` queues a PowerPoint file of the flowchart from the selected
+  revision: one slide of editable shapes and connectors in the chosen fold state.
+  It takes the canvas render options and is polled like `export_gif`. Sequence
+  diagrams are not supported.
 - `marmerlade://guide` describes the model and Markdown syntax;
   `marmerlade://example` contains a complete linked example.
 - Prompts `map_codebase` (`path`, optional `focus`) and `refresh_diagram` (optional

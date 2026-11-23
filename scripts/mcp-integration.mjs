@@ -26,7 +26,7 @@ async function call(name, args = {}) {
 }
 try {
   client = await connect();
-  assert.deepEqual((await client.listTools()).tools.map(t => t.name).sort(), ['apply_changes', 'diagnose_environment', 'export_gif', 'export_mermaid', 'get_render_job', 'get_workspace', 'import_image', 'import_mermaid', 'layout_diagram', 'list_icons', 'open_workspace', 'render_preview']);
+  assert.deepEqual((await client.listTools()).tools.map(t => t.name).sort(), ['apply_changes', 'diagnose_environment', 'export_gif', 'export_mermaid', 'export_pptx', 'get_render_job', 'get_workspace', 'import_image', 'import_mermaid', 'layout_diagram', 'list_icons', 'open_workspace', 'render_preview']);
   const resources = await client.listResources(); assert.equal(resources.resources.length, 2);
   assert.ok((await client.readResource({ uri: 'marmerlade://guide' })).contents[0].text.includes('ontology'));
   const example = JSON.parse((await client.readResource({ uri: 'marmerlade://example' })).contents[0].text); assert.equal(example.version, 3);
@@ -34,7 +34,7 @@ try {
   const tools = Object.fromEntries((await client.listTools()).tools.map(t => [t.name, t.annotations]));
   for (const name of ['get_workspace', 'export_mermaid', 'list_icons', 'diagnose_environment', 'render_preview', 'get_render_job', 'open_workspace']) assert.equal(tools[name]?.readOnlyHint, true, name);
   for (const name of ['apply_changes', 'import_mermaid']) assert.equal(tools[name]?.destructiveHint, true, name);
-  for (const name of ['import_image', 'layout_diagram', 'export_gif']) assert.equal(tools[name]?.readOnlyHint, false, name);
+  for (const name of ['import_image', 'layout_diagram', 'export_gif', 'export_pptx']) assert.equal(tools[name]?.readOnlyHint, false, name);
   assert.deepEqual((await client.listPrompts()).prompts.map(p => p.name).sort(), ['map_codebase', 'refresh_diagram']);
   const mapPrompt = await client.getPrompt({ name: 'map_codebase', arguments: { path: 'src', focus: 'auth' } });
   assert.match(mapPrompt.messages[0].content.text, /marmerlade-codebase-map.*src.*auth/s);

@@ -151,6 +151,33 @@ export function foldEdges(
 }
 
 /**
+ * What a folded diagram shows: `offscreen` ids have no card (folded away, or
+ * an unfolded group drawn as a sheet); `placed` are the direct edges that have
+ * a path, still keyed by real node ids (an end on a sheet is its group id);
+ * `folded` are the creases onto folded cards.
+ */
+export function visibleGraph(nodes: DiagramNode[], edges: DiagramEdge[]) {
+  const kids = childrenOf(nodes);
+  const hidden = hiddenIds(nodes);
+  const offscreen = new Set(hidden);
+  for (const n of nodes) if (isOpenGroup(n, kids)) offscreen.add(n.id);
+  const { direct, folded } = foldEdges(nodes, edges, hidden);
+  // One between a group and its own contents has no sensible path, so it
+  // waits until the group folds (and then folds away inside it).
+  const inside = new Map<string, Set<string>>();
+  const within = (g: string, id: string) => {
+    if (!inside.has(g)) inside.set(g, new Set(descendants(g, kids)));
+    return inside.get(g)!.has(id);
+  };
+  const placed = direct.filter((e) => {
+    const s = offscreen.has(e.source);
+    const t = offscreen.has(e.target);
+    return !((s && within(e.source, e.target)) || (t && within(e.target, e.source)));
+  });
+  return { hidden, offscreen, direct, placed, folded };
+}
+
+/**
  * Groups to fold for one "fold a level" step: the innermost unfolded groups
  * on screen, so repeated presses fold the diagram from the leaves inward.
  */

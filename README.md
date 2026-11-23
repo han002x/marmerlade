@@ -151,6 +151,7 @@ save to `architecture.marmerlade.json`, so you can commit them with your code.
 | Mermaid | Diagram structure and page and deck references. |
 | Slide Markdown | A standalone deck with diagrams converted to Mermaid fences, ready for Slidev. Marp needs a Mermaid plugin. |
 | PDF / GIF | Print a presentation to PDF, or export flow playback as an animated GIF. |
+| PowerPoint | One slide of editable shapes and connectors, in the current fold state. |
 
 Mermaid import supports a [flowchart subset](docs/usage.md#mermaid-support),
 including subgraphs, classic shapes, labeled edges, and icon metadata. It also

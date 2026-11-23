@@ -1,5 +1,5 @@
 import { validateSequence } from './sequence/model.ts';
-import { workspaceDiagram } from './store.ts';
+import { useDiagram, workspaceDiagram } from './store.ts';
 import { useDock } from './dock.ts';
 import { readImageFile } from './imageUpload.ts';
 import { captureGif } from './gif.ts';
@@ -57,6 +57,15 @@ function createBridge(fit: () => Promise<void>) {
       }, options,
         (frame, total) => { window.__marmerladeProgress = { frame, total }; });
       const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binary = '';
+      for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+      return btoa(binary);
+    },
+    async pptx() {
+      if (!document.querySelector('.react-flow')) throw new Error('PowerPoint export requires the canvas view');
+      const { nodes, edges } = useDiagram.getState();
+      const { diagramPptx } = await import('./pptx/export.ts');
+      const bytes = await diagramPptx(nodes, edges);
       let binary = '';
       for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
       return btoa(binary);

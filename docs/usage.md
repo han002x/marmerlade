@@ -61,6 +61,13 @@ on their crease edges. **Export GIF** records one loop of a running or
 stepped sequence. Under **More actions**, choose an export width (900, 1440,
 or 1920 pixels), then export a GIF or PNG. The canvas aspect ratio is preserved.
 
+**Export PowerPoint** writes the diagram you see as one `.pptx` slide of editable
+shapes and connectors. Folded groups are single cards, open groups are titled
+containers, and icons and images are pictures. The hand-drawn style is not carried
+over, and connectors are not attached to their shapes, so moving a shape in
+PowerPoint leaves its connectors behind. A sequence diagram is exported as one
+picture.
+
 ## Shapes
 
 Rectangle, rounded, diamond and circle on the toolbar; stadium,

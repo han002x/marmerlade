@@ -13,6 +13,7 @@ import Menu from '../wiki/Menu';
 import Navigation from '../wiki/Navigation';
 import SourceEditor from '../wiki/SourceEditor';
 import Slide from '../slides/Slide';
+import { Icon } from './Icon';
 import '../wiki/wiki.css';
 import '../slides/slides.css';
 
@@ -108,7 +109,7 @@ export default function SlidesPanel({ canLink }: { canLink: boolean }) {
             {...retitleField('deck', deck.id)}
           />
           {node && (
-            <Menu className="wk-icon" align="end" label="Decks on this node" button="⌄">
+            <Menu className="wk-icon" align="end" label="Decks on this node" button={<Icon name="lucide-link" />}>
               {ids.map((id, i) => (
                 <button key={id} role="menuitemradio" aria-checked={id === deck.id} onClick={() => setDeck(id)}>
                   <span>{decks.find((d) => d.id === id)?.title || 'Untitled'}</span>

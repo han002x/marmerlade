@@ -7,6 +7,7 @@ import { nodeHref, openWiki } from '../route';
 import Document, { ModeSwitch } from '../wiki/Document';
 import Menu from '../wiki/Menu';
 import WikiLibrary from '../wiki/WikiLibrary';
+import { Icon } from './Icon';
 import '../wiki/wiki.css';
 
 /** The selected node's wiki page, editable beside the canvas. */
@@ -94,7 +95,7 @@ export default function PagePanel({ canLink }: { canLink: boolean }) {
             {...retitleField('page', page.id)}
           />
           {node && (
-            <Menu className="wk-icon" align="end" label="Pages on this node" button="⌄">
+            <Menu className="wk-icon" align="end" label="Pages on this node" button={<Icon name="lucide-link" />}>
               {ids.map((id, i) => (
                 <button key={id} role="menuitemradio" aria-checked={id === page.id}
                   onClick={() => setPage(useDiagram.getState().openPage(node.id, id))}>

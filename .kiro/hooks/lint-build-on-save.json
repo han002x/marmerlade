@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Lint and build on source save",
+      "trigger": "PostFileSave",
+      "description": "Runs oxlint and the type-checked build when src TS/TSX files change.",
+      "matcher": "src/.*\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "(npm run lint && npm run build) 2>&1 | tail -n 40",
+        "timeout": 300
+      }
+    }
+  ]
+}

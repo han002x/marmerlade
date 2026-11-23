@@ -556,9 +556,21 @@
 .sl-print { display: none; }
 
 @media (max-width: 860px) {
+  .sl-app { grid-template-columns: minmax(0, 1fr); }
   .sl-work { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) 40%; }
   .sl-inspector { border-top: 1px solid var(--mf-border); border-left: 0; }
   .sl-panel-resize { display: none; }
+}
+
+@media (max-width: 600px) {
+  .sl-app .wk-bar-content {
+    display: grid;
+    grid-template-columns: max-content max-content minmax(28px, 1fr);
+    padding-block: 6px;
+  }
+  .sl-app .wk-nav-toggle { justify-self: start; }
+  .sl-app .wk-crumbs { grid-column: 2 / -1; }
+  .sl-app .wk-bar-content > .wk-icon { justify-self: end; }
 }
 
 /* Canvas controls are siblings of the slide, outside its clipped content. */

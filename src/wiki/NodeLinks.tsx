@@ -32,7 +32,7 @@ export default function NodeLinks({ id, nodeId, kind = 'pageIds' }: {
       button={<>
         {node ? node.label || 'Untitled' : <Icon name="flowchart" />}
         {linked.length > 1 && <small>+{linked.length - 1}</small>}
-        {node && <span aria-hidden="true">⌄</span>}
+        {node && <Icon name="lucide-link" size={14} />}
       </>}>
       {linked.map((n) => <div key={n.id} className="wk-menu-row">
         <button role="menuitemradio" aria-checked={n.id === node?.id} onClick={() => go(n.id)}>

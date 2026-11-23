@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Test Mermaid round-trip on save",
+      "trigger": "PostFileSave",
+      "description": "Runs npm test when Mermaid import/export changes.",
+      "matcher": "src/mermaid/io\\.ts$",
+      "action": {
+        "type": "command",
+        "command": "npm test 2>&1 | tail -n 40",
+        "timeout": 180
+      }
+    }
+  ]
+}

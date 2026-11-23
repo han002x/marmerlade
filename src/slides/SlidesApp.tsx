@@ -388,7 +388,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   };
 
   return (
-    <div className={`wk${indexOpen ? ' nav-open' : ''}${panelOpen ? '' : ' panel-closed'}`} onKeyDown={event => {
+    <div className={`wk sl-app${indexOpen ? ' nav-open' : ''}${panelOpen ? '' : ' panel-closed'}`} onKeyDown={event => {
       if (event.key === 'Escape' && indexOpen && !document.querySelector('dialog[open]')) {
         setIndex(null);
         event.currentTarget.querySelector<HTMLButtonElement>('.wk-nav-toggle')?.focus();

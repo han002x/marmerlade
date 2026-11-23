@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Check icon catalog is current",
+      "trigger": "PostFileSave",
+      "description": "Regenerates the icon catalog and reports if it differs from the saved file.",
+      "matcher": "src/icons/catalog\\.ts$",
+      "action": {
+        "type": "command",
+        "command": "cp src/icons/catalog.ts /tmp/catalog.before.ts && npm run icons >/dev/null 2>&1; if diff -q /tmp/catalog.before.ts src/icons/catalog.ts >/dev/null; then echo \"Icon catalog is up to date.\"; else echo \"Icon catalog was out of date and has been regenerated.\"; fi",
+        "timeout": 120
+      }
+    }
+  ]
+}

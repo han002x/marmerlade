@@ -10,6 +10,7 @@ export type IconName =
   | 'line'
   | 'arrow'
   | 'link'
+  | 'lucide-link'
   | 'rect'
   | 'round'
   | 'diamond'
@@ -100,6 +101,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
   line: <path d="M5 19 19 5" />,
   arrow: <path d="M5 19 19 5M8 5h11v11" />,
   link: <path d="m10 13 4-4M8 15l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M13 9l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" />,
+  'lucide-link': (
+    <g strokeWidth={2}>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </g>
+  ),
   page: (
     <>
       <path d="M7 3h7l4 4v14H7Z" />

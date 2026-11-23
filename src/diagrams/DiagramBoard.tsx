@@ -609,7 +609,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
           role="toolbar"
           aria-label="Workspace canvas tools"
         >
-          <div className="diagram-toolbar-brand"><BrandMark decorative /><span>marmerlade</span></div>
+          <div className="diagram-toolbar-brand"><BrandMark decorative /><span><span className="brand-initial">m</span>ar<span className="brand-initial">m</span>erlade</span></div>
           <ToolbarMenu label="Add diagram" icon="plus">
             {(closeMenu) =>
               (['flowchart', 'sequence'] as const).map((kind) => {

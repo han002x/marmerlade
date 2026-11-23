@@ -68,12 +68,13 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   // the narrow-screen index closes itself once a deck is chosen
   const [index, setIndex] = useState<{ at: string | null } | null>(null);
   const indexOpen = index !== null && index.at === deckId;
+  const [panelOpen, setPanelOpen] = useState(true);
   const [sidebar, setSidebar] = useState<{ at: string | null; view: 'slides' | 'decks' | 'appearance' }>({ at: deckId, view: 'slides' });
   const [deckQuery, setDeckQuery] = useState('');
   const [slideQuery, setSlideQuery] = useState('');
   const showAppearance = sidebar.view === 'appearance' && sidebar.at === deckId;
   const showDecks = !showAppearance && (!deck || sidebar.view === 'decks' && sidebar.at === deckId);
-  useHotkeys([{ key: 't', run: () => { if (!slide) { setSidebar({ at: deckId, view: 'appearance' }); setIndex({ at: deckId }); } } }]);
+  useHotkeys([{ key: 't', run: () => { if (!slide) { setSidebar({ at: deckId, view: 'appearance' }); setPanelOpen(true); setIndex({ at: deckId }); } } }]);
   const filteredDecks = useMemo(() => decks.filter(deck => matchesTitle(libraryTitle(deck), deckQuery)).sort(byLibraryTitle), [deckQuery, decks]);
   const where = (id: string) => pathTo(nodes, id).map((n) => n.label || 'Untitled').join(' › ');
 
@@ -387,7 +388,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   };
 
   return (
-    <div className={`wk${indexOpen ? ' nav-open' : ''}`} onKeyDown={event => {
+    <div className={`wk${indexOpen ? ' nav-open' : ''}${panelOpen ? '' : ' panel-closed'}`} onKeyDown={event => {
       if (event.key === 'Escape' && indexOpen && !document.querySelector('dialog[open]')) {
         setIndex(null);
         event.currentTarget.querySelector<HTMLButtonElement>('.wk-nav-toggle')?.focus();
@@ -396,7 +397,11 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
       <header className="wk-bar">
           <ProductNav current="slides" onNavigate={() => setIndex(null)} />
         <div className="wk-bar-content">
-          <button className="wk-btn wk-nav-toggle" aria-label="Decks" aria-expanded={indexOpen} aria-controls="deck-sidebar"
+          <button className="wk-btn wk-desktop-toggle" aria-label="Toggle left panel" title="Toggle left panel" aria-expanded={panelOpen} aria-controls="deck-sidebar"
+            onClick={() => setPanelOpen(open => !open)}>
+            <Icon name="sidebar" size={18} />
+          </button>
+          <button className="wk-btn wk-nav-toggle" aria-label="Decks" title="Toggle left panel" aria-expanded={indexOpen} aria-controls="deck-sidebar"
             onClick={event => {
               setIndex(indexOpen ? null : { at: deckId });
               const app = event.currentTarget.closest('.wk');
@@ -404,7 +409,7 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                 showDecks || showAppearance ? '#deck-sidebar button' : '.sl-thumbnail-select[aria-current]',
               )?.focus());
             }}>
-            <Icon name="deck" size={18} /> {showAppearance ? 'Appearance' : showDecks ? 'Decks' : 'Slides'}
+            <Icon name="sidebar" size={18} />
           </button>
           <nav className="wk-crumbs" aria-label="Linked nodes">
             {deck && <input

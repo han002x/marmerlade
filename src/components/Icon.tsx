@@ -45,6 +45,7 @@ export type IconName =
   | 'notebook'
   | 'monitor'
   | 'page'
+  | 'sidebar'
   | 'folder'
   | 'deck'
   | 'grid'
@@ -92,6 +93,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
   book: <><path d="M12 5C8 2 4 3 2 4v15c3-1 6-1 10 2 4-3 7-3 10-2V4c-2-1-6-2-10 1Z" /><path d="M12 5v16" /></>,
   notebook: <><rect x="5" y="3" width="15" height="18" rx="2" /><path d="M9 3v18M3 7h4M3 12h4M3 17h4M12 8h5M12 12h5" /></>,
   monitor: <><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M12 17v4M8 21h8" /></>,
+  sidebar: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" /></>,
   text: <path d="M4 6V4h16v2M12 4v16M8 20h8" />,
   line: <path d="M5 19 19 5" />,
   arrow: <path d="M5 19 19 5M8 5h11v11" />,

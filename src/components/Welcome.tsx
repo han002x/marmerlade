@@ -130,7 +130,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
       </svg>
       <div className="mf-welcome-brand" style={{ top: bar.bottom + 160 }}>
         <BrandMark size={64} decorative />
-        <span className="mf-brand">marmerlade</span>
+        <span className="mf-brand">mar<span className="brand-initial">m</span>erlade</span>
       </div>
       <p className="mf-welcome-note" style={{ left: left.x, top: left.y }}>
         Shapes, play, export

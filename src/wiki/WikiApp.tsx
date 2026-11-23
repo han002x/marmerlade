@@ -27,7 +27,8 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
   const linked = page ? backlinks(page, nodes, pages) : [];
   const [mode, setMode] = useState<PageMode>('edit');
   const [sidebar, setSidebar] = useState<'pages' | 'appearance'>('pages');
-  useHotkeys([{ key: 't', run: () => { setSidebar('appearance'); setIndex({ at: pageId }); } }]);
+  const [panelOpen, setPanelOpen] = useState(true);
+  useHotkeys([{ key: 't', run: () => { setSidebar('appearance'); setPanelOpen(true); setIndex({ at: pageId }); } }]);
   // the narrow-screen index closes itself once a page is chosen
   const [index, setIndex] = useState<{ at: string | null } | null>(null);
   const indexOpen = index !== null && index.at === pageId;
@@ -56,7 +57,7 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
   };
 
   return (
-    <div className={`wk${indexOpen ? ' nav-open' : ''}`} onKeyDown={event => {
+    <div className={`wk${indexOpen ? ' nav-open' : ''}${panelOpen ? '' : ' panel-closed'}`} onKeyDown={event => {
       if (event.key === 'Escape' && indexOpen && !document.querySelector('dialog[open]')) {
         setIndex(null);
         event.currentTarget.querySelector<HTMLButtonElement>('.wk-nav-toggle')?.focus();
@@ -65,13 +66,17 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
       <header className="wk-bar">
           <ProductNav current="wiki" onNavigate={() => setIndex(null)} />
         <div className="wk-bar-content">
-          <button className="wk-btn wk-nav-toggle" aria-label="Pages" aria-expanded={indexOpen} aria-controls="wiki-sidebar"
+          <button className="wk-btn wk-desktop-toggle" aria-label="Toggle left panel" title="Toggle left panel" aria-expanded={panelOpen} aria-controls="wiki-sidebar"
+            onClick={() => setPanelOpen(open => !open)}>
+            <Icon name="sidebar" size={18} />
+          </button>
+          <button className="wk-btn wk-nav-toggle" aria-label="Pages" title="Toggle left panel" aria-expanded={indexOpen} aria-controls="wiki-sidebar"
             onClick={event => {
               setIndex(indexOpen ? null : { at: pageId });
               const app = event.currentTarget.closest('.wk');
               if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>('#wiki-sidebar button')?.focus());
             }}>
-            <Icon name="page" size={18} /> Pages
+            <Icon name="sidebar" size={18} />
           </button>
           <nav className="wk-crumbs" aria-label="Page location and linked nodes">
             {page && <>

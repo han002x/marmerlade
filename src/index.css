@@ -81,6 +81,10 @@ body,
   display: block;
 }
 
+.brand-initial {
+  color: var(--mf-seal);
+}
+
 .brand-mark {
   display: block;
   flex: none;
@@ -152,6 +156,8 @@ body,
 
 .product-menu {
   position: relative;
+  font: 700 15px/1.35 var(--mf-content-font, var(--mf-hand));
+  letter-spacing: 0;
 }
 
 .product-trigger, .product-link {

@@ -39,7 +39,7 @@ export default function ProductNav({ current, onNavigate, iconOnly = false, show
           button.current?.focus();
         }
       }}>
-      {current !== 'canvas' && <span className="product-brand"><BrandMark decorative /> marmerlade</span>}
+      {current !== 'canvas' && <span className="product-brand"><BrandMark decorative /><span><span className="brand-initial">m</span>ar<span className="brand-initial">m</span>erlade</span></span>}
       <div className="product-menu">
         <button ref={button} type="button" className="product-trigger" aria-label={label + ', switch workspace'}
           title={iconOnly ? label + ', switch workspace' : undefined} aria-expanded={open} aria-controls={listId} onClick={() => setOpen(!open)}>

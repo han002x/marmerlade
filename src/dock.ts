@@ -35,7 +35,7 @@ export const selectedOwner = (): string | undefined =>
   useDock.getState().participant ?? useDiagram.getState().selectedNodeIds[0];
 
 export const useDock = create<Dock>((set) => ({
-  open: true,
+  open: false,
   view: 'tree',
   mode: 'edit',
   page: null,

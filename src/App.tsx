@@ -1258,5 +1258,5 @@ function DiagramEditor({ showWelcome, diagramKind, slots }: { showWelcome: boole
 
 export default function App({showWelcome}:{showWelcome:boolean}) {
   if(window.__marmerladeRender)return <DiagramEditor showWelcome={showWelcome}/>;
-  return <DiagramBoard Editor={DiagramEditor}/>;
+  return <DiagramBoard Editor={DiagramEditor} showWelcome={showWelcome}/>;
 }

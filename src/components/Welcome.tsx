@@ -68,12 +68,12 @@ export function Welcome({ onDone }: { onDone: () => void }) {
   useLayoutEffect(() => {
     const measure = () => {
       const bar = document.querySelector('.mf-toolbar')?.getBoundingClientRect();
-      const panel = document.querySelector('.mf-reopen')?.getBoundingClientRect();
+      const panel = document.querySelector('.mf-reopen, .mf-panel-head')?.getBoundingClientRect();
       if (bar && panel) setRects({ bar, panel, vw: window.innerWidth });
     };
     measure();
     const watch = new ResizeObserver(measure);
-    for (const el of document.querySelectorAll('.mf-toolbar, .mf-reopen')) watch.observe(el);
+    for (const el of document.querySelectorAll('.mf-toolbar, .mf-reopen, .mf-panel-head')) watch.observe(el);
     window.addEventListener('resize', measure);
     document.fonts?.ready.then(measure);
     return () => {
@@ -133,7 +133,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
         <span className="mf-brand">mar<span className="brand-initial">m</span>erlade</span>
       </div>
       <p className="mf-welcome-note" style={{ left: left.x, top: left.y }}>
-        Shapes, play, export
+        Add a diagram, play, export
       </p>
       <p className="mf-welcome-note is-right" style={{ right: vw - right.x, top: right.y }}>
         Mermaid, tree, pages, slides

@@ -38,6 +38,7 @@ import { exportFile, importFile, saveForNavigation } from '../persist';
 import { useHash, parseRoute, openDocs } from '../route';
 import ProductNav from '../components/ProductNav';
 import BrandMark from '../components/BrandMark';
+import { Welcome } from '../components/Welcome';
 import { DragPlacement } from '../components/DragPlacement';
 import { Icon } from '../components/Icon';
 import { NodeTransforms, type ResizePreview } from '../components/NodeTransforms';
@@ -200,7 +201,7 @@ function previewNodeAt(frame: Element | null | undefined, x: number, y: number) 
 
 type FlowchartEditor = ComponentType<{ showWelcome: boolean; diagramKind: 'flowchart'; slots: EditorSlots }>;
 
-function Board({ Editor }: { Editor: FlowchartEditor }) {
+function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: boolean }) {
   const state = useDiagram();
   const [error, setError] = useState('');
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null);
@@ -214,6 +215,16 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
   const setPanelOpen = useDock((s) => s.setOpen);
   const [panelWidth, setPanelWidth] = useState(360);
   const entities = useMemo(() => diagramEntities(workspaceDiagram(state)), [state]);
+  const empty = entities.length === 0;
+  const [welcome, setWelcome] = useState(() => empty || showWelcome);
+  const dismissWelcome = useCallback(() => setWelcome(false), []);
+  const wasEmpty = useRef(empty);
+  useEffect(() => {
+    if (wasEmpty.current !== empty) {
+      wasEmpty.current = empty;
+      setWelcome(empty);
+    }
+  }, [empty]);
   const active = state.activeDiagramId;
   const hash = useHash();
   const { screenToFlowPosition, setCenter, getViewport, setViewport, fitView } = useReactFlow();
@@ -604,6 +615,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
           });
         }}
       >
+        {welcome && <Welcome onDone={dismissWelcome} />}
         <nav
           className={'mf-toolbar' + (compact ? ' is-compact' : '')}
           role="toolbar"
@@ -955,10 +967,10 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     </div>
   );
 }
-export default function DiagramBoard({ Editor }: { Editor: FlowchartEditor }) {
+export default function DiagramBoard({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: boolean }) {
   return (
     <ReactFlowProvider>
-      <Board Editor={Editor} />
+      <Board Editor={Editor} showWelcome={showWelcome} />
     </ReactFlowProvider>
   );
 }

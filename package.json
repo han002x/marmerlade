@@ -78,7 +78,7 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.6"
   },
-  "description": "Foldable diagrams, linked wiki pages and slides with a live MCP canvas",
+  "description": "All-in-one Diagram, Wiki, Slides documentation tool. View, edit, style & animate diagrams, wiki pages and slide decks in Mermaid and Markdown native editors by you and your AI agents!",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/han002x/marmerlade.git"

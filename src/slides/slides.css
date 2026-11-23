@@ -71,13 +71,22 @@
   cursor: col-resize !important;
   user-select: none !important;
 }
-.sl-inspector .wk-title {
-  flex-shrink: 0;
-  max-width: none;
-  padding: 24px 28px 16px;
-  font-size: 26px;
+.sl-deck-title {
+  field-sizing: content;
+  width: 180px;
+  min-width: 60px;
+  max-width: 45%;
+  margin-right: auto;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--mf-text);
+  font: 600 13px var(--mf-ui-font, var(--mf-sans));
 }
-.sl-panel-tabs { margin: 0 20px 16px; }
+.sl-deck-title::placeholder { color: var(--mf-muted); }
+.sl-deck-title:focus-visible { outline: 2px solid var(--mf-accent); }
+.sl-panel-tabs { margin: 20px 20px 16px; }
 .sl-panel-tabs button { flex: 1; }
 .sl-source, .sl-style-panel { flex: 1; min-height: 0; overflow-y: auto; }
 .sl-source { display: flex; flex-direction: column; }

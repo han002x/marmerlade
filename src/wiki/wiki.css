@@ -1,6 +1,7 @@
 .wk {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   position: relative;
   height: 100%;
   background: var(--mf-bg);
@@ -15,6 +16,7 @@
 
 /* index */
 .wk-index {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -22,28 +24,24 @@
   background: var(--mf-panel);
   border-right: 1px solid var(--mf-border);
   min-height: 0;
+  width: min(var(--wk-index-width, 260px), calc(100vw - 320px));
   overflow: hidden;
 }
-.wk-index-head {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0 0 0 8px;
+.wk-index-resize {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 2;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
 }
-.wk-index-head > .product-switcher {
-  flex: 1;
-  min-width: 0;
-  gap: 2px;
-}
-.wk-index-head .product-menu { margin-left: auto; }
-.wk-index-head .product-brand {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-  font-family: var(--mf-content-font, var(--mf-hand));
-  font-size: 15px;
-  font-weight: 700;
+.wk-index-resize::after { content: ''; position: absolute; inset: 0 0 0 auto; width: 2px; }
+.wk-index-resize:hover::after,
+.wk-index-resize:active::after,
+.wk-index-resize:focus-visible::after { background: var(--mf-accent); }
+.wk:has(.wk-index-resize:active), .wk:has(.wk-index-resize:active) * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 .wk-navigation {
   flex: 1;
@@ -297,14 +295,37 @@ a.wk-item {
 }
 /* one line for where the page lives and how it is shown */
 .wk-bar {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 8px;
+  position: relative;
+  z-index: 31;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
   min-height: 44px;
-  padding: 0 10px 0 20px;
   border-bottom: 1px solid var(--mf-border);
 }
+.wk-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 10px 0 20px;
+}
+.wk-bar .product-brand {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-family: var(--mf-content-font, var(--mf-hand));
+  font-size: 15px;
+  font-weight: 700;
+}
+.wk-bar .product-switcher {
+  min-width: 0;
+  padding: 0 10px 0 18px;
+  background: var(--mf-panel);
+  border-right: 1px solid var(--mf-border);
+}
+.wk-bar .product-menu { margin-left: auto; }
 .wk-nav-toggle {
   display: none;
 }
@@ -332,6 +353,22 @@ a.wk-item {
   font: 12px var(--mf-ui-font, var(--mf-sans));
   cursor: pointer;
 }
+.wk-location-crumb {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wk-location-crumb::after {
+  content: '›';
+  flex-shrink: 0;
+  margin-left: 6px;
+  color: var(--mf-muted);
+}
+.wk-location-page { margin-right: auto; color: var(--mf-text); }
 .wk-crumb:hover {
   color: var(--mf-accent);
 }
@@ -478,7 +515,7 @@ a.wk-item {
   }
   .wk-index {
     position: absolute;
-    inset: 0 auto 0 0;
+    inset: 44px auto 0 0;
     z-index: 30;
     width: min(280px, 86vw);
     box-shadow: 0 0 40px var(--mf-shadow);
@@ -492,10 +529,11 @@ a.wk-item {
     visibility: visible;
     transform: none;
   }
+  .wk-index-resize { display: none; }
   .wk.nav-open .wk-scrim {
     display: block;
     position: absolute;
-    inset: 0;
+    inset: 44px 0 0;
     z-index: 29;
     border: 0;
     background: color-mix(in srgb, var(--mf-bg) 60%, transparent);
@@ -506,8 +544,13 @@ a.wk-item {
     gap: 4px;
   }
   .wk-bar {
-    padding-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
   }
+  .wk-bar .product-switcher { padding: 0; border: 0; background: none; }
+  .wk-bar-content { flex: 1; padding: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -816,4 +859,10 @@ a.wk-item {
   color: var(--mf-text);
   cursor: ew-resize;
   touch-action: none;
+}
+
+@media (max-width: 600px) {
+  .wk-bar { gap: 4px; }
+  .wk-bar .product-brand { font-size: 0; }
+  .wk-nav-toggle { font-size: 0; }
 }

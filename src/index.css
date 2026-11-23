@@ -86,6 +86,61 @@ body,
   flex: none;
 }
 
+/* One 3.2s loop: open, fill, shut, rest, open, drain, shut. The level and the
+   cap share the timeline, so each beat lands on the same keyframe percent. */
+.brand-spinner {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.brand-spinner-cap {
+  transform-box: view-box;
+  transform-origin: 8px 9px;
+  animation: brand-spinner-cap 3.2s ease-in-out infinite;
+}
+
+.brand-spinner-level {
+  animation: brand-spinner-level 3.2s ease-in-out infinite;
+}
+
+.brand-spinner-wave {
+  animation: brand-spinner-wave 0.9s linear infinite;
+}
+
+@keyframes brand-spinner-cap {
+  0%, 48%, 58%, 98%, 100% { transform: none; }
+  45% { transform: translateY(-0.8px); }
+  95% { transform: translateY(-0.8px); }
+  8%, 40%, 66%, 90% { transform: rotate(-18deg); }
+}
+
+@keyframes brand-spinner-level {
+  0%, 8% { transform: translateY(19px); }
+  40%, 66% { transform: translateY(0); }
+  90%, 100% { transform: translateY(19px); }
+}
+
+@keyframes brand-spinner-wave {
+  to { transform: translateX(-9px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-spinner-cap,
+  .brand-spinner-wave {
+    animation: none;
+  }
+
+  .brand-spinner-level {
+    animation: brand-spinner-still 1.6s ease-in-out infinite alternate;
+  }
+
+  @keyframes brand-spinner-still {
+    from { transform: translateY(9px); opacity: 0.55; }
+    to { transform: translateY(9px); opacity: 1; }
+  }
+}
+
 .product-switcher {
   display: flex;
   align-items: center;

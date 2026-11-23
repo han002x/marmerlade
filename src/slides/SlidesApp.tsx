@@ -14,8 +14,8 @@ import { dragged, dragMode, RESIZE_HANDLES, type DragMode, type Point } from './
 import { isTyping, useHotkeys } from '../useHotkeys';
 import { BoxBar, StylePanel } from './Design';
 import { deckHref, openNode } from '../route';
-import BrandMark from '../components/BrandMark';
 import ProductNav from '../components/ProductNav';
+import ResizableSidebar from '../components/ResizableSidebar';
 import { Icon } from '../components/Icon';
 import Menu from '../wiki/Menu';
 import ContextMenu from '../wiki/ContextMenu';
@@ -393,10 +393,51 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
         event.currentTarget.querySelector<HTMLButtonElement>('.wk-nav-toggle')?.focus();
       }
     }}>
-      <aside className="wk-index" id="deck-sidebar">
-        <div className="wk-index-head">
+      <header className="wk-bar">
           <ProductNav current="slides" onNavigate={() => setIndex(null)} />
+        <div className="wk-bar-content">
+          <button className="wk-btn wk-nav-toggle" aria-label="Decks" aria-expanded={indexOpen} aria-controls="deck-sidebar"
+            onClick={event => {
+              setIndex(indexOpen ? null : { at: deckId });
+              const app = event.currentTarget.closest('.wk');
+              if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>(
+                showDecks || showAppearance ? '#deck-sidebar button' : '.sl-thumbnail-select[aria-current]',
+              )?.focus());
+            }}>
+            <Icon name="deck" size={18} /> {showAppearance ? 'Appearance' : showDecks ? 'Decks' : 'Slides'}
+          </button>
+          <nav className="wk-crumbs" aria-label="Linked nodes">
+            {deck && <input
+              className="sl-deck-title"
+              aria-label="Deck title"
+              value={deck.title}
+              placeholder="Untitled"
+              onChange={(e) => useDiagram.getState().updateDeck(deck.id, { title: e.target.value })}
+              {...retitleField('deck', deck.id)}
+            />}
+            {deck && <NodeLinks kind="deckIds" id={deck.id} nodeId={nodeId} />}
+          </nav>
+          {deck && <>
+            <Menu align="end" label="New slide" button={<><Icon name="plus" size={13} />Slide</>} className="wk-btn sl-go">
+              <button role="menuitem" onClick={() => edit('add', current)}>Blank</button>
+              <hr />
+              {Object.entries(LAYOUTS).map(([name, content]) => (
+                <button key={name} role="menuitem" onClick={() => rewrite(editSlides(body, 'add', current, content))}>{name}</button>
+              ))}
+            </Menu>
+            <a className="wk-btn sl-go" href={deckHref(deck.id, node?.id, current + 1)}>
+              <Icon name="play" size={13} />
+              Present
+            </a>
+            <Menu className="wk-icon" align="end" label="Deck actions" button={<Icon name="more" size={16} />}>
+              <button role="menuitem" onClick={download}>Export Markdown</button>
+              {node && <button role="menuitem" onClick={() => openNode(node.id)}>Show on canvas</button>}
+              <button role="menuitem" className="danger" onClick={remove}>Delete deck</button>
+            </Menu>
+          </>}
         </div>
+      </header>
+      <ResizableSidebar id="deck-sidebar">
         <div className="wk-library-views" role="group" aria-label="Sidebar view">
           <button className="wk-btn" aria-label="Decks" title="Decks" aria-pressed={showDecks} onClick={() => setSidebar({ at: deckId, view: 'decks' })}><Icon name="deck" size={16} /><span>Decks</span></button>
           {deck && <button className="wk-btn" aria-label="Slides" title="Slides" aria-pressed={!showDecks && !showAppearance} onClick={() => setSidebar({ at: deckId, view: 'slides' })}><Icon name="grid" size={16} /><span>Slides</span></button>}
@@ -442,44 +483,10 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
           </div>
           <SlideThumbnails key={deckId} slides={slides} query={slideQuery} nodeId={node?.id} current={current} onSelect={pickThumbnail} onEdit={edit} />
         </>}
-      </aside>
+      </ResizableSidebar>
       <button className="wk-scrim" aria-label="Close decks" onClick={() => setIndex(null)} />
 
       <main className="wk-main">
-        <header className="wk-bar">
-          <button className="wk-btn wk-nav-toggle" aria-expanded={indexOpen} aria-controls="deck-sidebar"
-            onClick={event => {
-              setIndex(indexOpen ? null : { at: deckId });
-              const app = event.currentTarget.closest('.wk');
-              if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>(
-                showDecks || showAppearance ? '.product-trigger' : '.sl-thumbnail-select[aria-current]',
-              )?.focus());
-            }}>
-            <BrandMark size={20} decorative /> {showAppearance ? 'Appearance' : showDecks ? 'Decks' : 'Slides'}
-          </button>
-          <nav className="wk-crumbs" aria-label="Linked nodes">
-            {deck && <NodeLinks kind="deckIds" id={deck.id} nodeId={nodeId} />}
-          </nav>
-          {deck && <>
-            <Menu align="end" label="New slide" button={<><Icon name="plus" size={13} />Slide</>} className="wk-btn sl-go">
-              <button role="menuitem" onClick={() => edit('add', current)}>Blank</button>
-              <hr />
-              {Object.entries(LAYOUTS).map(([name, content]) => (
-                <button key={name} role="menuitem" onClick={() => rewrite(editSlides(body, 'add', current, content))}>{name}</button>
-              ))}
-            </Menu>
-            <a className="wk-btn sl-go" href={deckHref(deck.id, node?.id, current + 1)}>
-              <Icon name="play" size={13} />
-              Present
-            </a>
-            <Menu className="wk-icon" align="end" label="Deck actions" button={<Icon name="more" size={16} />}>
-              <button role="menuitem" onClick={download}>Export Markdown</button>
-              {node && <button role="menuitem" onClick={() => openNode(node.id)}>Show on canvas</button>}
-              <button role="menuitem" className="danger" onClick={remove}>Delete deck</button>
-            </Menu>
-          </>}
-        </header>
-
         {deck ? (
           <div className="sl-work" ref={work} style={workStyle}>
             <section className="sl-canvas" aria-label="Slide editor">
@@ -653,14 +660,6 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
                     : panelWidth + (e.key === 'ArrowLeft' ? step : -step);
                   setInspectorWidth(clampWidth(next));
                 }} />
-              <input
-                className="wk-title"
-                aria-label="Deck title"
-                value={deck.title}
-                placeholder="Untitled"
-                onChange={(e) => useDiagram.getState().updateDeck(deck.id, { title: e.target.value })}
-              {...retitleField('deck', deck.id)}
-              />
               <div className="sl-panel-tabs wk-seg" role="tablist" aria-label="Slide settings"
                 onKeyDown={(e) => {
                   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;

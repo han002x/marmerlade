@@ -5,8 +5,9 @@ import { useHotkeys } from '../useHotkeys';
 import { AppearanceSettings } from '../components/AppearanceSettings';
 import { backlinks, nodesOfPage, pathTo } from '../pages';
 import { openNode, pageHref } from '../route';
-import BrandMark from '../components/BrandMark';
+import { folderTrail } from '../wikiFolders';
 import ProductNav from '../components/ProductNav';
+import ResizableSidebar from '../components/ResizableSidebar';
 import { Icon } from '../components/Icon';
 import Document, { ModeSwitch, type PageMode } from './Document';
 import Menu from './Menu';
@@ -17,7 +18,10 @@ import './wiki.css';
 export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nodeId?: string }) {
   const nodes = useDiagram((s) => s.nodes);
   const pages = useDiagram((s) => s.pages);
+  const folders = useDiagram((s) => s.wikiFolders);
   const page = pages.find((p) => p.id === pageId);
+  const parentFolder = page ? folders.find((folder) => folder.pageIds.includes(page.id)) : undefined;
+  const trail = folderTrail(new Map(folders.map((folder) => [folder.id, folder])), parentFolder?.id ?? null);
   const pageNodes = page ? nodesOfPage(nodes, page.id) : [];
   const node = pageNodes.find((n) => n.id === nodeId) ?? pageNodes[0];
   const linked = page ? backlinks(page, nodes, pages) : [];
@@ -58,32 +62,23 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
         event.currentTarget.querySelector<HTMLButtonElement>('.wk-nav-toggle')?.focus();
       }
     }}>
-      <aside className="wk-index" id="wiki-sidebar">
-        <div className="wk-index-head">
+      <header className="wk-bar">
           <ProductNav current="wiki" onNavigate={() => setIndex(null)} />
-        </div>
-        <div className="wk-library-views" role="group" aria-label="Sidebar view">
-          <button className="wk-btn" aria-label="Pages" title="Pages" aria-pressed={sidebar === 'pages'} onClick={() => setSidebar('pages')}><Icon name="page" size={16} /><span>Pages</span></button>
-          <button className="wk-btn wk-library-appearance" aria-label="Appearance" title="Appearance" aria-pressed={sidebar === 'appearance'} onClick={() => setSidebar('appearance')}><Icon name="palette" size={16} /></button>
-        </div>
-        {sidebar === 'pages' ? <WikiLibrary pageId={pageId} onOpen={() => setIndex(null)} onCreate={create}
-          href={id => pageHref(id, id === pageId ? nodeId : undefined)} /> :
-          <div className="mf-appearance mf-appearance-docked" role="region" aria-label="Appearance"><AppearanceSettings /></div>}
-      </aside>
-      <button className="wk-scrim" aria-label="Close pages" onClick={() => setIndex(null)} />
-
-      <main className="wk-main">
-        <header className="wk-bar">
-          <button className="wk-btn wk-nav-toggle" aria-expanded={indexOpen} aria-controls="wiki-sidebar"
+        <div className="wk-bar-content">
+          <button className="wk-btn wk-nav-toggle" aria-label="Pages" aria-expanded={indexOpen} aria-controls="wiki-sidebar"
             onClick={event => {
               setIndex(indexOpen ? null : { at: pageId });
               const app = event.currentTarget.closest('.wk');
-              if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>('.product-trigger')?.focus());
+              if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>('#wiki-sidebar button')?.focus());
             }}>
-            <BrandMark size={20} decorative /> Pages
+            <Icon name="page" size={18} /> Pages
           </button>
-          <nav className="wk-crumbs" aria-label="Linked nodes">
-            {page && <NodeLinks id={page.id} nodeId={nodeId} />}
+          <nav className="wk-crumbs" aria-label="Page location and linked nodes">
+            {page && <>
+              {trail.map((folder) => <span className="wk-location-crumb" key={folder.id} title={folder.name}>{folder.name}</span>)}
+              <span className="wk-location-crumb wk-location-page" title={page.title || 'Untitled'}>{page.title || 'Untitled'}</span>
+              <NodeLinks id={page.id} nodeId={nodeId} />
+            </>}
           </nav>
           {page && <>
             <ModeSwitch value={page.body} mode={mode} onMode={setMode} />
@@ -92,8 +87,20 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
               <button role="menuitem" className="danger" onClick={remove}>Delete page</button>
             </Menu>
           </>}
-        </header>
+        </div>
+      </header>
+      <ResizableSidebar id="wiki-sidebar">
+        <div className="wk-library-views" role="group" aria-label="Sidebar view">
+          <button className="wk-btn" aria-label="Pages" title="Pages" aria-pressed={sidebar === 'pages'} onClick={() => setSidebar('pages')}><Icon name="page" size={16} /><span>Pages</span></button>
+          <button className="wk-btn wk-library-appearance" aria-label="Appearance" title="Appearance" aria-pressed={sidebar === 'appearance'} onClick={() => setSidebar('appearance')}><Icon name="palette" size={16} /></button>
+        </div>
+        {sidebar === 'pages' ? <WikiLibrary pageId={pageId} onOpen={() => setIndex(null)} onCreate={create}
+          href={id => pageHref(id, id === pageId ? nodeId : undefined)} /> :
+          <div className="mf-appearance mf-appearance-docked" role="region" aria-label="Appearance"><AppearanceSettings /></div>}
+      </ResizableSidebar>
+      <button className="wk-scrim" aria-label="Close pages" onClick={() => setIndex(null)} />
 
+      <main className="wk-main">
         {page ? (
           <div className="wk-page-content">
             <input

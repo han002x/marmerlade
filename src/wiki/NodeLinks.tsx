@@ -1,6 +1,7 @@
 import { useDiagram } from '../store';
 import { linkableNodes, nodesOfPage, pathTo, type LinkKey } from '../pages';
 import { deckHref, openNode, pageHref } from '../route';
+import { Icon } from '../components/Icon';
 import Menu from './Menu';
 
 /** Where a page or deck lives on the canvas: its group trail and its linked nodes. */
@@ -29,9 +30,9 @@ export default function NodeLinks({ id, nodeId, kind = 'pageIds' }: {
     ))}
     <Menu className="wk-crumb" label={node ? `Linked to ${node.label || 'Untitled'}` : 'Link to node'}
       button={<>
-        {node ? node.label || 'Untitled' : 'Link to node'}
+        {node ? node.label || 'Untitled' : <Icon name="flowchart" />}
         {linked.length > 1 && <small>+{linked.length - 1}</small>}
-        <span aria-hidden="true">⌄</span>
+        {node && <span aria-hidden="true">⌄</span>}
       </>}>
       {linked.map((n) => <div key={n.id} className="wk-menu-row">
         <button role="menuitemradio" aria-checked={n.id === node?.id} onClick={() => go(n.id)}>

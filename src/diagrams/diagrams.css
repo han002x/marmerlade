@@ -20,6 +20,21 @@
 .mf-style-slot {
   display: contents;
 }
+.diagram-toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 4px;
+  border-right: 1px solid var(--mf-border);
+  font: 700 18px/1 var(--mf-content-font, var(--mf-hand));
+}
+.diagram-board > .mf-toolbar .product-list {
+  left: auto;
+  right: 0;
+}
+.diagram-board > .mf-toolbar .mf-tool[aria-label='Add diagram'] {
+  color: var(--mf-accent);
+}
 /* above the board's frame transforms (z 5), below the toolbar (z 7) */
 .mf-style-slot > .mf-style-panel {
   z-index: 6;

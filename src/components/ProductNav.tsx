@@ -10,7 +10,7 @@ const products = [
 
 type Product = typeof products[number]['id'];
 
-export default function ProductNav({ current, onNavigate, iconOnly = false }: { current: Product; onNavigate?: () => void; iconOnly?: boolean }) {
+export default function ProductNav({ current, onNavigate, iconOnly = false, showBrand = true }: { current: Product; onNavigate?: () => void; iconOnly?: boolean; showBrand?: boolean }) {
   const [open, setOpen] = useState(false);
   const nav = useRef<HTMLElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -39,6 +39,7 @@ export default function ProductNav({ current, onNavigate, iconOnly = false }: { 
           button.current?.focus();
         }
       }}>
+      {current !== 'canvas' && <span className="product-brand"><BrandMark decorative /> marmerlade</span>}
       <div className="product-menu">
         <button ref={button} type="button" className="product-trigger" aria-label={label + ', switch workspace'}
           title={iconOnly ? label + ', switch workspace' : undefined} aria-expanded={open} aria-controls={listId} onClick={() => setOpen(!open)}>
@@ -60,7 +61,7 @@ export default function ProductNav({ current, onNavigate, iconOnly = false }: { 
           ))}
         </div>
       </div>
-      <BrandMark decorative />
+      {current === 'canvas' && showBrand && <BrandMark decorative />}
     </nav>
   );
 }

@@ -34,9 +34,10 @@ import { bindSelection } from '../sequence/selection';
 import { applySequenceStyles } from '../sequence/applyStyles';
 import { statements } from '../sequence/model';
 import { activeAppearance, useAppearance } from '../theme';
-import { exportFile, importFile } from '../persist';
+import { exportFile, importFile, saveForNavigation } from '../persist';
 import { useHash, parseRoute, openDocs } from '../route';
 import ProductNav from '../components/ProductNav';
+import BrandMark from '../components/BrandMark';
 import { DragPlacement } from '../components/DragPlacement';
 import { Icon } from '../components/Icon';
 import { NodeTransforms, type ResizePreview } from '../components/NodeTransforms';
@@ -437,6 +438,17 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     setHistory(history.slice(0, -1));
     setSelection([]);
   }
+  /** Clear canvas: remove every diagram from the board (pages, decks and folders stay); board undo restores them. */
+  function clearWorkspace() {
+    if (active) close();
+    save([]);
+    drafts.clear();
+    setSelection([]);
+    setExpansion(new Map());
+    setPlacement(undefined);
+    setCursor(undefined);
+    saveForNavigation();
+  }
   function remove(ids = selection) {
     if (!ids.length) return;
     if (active && ids.includes(active)) close();
@@ -550,7 +562,20 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
     save([...entities, ...copies]);
     setSelection(copies.map((entity) => entity.id));
   }
-  const workspaceActions = null;
+  const workspaceActions = (
+    <>
+      <span className="mf-menu-sep" />
+      <button
+        className="mf-menu-item mf-menu-danger"
+        role="menuitem"
+        disabled={!entities.length}
+        onClick={clearWorkspace}
+      >
+        <Icon name="trash" />
+        <span>Clear canvas</span>
+      </button>
+    </>
+  );
   const slots = opened
     ? {
         diagramId: opened.id,
@@ -584,6 +609,37 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
           role="toolbar"
           aria-label="Workspace canvas tools"
         >
+          <div className="diagram-toolbar-brand"><BrandMark decorative /><span>marmerlade</span></div>
+          <ToolbarMenu label="Add diagram" icon="plus">
+            {(closeMenu) =>
+              (['flowchart', 'sequence'] as const).map((kind) => {
+                const title = kind === 'flowchart' ? 'Flowchart' : 'Sequence';
+                return (
+                  <DragPlacement
+                    key={kind}
+                    previewLabel={title}
+                    onDrop={(point) => {
+                      add(kind, point);
+                      closeMenu();
+                    }}
+                  >
+                    <button
+                      className="mf-menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        setPlacement(kind);
+                        setCursor(undefined);
+                        closeMenu();
+                      }}
+                    >
+                      <Icon name={kind === 'flowchart' ? 'flowchart' : 'sequence'} />
+                      {title}
+                    </button>
+                  </DragPlacement>
+                );
+              })
+            }
+          </ToolbarMenu>
           <div className="mf-toolbar-slot" ref={setToolbar} />
           {!opened && (
             <ToolbarMenu label="Export" icon="export">
@@ -629,37 +685,7 @@ function Board({ Editor }: { Editor: FlowchartEditor }) {
               )}
             </ToolbarMenu>
           )}
-          <ToolbarMenu label="Add diagram" icon="plus">
-            {(closeMenu) =>
-              (['flowchart', 'sequence'] as const).map((kind) => {
-                const title = kind === 'flowchart' ? 'Flowchart' : 'Sequence';
-                return (
-                  <DragPlacement
-                    key={kind}
-                    previewLabel={title}
-                    onDrop={(point) => {
-                      add(kind, point);
-                      closeMenu();
-                    }}
-                  >
-                    <button
-                      className="mf-menu-item"
-                      role="menuitem"
-                      onClick={() => {
-                        setPlacement(kind);
-                        setCursor(undefined);
-                        closeMenu();
-                      }}
-                    >
-                      <Icon name={kind === 'flowchart' ? 'flowchart' : 'sequence'} />
-                      {title}
-                    </button>
-                  </DragPlacement>
-                );
-              })
-            }
-          </ToolbarMenu>
-          <ProductNav current="canvas" iconOnly={compact} />
+          <ProductNav current="canvas" showBrand={false} />
         </nav>
         <div className="mf-style-slot" ref={setStylePanel} />
         {placement && (

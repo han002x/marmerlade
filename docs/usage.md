@@ -199,7 +199,7 @@ natively; Marp needs a Mermaid plugin, and HTML enabled to show objects. Deck li
 
 The diagram autosaves to `localStorage` and restores on
 reload, so nothing is lost on refresh. Export / import a `.marmerlade.json` file,
-or clear the canvas, from the toolbar. Older single-page saves and JSON files
+or clear the canvas (removes every diagram from the workspace; undo restores them), from the toolbar. Older single-page saves and JSON files
 migrate automatically. Workspaces containing diagram entities save as version 5, including every diagram and its frame position and size.
 
 ## Paper and ink
@@ -214,7 +214,7 @@ Sloppiness picks **Ink** (clean), **Sketch** (default) or **Scribble**.
 
 Choose Paper, Night Paper, Clean, Blueprint, Terminal,
 Sepia, Classic (black and white), Halloween, or one editable Custom style in the right panel’s **Appearance** tab. Open it from **More actions → Appearance** or
-press `T`. Color changes appear on the canvas as you adjust them. Wiki and slides headers also have an Appearance button. Custom
+press `T`. Color changes appear on the canvas as you adjust them. Wiki and slides have an Appearance tab in the left panel. Custom
 controls colors, fonts, wiki/slides icon symbols and colors, sketchiness, corners, texture, and shadows, with
 changes saved automatically across windows. Selecting a style resets existing
 diagram and slide styling; individual styling controls work afterward and

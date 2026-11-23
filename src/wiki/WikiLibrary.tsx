@@ -78,7 +78,7 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
   pageId: string | null;
   href: (id: string) => string;
   onOpen: () => void;
-  onCreate: (folderId: string) => void;
+  onCreate: (folderId?: string) => void;
 }) {
   const pages = useDiagram(state => state.pages);
   const folders = useDiagram(state => state.wikiFolders);
@@ -207,7 +207,10 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
   return <>
     <div className="wk-library-actions" ref={searchRegion}>
       <LibrarySearch label="Search pages" value={query} onChange={setQuery} />
-      <button className="wk-btn" onClick={() => setAction({ kind: 'create', parentId: null })}>New folder</button>
+      <Menu label="New" align="end" button={<><Icon name="plus" size={14} /> New</>}>
+        <button role="menuitem" onClick={() => onCreate()}>New page</button>
+        <button role="menuitem" onClick={() => setAction({ kind: 'create', parentId: null })}>New folder</button>
+      </Menu>
     </div>
     <nav className="wk-navigation" aria-label="Wiki pages">
       {results ? (

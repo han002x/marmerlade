@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { retitleField } from '../retitle';
 import { useDiagram, useEntities } from '../store';
-import { openAppearance, activeAppearance } from '../theme';
+import { activeAppearance } from '../theme';
+import { AppearanceSettings } from '../components/AppearanceSettings';
 import { nodesOfPage, pathTo } from '../pages';
 import {
   addBox, BLOCKS, boxCaret, deckFileName, duplicateBox, editSlides, insertBlock, removeBox, setBox, setBoxContent, setDeckStyle, setSlideStyle,
@@ -10,7 +11,7 @@ import {
 } from '../slides';
 import { EMBED_MAX_SIDE, readImageFile } from '../imageUpload';
 import { dragged, dragMode, RESIZE_HANDLES, type DragMode, type Point } from './drag';
-import { isTyping } from '../useHotkeys';
+import { isTyping, useHotkeys } from '../useHotkeys';
 import { BoxBar, StylePanel } from './Design';
 import { deckHref, openNode } from '../route';
 import BrandMark from '../components/BrandMark';
@@ -66,9 +67,11 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
   // the narrow-screen index closes itself once a deck is chosen
   const [index, setIndex] = useState<{ at: string | null } | null>(null);
   const indexOpen = index !== null && index.at === deckId;
-  const [sidebar, setSidebar] = useState<{ at: string | null; view: 'slides' | 'decks' }>({ at: deckId, view: 'slides' });
+  const [sidebar, setSidebar] = useState<{ at: string | null; view: 'slides' | 'decks' | 'appearance' }>({ at: deckId, view: 'slides' });
   const [deckQuery, setDeckQuery] = useState('');
-  const showDecks = !deck || sidebar.view === 'decks' && sidebar.at === deckId;
+  const showAppearance = sidebar.view === 'appearance' && sidebar.at === deckId;
+  const showDecks = !showAppearance && (!deck || sidebar.view === 'decks' && sidebar.at === deckId);
+  useHotkeys([{ key: 't', run: () => { if (!slide) { setSidebar({ at: deckId, view: 'appearance' }); setIndex({ at: deckId }); } } }]);
   const filteredDecks = useMemo(() => decks.filter(deck => matchesTitle(libraryTitle(deck), deckQuery)).sort(byLibraryTitle), [deckQuery, decks]);
   const where = (id: string) => pathTo(nodes, id).map((n) => n.label || 'Untitled').join(' › ');
 
@@ -391,18 +394,16 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
       <aside className="wk-index" id="deck-sidebar">
         <div className="wk-index-head">
           <ProductNav current="slides" onNavigate={() => setIndex(null)} />
-          <button className="wk-icon" onClick={openAppearance} title="Appearance" aria-label="Appearance">
-            <Icon name={'shapes'} size={15} />
-          </button>
           {showDecks && <button className="wk-icon" onClick={create} title="New deck" aria-label="New deck">
             <Icon name="plus" size={15} />
           </button>}
         </div>
-        {deck && <div className="wk-library-views" role="group" aria-label="Sidebar view">
-          <button className="wk-btn" aria-pressed={showDecks} onClick={() => setSidebar({ at: deckId, view: 'decks' })}>Decks</button>
-          <button className="wk-btn" aria-pressed={!showDecks} onClick={() => setSidebar({ at: deckId, view: 'slides' })}>Slides</button>
-        </div>}
-        {showDecks ? <>
+        <div className="wk-library-views" role="group" aria-label="Sidebar view">
+          <button className="wk-btn" aria-label="Decks" title="Decks" aria-pressed={showDecks} onClick={() => setSidebar({ at: deckId, view: 'decks' })}><Icon name="deck" size={16} /><span>Decks</span></button>
+          {deck && <button className="wk-btn" aria-label="Slides" title="Slides" aria-pressed={!showDecks && !showAppearance} onClick={() => setSidebar({ at: deckId, view: 'slides' })}><Icon name="grid" size={16} /><span>Slides</span></button>}
+          <button className="wk-btn" aria-label="Appearance" title="Appearance" aria-pressed={showAppearance} onClick={() => setSidebar({ at: deckId, view: 'appearance' })}><Icon name="palette" size={16} /><span>Appearance</span></button>
+        </div>
+        {showAppearance ? <div className="mf-appearance mf-appearance-docked" role="region" aria-label="Appearance"><AppearanceSettings /></div> : showDecks ? <>
           <LibrarySearch label="Search decks" value={deckQuery} onChange={setDeckQuery} />
           <nav className="wk-navigation" aria-label="Slide decks">
             {filteredDecks.length > 0 ? <ul className="wk-tree-list">
@@ -431,10 +432,10 @@ export default function SlidesApp({ deckId, nodeId, slide, presenter }: {
               setIndex(indexOpen ? null : { at: deckId });
               const app = event.currentTarget.closest('.wk');
               if (!indexOpen) requestAnimationFrame(() => app?.querySelector<HTMLElement>(
-                showDecks ? '.product-trigger' : '.sl-thumbnail-select[aria-current]',
+                showDecks || showAppearance ? '.product-trigger' : '.sl-thumbnail-select[aria-current]',
               )?.focus());
             }}>
-            <BrandMark size={20} decorative /> {showDecks ? 'Decks' : 'Slides'}
+            <BrandMark size={20} decorative /> {showAppearance ? 'Appearance' : showDecks ? 'Decks' : 'Slides'}
           </button>
           <nav className="wk-crumbs" aria-label="Linked nodes">
             {deck && <NodeLinks kind="deckIds" id={deck.id} nodeId={nodeId} />}

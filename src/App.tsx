@@ -167,7 +167,6 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     await fitView({ padding: 0.25, duration: 0 });
     await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   }), [fitView]);
-  const load = useDiagram((s) => s.load);
   const theme = useTheme();
   const selected = useDiagram((s) => s.selectedNodeIds);
   const selectedEdges = useDiagram((s) => s.selectedEdgeIds);
@@ -246,16 +245,6 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     },
     [fitView],
   );
-
-  const clearCanvas = useCallback(() => {
-    const state = useDiagram.getState();
-    if(state.activeDiagramId)state.loadMermaid('flowchart TD');
-    else load({ ...state, nodes: [], edges: [] });
-    useDiagram.setState({ sequenceHistory: state.sequenceHistory });
-    saveForNavigation();
-    useDock.getState().setOpen(false);
-    window.dispatchEvent(new Event(WELCOME_EVENT));
-  }, [load]);
 
   const tidy = useCallback(
     (direction: 'TB' | 'LR') => {
@@ -1012,18 +1001,6 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
                 <span>Docs</span>
               </button>
               {slots && <div onClick={()=>setMenuOpen(false)}>{slots.workspaceActions}</div>}
-              <span className="mf-menu-sep" />
-              <button
-                className="mf-menu-item mf-menu-danger"
-                role="menuitem"
-                onClick={() => {
-                  setMenuOpen(false);
-                  clearCanvas();
-                }}
-              >
-                <Icon name="trash" />
-                <span>Clear canvas</span>
-              </button>
             </div>
           )}
         </div>

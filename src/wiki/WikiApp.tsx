@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { retitleField } from '../retitle';
 import { useDiagram } from '../store';
-import { openAppearance } from '../theme';
+import { useHotkeys } from '../useHotkeys';
+import { AppearanceSettings } from '../components/AppearanceSettings';
 import { backlinks, nodesOfPage, pathTo } from '../pages';
 import { openNode, pageHref } from '../route';
 import BrandMark from '../components/BrandMark';
@@ -21,6 +22,8 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
   const node = pageNodes.find((n) => n.id === nodeId) ?? pageNodes[0];
   const linked = page ? backlinks(page, nodes, pages) : [];
   const [mode, setMode] = useState<PageMode>('edit');
+  const [sidebar, setSidebar] = useState<'pages' | 'appearance'>('pages');
+  useHotkeys([{ key: 't', run: () => { setSidebar('appearance'); setIndex({ at: pageId }); } }]);
   // the narrow-screen index closes itself once a page is chosen
   const [index, setIndex] = useState<{ at: string | null } | null>(null);
   const indexOpen = index !== null && index.at === pageId;
@@ -58,15 +61,14 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
       <aside className="wk-index" id="wiki-sidebar">
         <div className="wk-index-head">
           <ProductNav current="wiki" onNavigate={() => setIndex(null)} />
-          <button className="wk-icon" onClick={openAppearance} title="Appearance" aria-label="Appearance">
-            <Icon name={'shapes'} size={15} />
-          </button>
-          <button className="wk-icon" onClick={() => create()} title="New page" aria-label="New page">
-            <Icon name="plus" size={15} />
-          </button>
         </div>
-        <WikiLibrary pageId={pageId} onOpen={() => setIndex(null)} onCreate={create}
-          href={id => pageHref(id, id === pageId ? nodeId : undefined)} />
+        <div className="wk-library-views" role="group" aria-label="Sidebar view">
+          <button className="wk-btn" aria-label="Pages" title="Pages" aria-pressed={sidebar === 'pages'} onClick={() => setSidebar('pages')}><Icon name="page" size={16} /><span>Pages</span></button>
+          <button className="wk-btn" aria-label="Appearance" title="Appearance" aria-pressed={sidebar === 'appearance'} onClick={() => setSidebar('appearance')}><Icon name="palette" size={16} /><span>Appearance</span></button>
+        </div>
+        {sidebar === 'pages' ? <WikiLibrary pageId={pageId} onOpen={() => setIndex(null)} onCreate={create}
+          href={id => pageHref(id, id === pageId ? nodeId : undefined)} /> :
+          <div className="mf-appearance mf-appearance-docked" role="region" aria-label="Appearance"><AppearanceSettings /></div>}
       </aside>
       <button className="wk-scrim" aria-label="Close pages" onClick={() => setIndex(null)} />
 

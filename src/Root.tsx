@@ -32,7 +32,7 @@ export default function Root({ showWelcome }: { showWelcome: boolean }) {
   }, [product])
   return <>
     <Suspense fallback={null}><Route route={route} showWelcome={showWelcome} /></Suspense>
-    {product !== 'canvas' && <AppearanceDialog />}
+    {product === 'docs' && <AppearanceDialog />}
     <WorkspaceStatus />
     {route.kind === 'slides' && route.presenter ? null : <RefHover />}
   </>

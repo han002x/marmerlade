@@ -1002,10 +1002,22 @@ export default function SequenceEditor({ slots }: { slots?: SequenceSlots }) {
             </div>
           )}
           {!action && !rows.length && tool === 'select' && (
-            <div className="sq-empty sq-start">
-              <h2>Sequence diagram</h2>
-              <button onClick={() => setTool('participant')}>Add participant</button>
-              <button onClick={openSource}>Paste Mermaid</button>
+            <div className="sq-start">
+              <h2>Start a sequence diagram</h2>
+              <button type="button" className="sq-start-primary" onClick={() => setTool('participant')}>
+                <Icon name="plus" size={20} />
+                <span>
+                  <strong>Add participant</strong>
+                  <small>Place the first lifeline on the canvas</small>
+                </span>
+              </button>
+              <button type="button" onClick={openSource}>
+                <Icon name="code" size={20} />
+                <span>
+                  <strong>Paste Mermaid</strong>
+                  <small>Open the source editor to paste a diagram</small>
+                </span>
+              </button>
             </div>
           )}
           {!action && (error || renderError) && !(panel && view === 'mermaid' && draft !== source) && (

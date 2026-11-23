@@ -39,6 +39,7 @@ import { useHash, parseRoute, openDocs } from '../route';
 import ProductNav from '../components/ProductNav';
 import BrandMark from '../components/BrandMark';
 import { Welcome } from '../components/Welcome';
+import { PasteSource } from '../components/PasteSource';
 import { DragPlacement } from '../components/DragPlacement';
 import { Icon } from '../components/Icon';
 import { NodeTransforms, type ResizePreview } from '../components/NodeTransforms';
@@ -219,6 +220,16 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
   const empty = entities.length === 0;
   const [welcome, setWelcome] = useState(() => empty || showWelcome);
   const dismissWelcome = useCallback(() => setWelcome(false), []);
+  const pasteMermaid = useCallback(() => {
+    useDock.getState().setView('mermaid');
+    useDock.getState().setOpen(true);
+    const focus = (tries: number) => {
+      const box = document.querySelector<HTMLTextAreaElement>('.mf-mermaid-text');
+      if (box) box.focus();
+      else if (tries > 0) requestAnimationFrame(() => focus(tries - 1));
+    };
+    requestAnimationFrame(() => focus(10));
+  }, []);
   const wasEmpty = useRef(empty);
   useEffect(() => {
     if (wasEmpty.current !== empty) {
@@ -481,11 +492,18 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
         setCursor(undefined);
         return;
       }
-      if (placement || active) return;
+      if (placement) return;
       if (selection.length && (event.key === 'Delete' || event.key === 'Backspace')) {
+        // An open diagram deletes its own selected elements first; with nothing picked inside it, the diagram goes.
+        if (active && document.querySelector(
+          `.diagram-editor[data-diagram-id="${CSS.escape(active)}"] :is(.react-flow__node.selected, .react-flow__edge.selected, .sq-selected)`,
+        )) return;
         event.preventDefault();
+        event.stopPropagation();
         remove(selection);
+        return;
       }
+      if (active) return;
       if ((event.ctrlKey || event.metaKey) && event.key === 'z' && history.length) {
         event.preventDefault();
         undo();
@@ -607,7 +625,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
           });
         }}
       >
-        {welcome && <Welcome onDone={dismissWelcome} onAddDiagram={(kind) => createDiagram(kind, { x: 0, y: 0 })} />}
+        {welcome && <Welcome onDone={dismissWelcome} onAddDiagram={(kind) => createDiagram(kind, { x: 0, y: 0 })} onPasteMermaid={pasteMermaid} />}
         {opened && (
           <button
             type="button"
@@ -958,7 +976,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
             ) : opened?.kind === 'sequence' ? (
               <div className="mf-sequence-source" ref={setSequenceSource} />
             ) : (
-              <p className="mf-tree-empty">Select a diagram to edit its Mermaid source.</p>
+              <PasteSource />
             )
           }
         />

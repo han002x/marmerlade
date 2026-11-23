@@ -7,7 +7,7 @@
   color: var(--mf-text);
   font: 14px var(--mf-ui-font);
 }
-:is(.sq-inline, .sq-start, .sq-canvas-error) :is(button, select, input, textarea) {
+:is(.sq-inline, .sq-canvas-error) :is(button, select, input, textarea) {
   font: inherit;
   color: inherit;
   border: 1px solid var(--mf-border);
@@ -15,7 +15,7 @@
   background: var(--mf-input);
   padding: 5px 8px;
 }
-:is(.sq-inline, .sq-start, .sq-canvas-error) button {
+:is(.sq-inline, .sq-canvas-error) button {
   cursor: pointer;
 }
 .sq-work {
@@ -35,9 +35,6 @@
 }
 .sq-empty {
   text-align: center;
-}
-.sq-empty button + button {
-  margin-left: 0.6em;
 }
 .sq-image {
   background: var(--mf-bg);
@@ -284,15 +281,58 @@
 .sq-start {
   top: 50%;
   transform: translate(-50%, -50%);
-  padding: 12px 16px;
-  max-width: calc(100% - 16px);
+  display: grid;
+  gap: 8px;
+  width: min(340px, calc(100% - 16px));
   max-height: calc(100% - 16px);
+  padding: 16px;
   box-sizing: border-box;
   overflow: auto;
 }
 .sq-start h2 {
-  margin: 0 0 8px;
-  font-size: 15px;
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.sq-start button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius);
+  background: transparent;
+  color: var(--mf-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sq-start .sq-start-primary {
+  background: color-mix(in srgb, var(--mf-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--mf-accent) 45%, var(--mf-border));
+}
+.sq-start button:hover {
+  background: color-mix(in srgb, var(--mf-accent) 20%, transparent);
+  border-color: var(--mf-accent);
+}
+.sq-start button:focus-visible {
+  outline: 2px solid var(--mf-accent);
+  outline-offset: 2px;
+}
+.sq-start button svg {
+  flex: none;
+  color: var(--mf-muted);
+}
+.sq-start .sq-start-primary svg {
+  color: var(--mf-accent);
+}
+.sq-start strong,
+.sq-start small {
+  display: block;
+}
+.sq-start small {
+  margin-top: 3px;
+  color: var(--mf-muted);
+  font-size: 12px;
 }
 .sq-export-stage {
   position: fixed;

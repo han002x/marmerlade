@@ -2185,18 +2185,54 @@
   stroke-width: 1.2;
   opacity: 0.55;
 }
-.mf-welcome-brand {
+.mf-welcome-content {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  animation: mf-fade 500ms ease-out backwards;
+}
+.mf-welcome-brand {
   display: flex;
   align-items: center;
   gap: 14px;
-  animation: mf-fade 500ms ease-out backwards;
 }
 .mf-welcome-brand .mf-brand {
-  font-size: 64px;
+  font-size: clamp(32px, 10vw, 64px);
   padding: 0;
+}
+.mf-welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.mf-welcome-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--mf-border);
+  border-radius: 7px;
+  color: var(--mf-text);
+  background: var(--mf-panel);
+  box-shadow: var(--mf-lift);
+  font: 500 13px var(--mf-ui-font, var(--mf-sans));
+  cursor: pointer;
+  pointer-events: auto;
+}
+.mf-welcome-actions button:hover {
+  border-color: var(--mf-accent);
+  color: var(--mf-accent);
+}
+.mf-welcome-actions button:focus-visible {
+  outline: 2px solid var(--mf-accent);
+  outline-offset: 2px;
 }
 .mf-welcome-note {
   position: absolute;
@@ -2233,7 +2269,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .mf-welcome,
-  .mf-welcome-brand,
+  .mf-welcome-content,
   .mf-welcome-note {
     animation: none;
     transition: none;

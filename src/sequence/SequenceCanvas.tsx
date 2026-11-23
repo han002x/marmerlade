@@ -732,7 +732,7 @@ export default function SequenceCanvas({
       key: 't',
       run: () => useDock.setState({ open: true, view: 'appearance' }),
     },
-    { key: 'm', run: onSource },
+    { key: ' ', run: onSource },
   ]);
 
   const selectedLane = selectedActor ?? (selected?.kind === 'participant' ? selected.values[0] : undefined);

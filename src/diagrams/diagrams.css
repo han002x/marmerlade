@@ -20,6 +20,19 @@
 .mf-style-slot {
   display: contents;
 }
+.mf-style-slot[hidden] {
+  display: none;
+}
+.diagram-board > .diagram-panel-toggle {
+  left: 14px;
+  right: auto;
+  z-index: 7;
+}
+.mf-workspace > .diagram-board:has(> .diagram-panel-toggle) > .mf-toolbar {
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 116px);
+}
 .diagram-toolbar-brand {
   display: flex;
   align-items: center;

@@ -177,7 +177,7 @@ body,
   font: inherit;
 }
 
-.product-trigger span, .product-check {
+.product-trigger span:not(.product-label):not(.brand-initial), .product-check {
   color: var(--mf-muted);
   font-size: 0.9em;
 }

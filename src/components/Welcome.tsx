@@ -1,7 +1,9 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import BrandMark from './BrandMark';
+import { Icon } from './Icon';
 import type { FitViewOptions } from '@xyflow/react';
+import type { DiagramEntity } from '../types';
 const KEY = 'marmerlade.welcomed';
 
 /** Fired to show the first-run notes again (e.g. after Clear canvas). */
@@ -58,12 +60,19 @@ function arrow(from: Pt, to: Pt, bend: number): string[] {
 }
 
 /**
- * First-run notes drawn over the canvas: hand-inked arrows to the toolbar and
- * to the (closed) side panel. Any click or key dismisses them for good.
+ * First-run notes drawn over the canvas with optional diagram shortcuts.
  */
-export function Welcome({ onDone }: { onDone: () => void }) {
+export function Welcome({ onDone, onAddDiagram }: {
+  onDone: () => void;
+  onAddDiagram?: (kind: DiagramEntity['kind']) => void;
+}) {
   const [rects, setRects] = useState<Rects | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const actions = useRef<HTMLDivElement>(null);
+  const dismiss = useCallback(() => {
+    markWelcomed();
+    setLeaving(true);
+  }, []);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -83,20 +92,27 @@ export function Welcome({ onDone }: { onDone: () => void }) {
   }, []);
 
   useEffect(() => {
-    let timer: number | undefined;
-    const dismiss = () => {
-      markWelcomed();
-      setLeaving(true);
-      timer = window.setTimeout(onDone, 220);
+    if (leaving) {
+      const timer = window.setTimeout(onDone, 220);
+      return () => window.clearTimeout(timer);
+    }
+    const dismissOutside = (event: Event) => {
+      if (event.target instanceof Node && actions.current?.contains(event.target)) return;
+      if (event instanceof KeyboardEvent && (event.key === 'Tab' || event.key === 'Shift')) return;
+      dismiss();
     };
-    window.addEventListener('pointerdown', dismiss, { capture: true, once: true });
-    window.addEventListener('keydown', dismiss, { capture: true, once: true });
+    window.addEventListener('pointerdown', dismissOutside, true);
+    window.addEventListener('keydown', dismissOutside, true);
     return () => {
-      window.removeEventListener('pointerdown', dismiss, { capture: true });
-      window.removeEventListener('keydown', dismiss, { capture: true });
-      window.clearTimeout(timer);
+      window.removeEventListener('pointerdown', dismissOutside, true);
+      window.removeEventListener('keydown', dismissOutside, true);
     };
-  }, [onDone]);
+  }, [dismiss, leaving, onDone]);
+
+  function startDiagram(kind: DiagramEntity['kind']) {
+    dismiss();
+    onAddDiagram?.(kind);
+  }
 
   if (!rects) return null;
   const { bar, panel, vw } = rects;
@@ -114,8 +130,8 @@ export function Welcome({ onDone }: { onDone: () => void }) {
   );
 
   return (
-    <div className={leaving ? 'mf-welcome is-leaving' : 'mf-welcome'} aria-hidden="true">
-      <svg className="mf-welcome-ink">
+    <div className={leaving ? 'mf-welcome is-leaving' : 'mf-welcome'}>
+      <svg className="mf-welcome-ink" aria-hidden="true">
         {[toolbarArrow, panelArrow].map((paths, i) =>
           paths.map((d, j) => (
             <path
@@ -128,16 +144,30 @@ export function Welcome({ onDone }: { onDone: () => void }) {
           )),
         )}
       </svg>
-      <div className="mf-welcome-brand" style={{ top: bar.bottom + 160 }}>
-        <BrandMark size={64} decorative />
-        <span className="mf-brand">mar<span className="brand-initial">m</span>erlade</span>
+      <div className="mf-welcome-content" style={{ top: bar.bottom + 160 }}>
+        <div className="mf-welcome-brand" aria-hidden="true">
+          <BrandMark size={64} decorative />
+          <span className="mf-brand">mar<span className="brand-initial">m</span>erlade</span>
+        </div>
+        {onAddDiagram && (
+          <div className="mf-welcome-actions" ref={actions} inert={leaving}>
+            <button type="button" onClick={() => startDiagram('flowchart')}>
+              <Icon name="flowchart" />
+              Add flowchart
+            </button>
+            <button type="button" onClick={() => startDiagram('sequence')}>
+              <Icon name="sequence" />
+              Add sequenceDiagram
+            </button>
+          </div>
+        )}
       </div>
-      <p className="mf-welcome-note" style={{ left: left.x, top: left.y }}>
+      <p className="mf-welcome-note" style={{ left: left.x, top: left.y }} aria-hidden="true">
         Add a diagram, play, export
       </p>
-      <p className="mf-welcome-note is-right" style={{ right: vw - right.x, top: right.y }}>
+      <p className="mf-welcome-note is-right" style={{ right: vw - right.x, top: right.y }} aria-hidden="true">
         Mermaid, tree, pages, slides
-        <kbd>M</kbd>
+        <kbd>Space</kbd>
       </p>
     </div>
   );

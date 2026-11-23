@@ -9,17 +9,18 @@ const test = base.extend<{ browserErrors: string[] }>({
   }, { auto: true }],
 });
 const BODY = '# Launch\n\n<!-- open warmly -->\n\n---\n\n## System\n\n{{diagram}}\n\n---\n\n```mermaid\nflowchart TD\n  x --> y\n```';
-async function seed(page: Page, hash = '/#/slides/d?node=a') {
-  await page.addInitScript(({ body }) => {
+async function seed(page: Page, hash = '/#/slides/d?node=a', grouped = false) {
+  await page.addInitScript(({ body, grouped }) => {
     if (!localStorage.getItem('marmerlade.diagram')) localStorage.setItem('marmerlade.diagram', JSON.stringify({ version: 3, diagram: {
       nodes: [
-        { id: 'a', label: 'API', shape: 'rect', parentId: null, collapsed: false, position: { x: 0, y: 0 }, deckIds: ['d'] },
+        ...(grouped ? [{ id: 'projects', label: 'Projects', shape: 'rect', parentId: null, collapsed: false, position: { x: 0, y: 0 } }] : []),
+        { id: 'a', label: 'API', shape: 'rect', parentId: grouped ? 'projects' : null, collapsed: false, position: { x: 0, y: 0 }, deckIds: ['d'] },
         { id: 'b', label: 'DB', shape: 'rect', parentId: null, collapsed: false, position: { x: 0, y: 200 } },
       ],
       edges: [{ id: 'e', source: 'a', target: 'b' }],
       pages: [], decks: [{ id: 'd', title: 'Launch', body, updatedAt: 1 }],
     } }));
-  }, { body: BODY });
+  }, { body: BODY, grouped });
   await page.goto(hash);
   if (/\/#\/slides\/[^?]+/.test(hash) && !hash.includes('slide=')) await page.getByRole('tab', { name: 'Source', exact: true }).click();
 }
@@ -424,21 +425,29 @@ test('decks: create, link to a node, export, delete', async ({ page }) => {
 });
 
 test('the canvas shows a node\'s deck in the Slides tab', async ({ page, context }) => {
-  await seed(page, '/');
+  await seed(page, '/#/diagrams/flowchart', true);
+  await page.getByRole('button', { name: 'Open Mermaid panel' }).click();
   const panel = page.getByRole('tabpanel', { name: 'Slides' });
+  const diagramTabs = page.getByRole('tablist', { name: 'Diagram views' });
+  const deckLibrary = panel.getByRole('navigation', { name: 'Slide decks' });
   // With nothing selected, the Slides tab lists decks.
-  await page.getByRole('tab', { name: 'Slides', exact: true }).click();
-  await expect(page.getByRole('tab', { name: 'Slides', exact: true })).toHaveAttribute('aria-selected', 'true');
-  await panel.getByRole('link', { name: 'Launch' }).click();
+  await diagramTabs.getByRole('tab', { name: 'Slides', exact: true }).click();
+  await deckLibrary.getByRole('button', { name: 'Collapse Projects' }).click();
+  await expect(deckLibrary.getByRole('link', { name: 'Launch' })).toHaveCount(0);
+  await panel.getByRole('searchbox', { name: 'Search decks' }).fill('launch');
+  await deckLibrary.getByRole('link', { name: 'Launch' }).click();
+  await panel.getByRole('searchbox', { name: 'Search decks' }).clear();
   await expect(panel.getByLabel('Deck title')).toHaveValue('Launch');
-  await expect(page.locator('.react-flow__node.selected')).toContainText('API');
+  const api = page.locator('.react-flow__node[data-id="a"]');
+  await expect(api).toHaveClass(/selected/);
   await expect(panel.locator('.sl-slide')).toHaveCount(3);
   await expect(panel.locator('.sl-slide').nth(1).locator('[data-embed] svg')).toContainText('DB');
 
-  // a node's own button creates its deck the first time
-  const db = page.locator('.react-flow__node', { hasText: 'DB' });
+  // A node's own button opens the tab where a deck can be created.
+  const db = page.locator('.react-flow__node[data-id="b"]');
   await db.hover();
   await db.getByRole('button', { name: 'Open slides', exact: true }).click();
+  await panel.getByRole('button', { name: 'New deck', exact: true }).click();
   await expect(panel.getByLabel('Deck title')).toHaveValue('DB');
   await expect(db.getByRole('button', { name: 'Open slides', exact: true })).toHaveClass(/has-page/);
   await expect(db.getByRole('button', { name: 'Open page', exact: true })).not.toHaveClass(/has-page/);
@@ -450,16 +459,25 @@ test('the canvas shows a node\'s deck in the Slides tab', async ({ page, context
   await panel.getByRole('tab', { name: 'Slides', exact: true }).click();
   await expect(panel.locator('.sl-slide')).toHaveText(['Storage', 'Replicas']);
 
-  // decks on a node: link another, switch, unlink
-  await panel.getByRole('button', { name: 'Decks on this node', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Launch', exact: true }).click();
+  // The folder browser links another deck to DB and highlights both links.
+  const launch = deckLibrary.getByRole('button', { name: 'Launch', exact: true });
+  const storage = deckLibrary.getByRole('button', { name: 'DB', exact: true });
+  await launch.click();
   await expect(panel.getByLabel('Deck title')).toHaveValue('Launch');
+  await expect(db).toHaveClass(/selected/);
+  await expect(launch).toHaveClass(/\blinked\b/);
+  await expect(storage).toHaveClass(/\blinked\b/);
+  await storage.click();
+  await expect(storage).toHaveAttribute('aria-current', 'page');
+  await expect(launch).toHaveClass(/\blinked\b/);
+  await launch.click();
   await panel.getByRole('button', { name: 'Decks on this node', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Unlink from DB', exact: true }).click();
   await expect(panel.getByLabel('Deck title')).toHaveValue('DB');
+  await expect(launch).not.toHaveClass(/\blinked\b/);
 
   // K does the same from the keyboard; the tree lists the deck
-  await page.locator('.react-flow__node', { hasText: 'API' }).click();
+  await api.click();
   await page.keyboard.press('k');
   await expect(panel.getByLabel('Deck title')).toHaveValue('Launch');
   await page.getByRole('tab', { name: 'Tree', exact: true }).click();

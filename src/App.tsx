@@ -170,7 +170,6 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const selected = useDiagram((s) => s.selectedNodeIds);
   const selectedEdges = useDiagram((s) => s.selectedEdgeIds);
   const single = selected.length === 1 && !selectedEdges.length ? nodes.find((n) => n.id === selected[0]) : undefined;
-  const explanation = useDiagram((s) => pageOf(single, s.pages));
   const linkedDeck = useDiagram((s) => pageOf(single, s.decks, 'deckIds'));
   const setSelection = useDiagram((s) => s.setSelection);
   const groupNodes = useDiagram((s) => s.groupNodes);
@@ -869,7 +868,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         { key: 'e', run: toggleMode },
         { key: '[', run: () => foldLevel('fold') },
         { key: ']', run: () => foldLevel('unfold') },
-        { key: 'm', run: onTogglePanel },
+        { key: ' ', run: onTogglePanel },
         { key: 'z', meta: true, run: undo },
         { key: 'g', meta: true, run: groupSelection },
         { key: 'g', run: groupSelection },
@@ -1101,19 +1100,11 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
       >
         <NodeToolbar
           nodeId={selected.map(shown.endOf)}
-          isVisible={groupAction !== null || !!single}
+          isVisible={groupAction !== null || !!linkedDeck}
           position={Position.Top}
           offset={30}
         >
           <div className="mf-selbar">
-            {single && <button className="mf-selbar-btn" title={explanation ? explanation.title || 'Untitled page' : 'Add explanation'} onClick={() => {
-              const id = explanation?.id ?? useDiagram.getState().openPage(single.id);
-              if (!id) return;
-              showPage(single.id, id);
-              useDock.getState().setMode(explanation ? 'read' : 'edit');
-            }}>
-              <Icon name="page" size={15} /><span>{explanation ? explanation.title || 'Untitled page' : 'Add explanation'}</span>
-            </button>}
             {single && linkedDeck && <button className="mf-selbar-btn" title={`Present ${linkedDeck.title}`} onClick={() => {
               saveForNavigation();
               window.location.hash = deckHref(linkedDeck.id, single.id, 1);
@@ -1233,7 +1224,7 @@ function DiagramEditor({ showWelcome, diagramKind, slots }: { showWelcome: boole
           ) : (
             <button
               className="mf-reopen"
-              title="Mermaid  ·  M"
+              title="Mermaid  ·  Space"
               aria-label="Open Mermaid panel"
               onClick={() => setPanelOpen(true)}
             >

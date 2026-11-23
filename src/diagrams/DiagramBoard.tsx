@@ -206,6 +206,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
   const [error, setError] = useState('');
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null);
   const [stylePanel, setStylePanel] = useState<HTMLDivElement | null>(null);
+  const [stylePanelOpen, setStylePanelOpen] = useState(true);
   const [sequenceOutline, setSequenceOutline] = useState<HTMLDivElement | null>(null);
   const [sequenceSource, setSequenceSource] = useState<HTMLDivElement | null>(null);
   const [sequenceTarget, setSequenceTarget] = useState<{ id: string; target: SequenceTarget }>();
@@ -370,7 +371,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
       ? []
       : [
           {
-            key: 'm',
+            key: ' ',
             run: () => {
               if (!active) setPanelOpen(!useDock.getState().open);
             },
@@ -389,13 +390,16 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
   }
   function add(kind: DiagramEntity['kind'], client: XYPosition) {
     const target = document.elementFromPoint(client.x, client.y);
-    if (!target || !board.current?.contains(target) || target.closest('.mf-toolbar,.mf-style-panel,.react-flow__panel,dialog'))
+    if (!target || !board.current?.contains(target) || target.closest('.mf-toolbar,.diagram-panel-toggle,.mf-style-panel,.react-flow__panel,dialog'))
       return;
+    createDiagram(kind, screenToFlowPosition(client));
+  }
+  function createDiagram(kind: DiagramEntity['kind'], start: XYPosition) {
     const size = { width: 900, height: 650 };
     const base = {
       id: crypto.randomUUID(),
       title: uniqueTitle(entities, '', kind === 'flowchart' ? 'Flowchart' : 'Sequence'),
-      position: freeSpot(screenToFlowPosition(client), size),
+      position: freeSpot(start, size),
       size,
     };
     const entity: DiagramEntity =
@@ -403,8 +407,6 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
         ? { ...base, kind, nodes: [], edges: [] }
         : { ...base, kind, source: 'sequenceDiagram' };
     save([...entities, entity]);
-    setPlacement(undefined);
-    setCursor(undefined);
     // A new diagram is created to be filled in, so open it and bring it into view.
     open(entity.id);
   }
@@ -460,7 +462,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
     setCursor(undefined);
     saveForNavigation();
   }
-  function remove(ids = selection) {
+  function remove(ids: string[]) {
     if (!ids.length) return;
     if (active && ids.includes(active)) close();
     save(entities.filter((item) => !ids.includes(item.id)));
@@ -479,25 +481,16 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
         setCursor(undefined);
         return;
       }
-      if (placement) return;
-      // While a diagram is open, Delete belongs to whatever is selected inside it; with nothing selected it removes the diagram.
-      if (
-        active &&
-        (!selection.includes(active) ||
-          document.querySelector('.react-flow__node:not(.react-flow__node-diagram).selected,.react-flow__edge.selected,.sq-selected'))
-      )
-        return;
-      if (event.key === 'Delete' || event.key === 'Backspace') {
+      if (placement || active) return;
+      if (selection.length && (event.key === 'Delete' || event.key === 'Backspace')) {
         event.preventDefault();
-        remove();
+        remove(selection);
       }
-      if (active) return;
       if ((event.ctrlKey || event.metaKey) && event.key === 'z' && history.length) {
         event.preventDefault();
         undo();
       }
     };
-    // Capture phase, so the open editor's own Delete handler hasn't yet changed what is selected inside it.
     window.addEventListener('keydown', key, true);
     return () => window.removeEventListener('keydown', key, true);
   });
@@ -575,7 +568,6 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
   }
   const workspaceActions = (
     <>
-      <span className="mf-menu-sep" />
       <button
         className="mf-menu-item mf-menu-danger"
         role="menuitem"
@@ -615,7 +607,23 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
           });
         }}
       >
-        {welcome && <Welcome onDone={dismissWelcome} />}
+        {welcome && <Welcome onDone={dismissWelcome} onAddDiagram={(kind) => createDiagram(kind, { x: 0, y: 0 })} />}
+        {opened && (
+          <button
+            type="button"
+            className="mf-reopen diagram-panel-toggle"
+            aria-label="Toggle left panel"
+            aria-expanded={stylePanelOpen}
+            aria-controls="diagram-style-panel"
+            title="Toggle left panel"
+            onKeyDown={(event) => {
+              if (event.key === ' ') event.stopPropagation();
+            }}
+            onClick={() => setStylePanelOpen((open) => !open)}
+          >
+            <Icon name="sidebar" size={18} />
+          </button>
+        )}
         <nav
           className={'mf-toolbar' + (compact ? ' is-compact' : '')}
           role="toolbar"
@@ -699,7 +707,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
           )}
           <ProductNav current="canvas" showBrand={false} />
         </nav>
-        <div className="mf-style-slot" ref={setStylePanel} />
+        <div id="diagram-style-panel" className="mf-style-slot" ref={setStylePanel} hidden={!stylePanelOpen} />
         {placement && (
           <div className="diagram-placement-hint" role="status">
             Click the canvas to place the {placement}.{' '}
@@ -958,7 +966,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
         <button
           className="mf-reopen"
           aria-label="Open Mermaid panel"
-          title="Mermaid · M"
+          title="Mermaid · Space"
           onClick={() => setPanelOpen(true)}
         >
           <Icon name="code" />

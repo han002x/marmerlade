@@ -164,6 +164,13 @@
 }
 
 /* the canvas side panel's Slides tab: the strip fills the panel */
+.wk-page-panel.sl-dock-layout {
+  grid-template-columns: min(160px, 36%) minmax(0, 1fr);
+}
+.sl-dock-layout .wk-tree-children {
+  margin-left: 6px;
+  padding-left: 5px;
+}
 .sl-dock-strip {
   flex: 1;
   min-height: 0;

@@ -92,9 +92,9 @@ Every node can link multiple Markdown pages, and pages can
 be shared across nodes. Press `W` (or the page button on a node) to open its
 default page in the side panel's **Page** tab. The picker switches pages;
 **New page**, **Link existing page**, **Unlink**, and **Make default** manage
-the links. The first linked page is the default. Selecting a node shows its default page title above the shape. Click the title
-to read it beside the diagram. **Add explanation** creates a page titled from
-the node and opens it for editing. Later node renames leave page titles alone.
+the links. The first linked page is the default. **New page** uses the node's
+label as the starting title and opens the page for editing. Later node renames
+leave page titles alone.
 ↗ opens the current page in its own window, keeping the node context.
 Sequence participants link pages the same way: hover a participant header for
 its page and slides buttons, or select it and press `W` or `K`.
@@ -237,7 +237,7 @@ survive reloads. Reset Custom from any preset to start again.
 | `L` | Tidy top-down |
 | `⇧L` | Tidy left-right |
 | `T` | Open app appearance |
-| `M` | Toggle Mermaid panel |
+| `Space` | Toggle Mermaid panel |
 | `W` | Open the selected node's or sequence participant's default wiki page in the side panel |
 | `K` | Open the selected node's or sequence participant's default slide deck in the side panel (all decks when nothing is selected) |
 | `E` | Page tab: switch between Edit and Read |

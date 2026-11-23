@@ -575,6 +575,55 @@ a.wk-item {
 }
 
 /* page in the canvas side panel */
+.wk-page-panel {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: min(180px, 39%) minmax(0, 1fr);
+  gap: 10px;
+}
+.wk-dock-library {
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--mf-border);
+  color: var(--mf-text);
+}
+.wk-dock-library .wk-library-name {
+  flex: 1;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.wk-dock-library .wk-library-name small { white-space: nowrap; }
+.wk-dock-library .wk-item.linked:not(.on) {
+  background: color-mix(in srgb, var(--mf-accent) 9%, transparent);
+  color: var(--mf-accent);
+}
+.wk-dock-library .wk-item.linked:not(.on):hover {
+  background: color-mix(in srgb, var(--mf-accent) 13%, transparent);
+}
+.wk-dock-library .wk-item:not(.linked) > .wk-library-name + svg {
+  color: var(--mf-muted);
+}
+@container (max-width: 145px) {
+  .wk-dock-library .wk-item { gap: 4px; padding-inline: 4px; }
+  .wk-dock-library .wk-item > span:not(.wk-tree-chevron) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .wk-dock-library .wk-item > svg:has(+ span) { display: none; }
+}
+.wk-page-panel > .wk-dock { container-type: inline-size; }
+.wk-page-panel .wk-document > .wk-editor { min-height: 0; }
+@container (max-width: 240px) {
+  .wk-page-panel .wk-dock-bar,
+  .wk-page-panel .wk-dock-head { padding-left: 0; }
+  .wk-page-panel .wk-seg button { padding-inline: 6px; }
+}
 .wk-dock {
   display: flex;
   flex: 1;

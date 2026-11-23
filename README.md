@@ -62,7 +62,7 @@ Use the product bar to switch between [Diagrams](https://han002x.github.io/marme
 [Slide decks](https://han002x.github.io/marmerlade/#/slides). You can create a page
 or deck directly in its own editor and link it to diagram nodes later.
 
-In Diagrams, press `M` to open the Mermaid panel and paste:
+In Diagrams, press `Space` to open the Mermaid panel and paste:
 
 ```mermaid
 flowchart LR

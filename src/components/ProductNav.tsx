@@ -43,7 +43,7 @@ export default function ProductNav({ current, onNavigate, iconOnly = false, show
       <div className="product-menu">
         <button ref={button} type="button" className="product-trigger" aria-label={label + ', switch workspace'}
           title={iconOnly ? label + ', switch workspace' : undefined} aria-expanded={open} aria-controls={listId} onClick={() => setOpen(!open)}>
-          {!iconOnly && label}<span aria-hidden="true">▾</span>
+          {!iconOnly && <span className="product-label"><span className="brand-initial">{label[0]}</span>{label.slice(1)}</span>}<span aria-hidden="true">▾</span>
         </button>
         <div id={listId} className="product-list" hidden={!open}>
           {products.map(({ id, label, href }) => (
@@ -55,7 +55,7 @@ export default function ProductNav({ current, onNavigate, iconOnly = false, show
                 button.current?.focus();
                 onNavigate?.();
               }}>
-              {label}
+              <span><span className="brand-initial">{label[0]}</span>{label.slice(1)}</span>
               {id === current && <span className="product-check" aria-hidden="true">✓</span>}
             </a>
           ))}

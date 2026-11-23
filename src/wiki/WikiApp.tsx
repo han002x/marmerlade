@@ -99,7 +99,7 @@ export default function WikiApp({ pageId, nodeId }: { pageId: string | null; nod
           <button className="wk-btn" aria-label="Pages" title="Pages" aria-pressed={sidebar === 'pages'} onClick={() => setSidebar('pages')}><Icon name="page" size={16} /><span>Pages</span></button>
           <button className="wk-btn wk-library-appearance" aria-label="Appearance" title="Appearance" aria-pressed={sidebar === 'appearance'} onClick={() => setSidebar('appearance')}><Icon name="palette" size={16} /></button>
         </div>
-        {sidebar === 'pages' ? <WikiLibrary pageId={pageId} onOpen={() => setIndex(null)} onCreate={create}
+        {sidebar === 'pages' ? <WikiLibrary kind="manage" pageId={pageId} onOpen={() => setIndex(null)} onCreate={create}
           href={id => pageHref(id, id === pageId ? nodeId : undefined)} /> :
           <div className="mf-appearance mf-appearance-docked" role="region" aria-label="Appearance"><AppearanceSettings /></div>}
       </ResizableSidebar>

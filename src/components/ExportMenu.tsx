@@ -75,7 +75,7 @@ export function ExportMenu({ size, disabled, exporting, onExport }: {
             <span>{exporting === 'gif' ? 'Exporting GIF…' : 'Export GIF'}</span>
           </button>
           <button type="button" className="mf-menu-item" disabled={disabled || exporting !== null} onClick={() => save('pptx')}>
-            <Icon name="deck" />
+            <Icon name="square-p" />
             <span>{exporting === 'pptx' ? 'Exporting PowerPoint…' : 'Export PowerPoint'}</span>
           </button>
         </div>

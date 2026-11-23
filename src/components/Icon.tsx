@@ -48,6 +48,7 @@ export type IconName =
   | 'sidebar'
   | 'folder'
   | 'deck'
+  | 'square-p'
   | 'grid'
   | 'expand'
   | 'play'
@@ -76,6 +77,7 @@ const JAR_COLORS = {
 };
 
 const PATHS: Record<IconName, React.ReactNode> = {
+  'square-p': <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 17V7h4a3 3 0 0 1 0 6H9" /></>,
   'lifeline-start': <><path d="M2 8h6" /><path d="m5.5 5 3 3-3 3" /><rect x="9" y="3" width="13" height="7" rx="1.5" /><path d="M15.5 10v11" strokeDasharray="2.5 2.5" /></>,
   swap: <path d="M4 8h15m-3-3 3 3-3 3M20 16H5m3-3-3 3 3 3" />,
   'wrap-text': <path d="M4 6h16M4 12h13a3 3 0 0 1 0 6h-5m2-2-2 2 2 2M4 18h4" />,

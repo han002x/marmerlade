@@ -42,7 +42,7 @@ test('sequence participants link wiki pages and slide decks like flowchart nodes
 
   // the page tab follows the participant: write its page
   const dock = page.locator('#mf-view-page');
-  await dock.getByRole('button', { name: 'Add explanation' }).click();
+  await dock.getByRole('button', { name: 'New page' }).click();
   await expect(dock.getByLabel('Page title')).toHaveValue('Alice');
   await expect(alice).toHaveClass(/selected/);
   await expect(pageButton).toHaveClass(/has-page/);
@@ -50,7 +50,7 @@ test('sequence participants link wiki pages and slide decks like flowchart nodes
 
   // another participant has nothing linked yet
   await page.locator('.react-flow__node[data-id="actor:B"]').click();
-  await expect(dock.getByRole('button', { name: 'Add explanation' })).toBeVisible();
+  await expect(dock.getByRole('button', { name: 'New page' })).toBeVisible();
 
   // K opens the slides tab on the participant; link an existing deck
   await alice.click();

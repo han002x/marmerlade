@@ -47,6 +47,10 @@ export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=
   const minWidth = Math.min(280, maxWidth);
   const clampWidth = (value: number) => Math.min(maxWidth, Math.max(minWidth, value));
   const panelWidth = clampWidth(width);
+  const resizeTo = (value: number) => {
+    const next = clampWidth(value);
+    if (next !== panelWidth) onWidthChange(next);
+  };
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -84,7 +88,7 @@ export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=
         onPointerMove={(event) => {
           const start = resize.current;
           if (start?.pointerId !== event.pointerId) return;
-          onWidthChange(clampWidth(start.width + start.x - event.clientX));
+          resizeTo(start.width + start.x - event.clientX);
         }}
         onPointerUp={(event) => {
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -93,7 +97,7 @@ export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=
         }}
         onPointerCancel={() => { resize.current = null; }}
         onLostPointerCapture={() => { resize.current = null; }}
-        onDoubleClick={() => onWidthChange(clampWidth(360))}
+        onDoubleClick={() => onWidthChange(360)}
         onKeyDown={(event) => {
           if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
           event.preventDefault();
@@ -102,7 +106,7 @@ export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=
           const next = event.key === 'Home' ? minWidth
             : event.key === 'End' ? maxWidth
             : panelWidth + (event.key === 'ArrowLeft' ? step : -step);
-          onWidthChange(clampWidth(next));
+          resizeTo(next);
         }}
       />
       <div className="mf-panel-head">
@@ -136,7 +140,7 @@ export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=
         <button
           className="mf-tool"
           aria-label="Close panel"
-          title="Close  ·  M"
+          title="Close  ·  Space"
           onClick={onClose}
         >
           <Icon name="close" size={15} />
@@ -149,19 +153,19 @@ export function MermaidPanel({width,onWidthChange,onClose,tree,source,showLinks=
       </div>
       <div className="mf-panel-body" role="tabpanel" id="mf-view-page"
         aria-labelledby="mf-tab-page" hidden={tab !== 'page'}>
-        {tab === 'page' && (showLinks ? (
+        {tab === 'page' && (
           <Suspense fallback={null}>
-            <PagePanel />
+            <PagePanel canLink={showLinks} />
           </Suspense>
-        ) : <p className="mf-tree-empty">Open a diagram and select a node or participant to view its page.</p>)}
+        )}
       </div>
       <div className="mf-panel-body" role="tabpanel" id="mf-view-slides"
         aria-labelledby="mf-tab-slides" hidden={tab !== 'slides'}>
-        {tab === 'slides' && (showLinks ? (
+        {tab === 'slides' && (
           <Suspense fallback={null}>
-            <SlidesPanel />
+            <SlidesPanel canLink={showLinks} />
           </Suspense>
-        ) : <p className="mf-tree-empty">Open a diagram and select a node or participant to view its slides.</p>)}
+        )}
       </div>
       <div className="mf-panel-body" role="tabpanel" id="mf-view-tree"
         aria-labelledby="mf-tab-tree" hidden={tab !== 'tree'}>

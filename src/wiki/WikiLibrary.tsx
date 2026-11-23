@@ -75,12 +75,14 @@ function FolderDialog({ action, folders, onDone }: {
   );
 }
 
-export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
-  pageId: string | null;
-  href: (id: string) => string;
-  onOpen: () => void;
-  onCreate: (folderId?: string) => void;
-}) {
+type LibraryProps = { pageId: string | null } & (
+  | { kind: 'manage'; href: (id: string) => string; onOpen: () => void; onCreate: (folderId?: string) => void }
+  | { kind: 'diagram'; linkedPageIds: readonly string[] | null; onOpen: (id: string) => void }
+);
+
+export default function WikiLibrary(props: LibraryProps) {
+  const { pageId } = props;
+  const linkedPageIds = props.kind === 'diagram' ? props.linkedPageIds : null;
   const pages = useDiagram(state => state.pages);
   const folders = useDiagram(state => state.wikiFolders);
   const [query, setQuery] = useState('');
@@ -110,28 +112,53 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
     }
     return { byId, children, pageParents, documents, sortedPages };
   }, [folders, pages]);
-  const activeFolder = pageId === null ? null : model.pageParents.get(pageId) ?? null;
-  const activeTrail = useMemo(() => folderTrail(model.byId, activeFolder), [model.byId, activeFolder]);
-  const trailKey = JSON.stringify([pageId, ...activeTrail.map(folder => folder.id)]);
+  const visiblePageIds = new Set(linkedPageIds);
+  if (pageId !== null) visiblePageIds.add(pageId);
+  const visibleFolders = [...visiblePageIds].flatMap(id =>
+    folderTrail(model.byId, model.pageParents.get(id) ?? null).map(folder => folder.id),
+  );
+  const trailKey = JSON.stringify([pageId, linkedPageIds, visibleFolders]);
   const [lastTrail, setLastTrail] = useState('');
   if (lastTrail !== trailKey) {
     setLastTrail(trailKey);
-    setOpen(previous => new Set([...previous, ...activeTrail.map(folder => folder.id)]));
+    setOpen(previous => new Set([...previous, ...visibleFolders]));
   }
 
   const reveal = (id: string | null) => {
     if (id !== null && !model.byId.has(id)) return;
     setOpen(previous => new Set([...previous, ...folderTrail(model.byId, id).map(folder => folder.id)]));
   };
-  const primaryClick = (event: MouseEvent) => {
-    if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) onOpen();
-  };
   const endPageDrag = () => {
     draggedPageId.current = null;
     setDropFolderId(null);
   };
   const pageRow = (page: Page, showPath = false) => {
+    const title = libraryTitle(page);
+    const current = page.id === pageId;
+    const contents = <>
+      <Icon name="page" size={14} />
+      <span className="wk-library-name">{title}
+        {showPath && <small>{folderTrail(model.byId, model.pageParents.get(page.id) ?? null).map(folder => folder.name).join(' / ') || 'Top level'}</small>}
+      </span>
+    </>;
+    if (props.kind === 'diagram') {
+      const linked = linkedPageIds?.includes(page.id) ?? false;
+      const canLink = linkedPageIds !== null && !linked;
+      return <li className="wk-library-row" key={page.id}>
+        <button type="button" className={`wk-item${current ? ' on' : ''}${linked ? ' linked' : ''}`}
+          aria-current={current ? 'page' : undefined}
+          aria-description={linked ? 'Linked to the selection' : canLink ? 'Link to the selection' : undefined}
+          title={canLink ? `Link ${title} to the selection` : title} onClick={() => props.onOpen(page.id)}>
+          {contents}
+          {linked && <Icon name="check" size={13} />}
+          {canLink && <Icon name="link" size={13} />}
+        </button>
+      </li>;
+    }
     const canMoveByDrag = !showPath && folders.length > 0;
+    const primaryClick = (event: MouseEvent) => {
+      if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) props.onOpen();
+    };
     const remove = () => {
       if (page.body.trim() && !window.confirm(`Delete "${page.title || 'Untitled'}"?`)) return;
       if (page.id === pageId) window.location.hash = '#/wiki';
@@ -143,8 +170,8 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
           {folders.length > 0 && <button role="menuitem" onClick={() => setAction({ kind: 'page', page })}>Move to folder</button>}
           <button role="menuitem" className="danger" onClick={remove}>Delete page</button>
         </>}>
-        <a className={`wk-item${page.id === pageId ? ' on' : ''}`} href={href(page.id)} onClick={primaryClick}
-          aria-current={page.id === pageId ? 'page' : undefined} title={libraryTitle(page)}
+        <a className={`wk-item${current ? ' on' : ''}`} href={props.href(page.id)} onClick={primaryClick}
+          aria-current={current ? 'page' : undefined} title={title}
           draggable={canMoveByDrag || undefined}
           onDragStart={canMoveByDrag ? event => {
             event.dataTransfer.clearData();
@@ -153,10 +180,7 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
             draggedPageId.current = page.id;
           } : undefined}
           onDragEnd={endPageDrag}>
-          <Icon name="page" size={14} />
-          <span className="wk-library-name">{libraryTitle(page)}
-            {showPath && <small>{folderTrail(model.byId, model.pageParents.get(page.id) ?? null).map(folder => folder.name).join(' / ') || 'Top level'}</small>}
-          </span>
+          {contents}
         </a>
         {folders.length > 0 && <Menu className="wk-icon" label={`Actions for ${libraryTitle(page)}`} button={<Icon name="more" size={14} />}>
           <button role="menuitem" onClick={() => setAction({ kind: 'page', page })}>Move to folder</button>
@@ -165,57 +189,60 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
       </li>
     );
   };
+  const folderRow = (folder: WikiFolder) => {
+    const expanded = open.has(folder.id);
+    const toggle = <button className="wk-item" aria-expanded={expanded} title={folder.name}
+      onClick={() => setOpen(previous => {
+        const next = new Set(previous);
+        if (next.has(folder.id)) next.delete(folder.id); else next.add(folder.id);
+        return next;
+      })}>
+      <span className={`wk-tree-chevron${expanded ? ' expanded' : ''}`} aria-hidden="true">›</span>
+      <Icon name="folder" size={14} />
+      <span>{folder.name}</span>
+    </button>;
+    if (props.kind === 'diagram') return <div className="wk-library-row">{toggle}</div>;
+    const actions = <>
+      <button role="menuitem" onClick={() => props.onCreate(folder.id)}>New page</button>
+      <button role="menuitem" onClick={() => setAction({ kind: 'create', parentId: folder.id })}>New subfolder</button>
+      <button role="menuitem" onClick={() => setAction({ kind: 'rename', folder })}>Rename folder</button>
+      <button role="menuitem" onClick={() => setAction({ kind: 'move', folder })}>Move folder</button>
+      <button role="menuitem" className="danger" onClick={() => setAction({ kind: 'delete', folder })}>Delete folder</button>
+    </>;
+    return <ContextMenu label={`Actions for ${folder.name}`} items={actions}>
+      <div className={`wk-library-row${dropFolderId === folder.id ? ' drop-target' : ''}`}
+        onDragOver={event => {
+          const draggedId = draggedPageId.current;
+          if (draggedId === null || model.pageParents.get(draggedId) === folder.id ||
+            !event.dataTransfer.types.includes(wikiPageDragType)) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
+          setDropFolderId(folder.id);
+        }}
+        onDragLeave={event => {
+          if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+          setDropFolderId(previous => previous === folder.id ? null : previous);
+        }}
+        onDrop={event => {
+          const draggedId = draggedPageId.current;
+          if (draggedId === null || event.dataTransfer.getData(wikiPageDragType) !== draggedId) return;
+          event.preventDefault();
+          endPageDrag();
+          useDiagram.getState().movePageToFolder(draggedId, folder.id);
+          reveal(folder.id);
+        }}>
+        {toggle}
+        <Menu className="wk-icon" label={`Actions for ${folder.name}`} button={<Icon name="more" size={14} />}>
+          {actions}
+        </Menu>
+      </div>
+    </ContextMenu>;
+  };
   const tree = (parentId: string | null, depth = 0) => (
     <ul className="wk-tree-list" style={{ paddingInlineStart: depth > 0 && depth <= 8 ? 9 : 0 }}>
       {(model.children.get(parentId) ?? []).map(folder => (
         <li key={folder.id}>
-          <ContextMenu label={`Actions for ${folder.name}`} items={<>
-            <button role="menuitem" onClick={() => onCreate(folder.id)}>New page</button>
-            <button role="menuitem" onClick={() => setAction({ kind: 'create', parentId: folder.id })}>New subfolder</button>
-            <button role="menuitem" onClick={() => setAction({ kind: 'rename', folder })}>Rename folder</button>
-            <button role="menuitem" onClick={() => setAction({ kind: 'move', folder })}>Move folder</button>
-            <button role="menuitem" className="danger" onClick={() => setAction({ kind: 'delete', folder })}>Delete folder</button>
-          </>}>
-          <div className={`wk-library-row${dropFolderId === folder.id ? ' drop-target' : ''}`}
-            onDragOver={event => {
-              const draggedId = draggedPageId.current;
-              if (draggedId === null || model.pageParents.get(draggedId) === folder.id ||
-                !event.dataTransfer.types.includes(wikiPageDragType)) return;
-              event.preventDefault();
-              event.dataTransfer.dropEffect = 'move';
-              setDropFolderId(folder.id);
-            }}
-            onDragLeave={event => {
-              if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
-              setDropFolderId(previous => previous === folder.id ? null : previous);
-            }}
-            onDrop={event => {
-              const draggedId = draggedPageId.current;
-              if (draggedId === null || event.dataTransfer.getData(wikiPageDragType) !== draggedId) return;
-              event.preventDefault();
-              endPageDrag();
-              useDiagram.getState().movePageToFolder(draggedId, folder.id);
-              reveal(folder.id);
-            }}>
-            <button className="wk-item" aria-expanded={open.has(folder.id)}
-              onClick={() => setOpen(previous => {
-                const next = new Set(previous);
-                if (next.has(folder.id)) next.delete(folder.id); else next.add(folder.id);
-                return next;
-              })}>
-              <span className={`wk-tree-chevron${open.has(folder.id) ? ' expanded' : ''}`} aria-hidden="true">›</span>
-              <Icon name="folder" size={14} />
-              <span>{folder.name}</span>
-            </button>
-            <Menu className="wk-icon" label={`Actions for ${folder.name}`} button={<Icon name="more" size={14} />}>
-              <button role="menuitem" onClick={() => onCreate(folder.id)}>New page</button>
-              <button role="menuitem" onClick={() => setAction({ kind: 'create', parentId: folder.id })}>New subfolder</button>
-              <button role="menuitem" onClick={() => setAction({ kind: 'rename', folder })}>Rename folder</button>
-              <button role="menuitem" onClick={() => setAction({ kind: 'move', folder })}>Move folder</button>
-              <button role="menuitem" className="danger" onClick={() => setAction({ kind: 'delete', folder })}>Delete folder</button>
-            </Menu>
-          </div>
-          </ContextMenu>
+          {folderRow(folder)}
           {open.has(folder.id) && tree(folder.id, depth + 1)}
         </li>
       ))}
@@ -226,10 +253,10 @@ export default function WikiLibrary({ pageId, href, onOpen, onCreate }: {
   return <>
     <div className="wk-library-actions" ref={searchRegion}>
       <LibrarySearch label="Search pages" value={query} onChange={setQuery} />
-      <Menu label="New" align="end" button={<><Icon name="plus" size={14} /> New</>}>
-        <button role="menuitem" onClick={() => onCreate()}>New page</button>
+      {props.kind === 'manage' && <Menu label="New" align="end" button={<><Icon name="plus" size={14} /> New</>}>
+        <button role="menuitem" onClick={() => props.onCreate()}>New page</button>
         <button role="menuitem" onClick={() => setAction({ kind: 'create', parentId: null })}>New folder</button>
-      </Menu>
+      </Menu>}
     </div>
     <nav className="wk-navigation" aria-label="Wiki pages">
       {results ? (

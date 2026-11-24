@@ -288,6 +288,10 @@ function parseCore(src: string): CoreResult {
       continue;
     }
 
+    // per-subgraph layout hint (`direction LR`): valid mermaid, but marmerlade
+    // lays groups out itself, so it is accepted and ignored like the header's
+    if (/^direction\s+(TB|TD|BT|LR|RL)$/i.test(line)) continue;
+
     const parent = subgraphStack.length
       ? subgraphStack[subgraphStack.length - 1]
       : null;

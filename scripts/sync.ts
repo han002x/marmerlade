@@ -49,6 +49,11 @@ const check = (name: string, ok: boolean, detail?: unknown) => {
   const r = parseMermaid('flowchart TD\n  A["a"]\n  end');
   check('a stray end is rejected', r.ok === false, r);
 }
+{
+  const r = parseMermaid('flowchart TB\n  subgraph G["G"]\n    direction LR\n    A["a"]\n  end');
+  check('a subgraph direction statement is accepted', r.ok === true, r);
+  check('direction does not become a node', r.ok && r.diagram.nodes.every((n) => n.id !== 'direction'), r);
+}
 
 // ---- mergeDiagram: preserve canvas state by id ----
 const N = (

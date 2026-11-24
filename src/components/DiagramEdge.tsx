@@ -4,6 +4,7 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
+  useStore,
   type EdgeProps,
 } from '@xyflow/react';
 import { useDiagram } from '../store';
@@ -11,6 +12,27 @@ import { Icon } from './Icon';
 import type { ElementStyle } from '../types';
 import { animationClass, dashArray, flowDash, fontFamilyCss } from '../style';
 import { arrowHead, ink, seedOf, type Side } from '../rough';
+import { borderPoint, routedPath, type Box } from '../edgePath';
+
+type Point = { x: number; y: number };
+type NodeBox = Box & { shape?: string };
+
+/** A node's drawn box and shape on the canvas, kept stable while it is unchanged. */
+function useNodeBox(id: string): NodeBox | undefined {
+  const key = useStore((s) => {
+    const n = s.nodeLookup.get(id);
+    const width = n?.measured.width ?? n?.width;
+    const height = n?.measured.height ?? n?.height;
+    if (!n || !width || !height) return '';
+    const shape = (n.data as { shape?: string } | undefined)?.shape ?? '';
+    return `${n.internals.positionAbsolute.x}|${n.internals.positionAbsolute.y}|${width}|${height}|${shape}`;
+  });
+  return useMemo(() => {
+    if (!key) return undefined;
+    const [x, y, width, height, shape] = key.split('|');
+    return { x: Number(x), y: Number(y), width: Number(width), height: Number(height), shape: shape || undefined };
+  }, [key]);
+}
 
 const EDGE_STYLE_BASE: React.CSSProperties = {
   transition: 'stroke 160ms ease, stroke-width 160ms ease',
@@ -86,14 +108,27 @@ function DiagramEdgeInner({
   };
   const [draft, setDraft] = useState(typeof label === 'string' ? label : '');
 
-  const [path, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  // a route from Tidy bends around the nodes in between and meets each end on
+  // its outline, where the route points; otherwise a plain curve between handles
+  const bends = Array.isArray(data?.points) ? (data.points as Point[]) : null;
+  const labelAt = data?.labelAt as Point | undefined;
+  const sourceBox = useNodeBox(source);
+  const targetBox = useNodeBox(target);
+  const routed = useMemo(() => {
+    if (!bends || !sourceBox || !targetBox) return null;
+    const centre = (b: NodeBox) => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
+    const start = borderPoint(sourceBox, sourceBox.shape, bends[0] ?? centre(targetBox));
+    const end = borderPoint(targetBox, targetBox.shape, bends.at(-1) ?? centre(sourceBox));
+    const [d, lx, ly] = routedPath(start, bends, end);
+    return { d, lx: labelAt?.x ?? lx, ly: labelAt?.y ?? ly, start, end, out: bends[0] ?? end, into: bends.at(-1) ?? start };
+  }, [bends, labelAt, sourceBox, targetBox]);
+  const [path, labelX, labelY] = useMemo(
+    () =>
+      routed
+        ? [routed.d, routed.lx, routed.ly]
+        : getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }),
+    [routed, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition],
+  );
 
   const commit = () => {
     updateEdgeLabel(id, draft);
@@ -146,12 +181,18 @@ function DiagramEdgeInner({
   );
   const arrowheads = st?.arrowheads ?? STYLE_DEFAULTS.arrowheads;
   const startArrow = useMemo(
-    () => arrowHead(sourceX, sourceY, sourcePosition as Side, { sloppiness, seed: seed + 4, size: 6 + strokeWidth * 2 }),
-    [sourceX, sourceY, sourcePosition, sloppiness, seed, strokeWidth],
+    () =>
+      routed
+        ? arrowHead(routed.start.x, routed.start.y, routed.out, { sloppiness, seed: seed + 4, size: 6 + strokeWidth * 2 })
+        : arrowHead(sourceX, sourceY, sourcePosition as Side, { sloppiness, seed: seed + 4, size: 6 + strokeWidth * 2 }),
+    [routed, sourceX, sourceY, sourcePosition, sloppiness, seed, strokeWidth],
   );
   const arrow = useMemo(
-    () => arrowHead(targetX, targetY, targetPosition as Side, { sloppiness, seed: seed + 3, size: 6 + strokeWidth * 2 }),
-    [targetX, targetY, targetPosition, sloppiness, seed, strokeWidth],
+    () =>
+      routed
+        ? arrowHead(routed.end.x, routed.end.y, routed.into, { sloppiness, seed: seed + 3, size: 6 + strokeWidth * 2 })
+        : arrowHead(targetX, targetY, targetPosition as Side, { sloppiness, seed: seed + 3, size: 6 + strokeWidth * 2 }),
+    [routed, targetX, targetY, targetPosition, sloppiness, seed, strokeWidth],
   );
 
   // the sequenced flow draws an accent trace over the line as the clock passes

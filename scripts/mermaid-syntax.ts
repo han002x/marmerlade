@@ -245,5 +245,133 @@ await accepts('line breaks', 'A["a<br/>b"]', (d) => [['newline', node(d, 'A')?.l
   check('editing a style line restyles the node', st().nodes.find((x) => x.id === 'db')?.style?.background === '#00f', st().nodes);
 }
 
+// ---- an import (paste) is tidied as a whole, in the header's direction ----
+{
+  const { useDiagram } = await import('../src/store.ts');
+  const { layoutShown } = await import('../src/layout.ts');
+  const { mermaidDirection } = await import('../src/mermaid/io.ts');
+  check('LR header lays out left to right', mermaidDirection('%% note\ngraph LR\n a-->b') === 'LR');
+  check('RL header lays out horizontally', mermaidDirection('flowchart RL\n a-->b') === 'LR');
+  check('TD header lays out top to bottom', mermaidDirection('flowchart TD\n a-->b') === 'TB');
+  check('bare header defaults to top to bottom', mermaidDirection('flowchart\n a-->b') === 'TB');
+  check('a header pasted under the old one wins', mermaidDirection('flowchart TD\nflowchart LR\n a-->b') === 'LR');
+
+  const st = () => useDiagram.getState();
+  // an existing node far off at a hand-placed spot, then a big paste around it
+  useDiagram.setState({ nodes: [], edges: [], history: [] });
+  st().syncMermaid('flowchart LR\n  a');
+  useDiagram.setState({ nodes: st().nodes.map((n) => ({ ...n, position: { x: 5000, y: -3000 } })) });
+  const history = st().history.length;
+  const pasted = ['flowchart LR', ...Array.from({ length: 30 }, (_, i) => `  ${i ? `n${i - 1}` : 'a'} --> n${i}`)].join('\n');
+  check('pasted text syncs', st().syncMermaid(pasted, { tidy: true }).ok);
+  const tidy = layoutShown(st().nodes, st().edges, 'LR').nodes;
+  const moved = st().nodes.filter((n, i) => n.position.x !== tidy[i].position.x || n.position.y !== tidy[i].position.y);
+  check('every node, old and new, sits where Tidy puts it', moved.length === 0, moved.map((n) => n.id));
+  check('the hand-placed node was tidied too', st().nodes.find((n) => n.id === 'a')?.position.x !== 5000);
+  check('the import is one new undo step', st().history.length === history + 1, st().history.length);
+
+  // each edge keeps Tidy's route, leaving and entering across the ranks
+  const routes = st().edges.map((e) => e.route);
+  check('every tidied edge has a route', routes.every(Boolean), st().edges.filter((e) => !e.route).map((e) => e.id));
+  check('LR routes leave right and enter left', routes.every((r) => r?.sourceSide === 'right' && r.targetSide === 'left'), routes.map((r) => r && `${r.sourceSide}/${r.targetSide}`));
+  const fits = st().edges.every((e) => {
+    const at = (id: string) => st().nodes.find((n) => n.id === id)!.position;
+    return e.route && e.route.from.x === at(e.source).x && e.route.to.y === at(e.target).y;
+  });
+  check('routes record the end positions they fit', fits);
+  const { parseDiagram } = await import('../src/workspaceSchema.ts');
+  const saved = parseDiagram({ nodes: st().nodes, edges: st().edges });
+  check('routes survive the workspace schema', saved.edges.every((e, i) => JSON.stringify(e.route) === JSON.stringify(st().edges[i].route)));
+
+  // typing (no tidy) still leaves existing positions alone
+  useDiagram.setState({ nodes: st().nodes.map((n) => (n.id === 'a' ? { ...n, position: { x: 5000, y: -3000 } } : n)) });
+  st().syncMermaid(pasted + '\n  n29 --> extra');
+  check('a typed edit keeps hand-placed positions', st().nodes.find((n) => n.id === 'a')?.position.x === 5000);
+  check('a typed edit keeps the routes of edges it did not touch', !!st().edges.find((e) => e.source === 'n5' && e.target === 'n6')?.route);
+
+  // a back edge runs against the ranks: it leaves the top and enters the bottom
+  useDiagram.setState({ nodes: [], edges: [], history: [] });
+  st().syncMermaid('flowchart TD\n  a --> b --> c\n  c --> a', { tidy: true });
+  const back = st().edges.find((e) => e.source === 'c' && e.target === 'a')?.route;
+  check('a TD back edge leaves the top and enters the bottom', back?.sourceSide === 'top' && back.targetSide === 'bottom', back);
+  check('a TD back edge bends around the nodes between', (back?.points.length ?? 0) > 1, back);
+  const fwd = st().edges.find((e) => e.source === 'a' && e.target === 'b')?.route;
+  check('a TD forward edge leaves the bottom and enters the top', fwd?.sourceSide === 'bottom' && fwd.targetSide === 'top', fwd);
+}
+
+// ---- a flowchart keeps its direction ----
+{
+  const { useDiagram, workspaceDiagram } = await import('../src/store.ts');
+  const { parseMermaid, toMermaid } = await import('../src/mermaid/io.ts');
+  const { parseDiagram } = await import('../src/workspaceSchema.ts');
+  const lr = parseMermaid('flowchart LR\n  a --> b');
+  check('an LR header parses to an LR diagram', lr.ok && lr.diagram.direction === 'LR', lr);
+  check('an LR diagram exports an LR header', lr.ok && toMermaid(lr.diagram).startsWith('flowchart LR'));
+  const td = parseMermaid('flowchart TD\n  a --> b');
+  check('a TD diagram exports a TD header', td.ok && !td.diagram.direction && toMermaid(td.diagram).startsWith('flowchart TD'));
+
+  const st = () => useDiagram.getState();
+  useDiagram.setState({ nodes: [], edges: [], history: [], direction: 'TB', diagrams: undefined, activeDiagramId: null });
+  st().syncMermaid('flowchart TD\n  a --> b');
+  st().syncMermaid('flowchart LR\n  a --> b');
+  check('turning the header turns the diagram', st().direction === 'LR');
+  check('the exported text keeps the turn', st().exportMermaid().startsWith('flowchart LR'));
+  check('the saved diagram keeps the turn', workspaceDiagram().direction === 'LR' && parseDiagram(workspaceDiagram()).direction === 'LR');
+  st().undo();
+  check('undo turns it back', st().direction === 'TB', st().direction);
+
+  // a workspace diagram keeps its direction on its entity across open/close
+  st().createDiagram({ kind: 'flowchart', nodes: [], edges: [] });
+  const id = st().activeDiagramId!;
+  st().syncMermaid('flowchart LR\n  x --> y');
+  st().openDiagram(null);
+  const entity = workspaceDiagram().diagrams?.find((e) => e.id === id);
+  check('a closed diagram keeps its direction', entity?.kind === 'flowchart' && entity.direction === 'LR', entity);
+  st().openDiagram(id);
+  check('reopening restores it', st().direction === 'LR');
+  useDiagram.setState({ diagrams: undefined, activeDiagramId: null, direction: 'TB' });
+}
+
+// ---- the routed edge path ----
+{
+  const { routedPath } = await import('../src/edgePath.ts');
+  const [d, lx, ly] = routedPath({ x: 0, y: 0 }, [{ x: 0, y: 50 }, { x: 100, y: 50 }], { x: 100, y: 100 });
+  check('a routed path starts at the source handle', d.startsWith('M0,0'), d);
+  check('a routed path ends at the target handle', d.endsWith('L100,100'), d);
+  check('a routed path label sits halfway along the route', lx === 50 && ly === 50, [lx, ly]);
+  const [straight] = routedPath({ x: 0, y: 0 }, [], { x: 0, y: 10 });
+  check('a route with no bends is a straight line', straight === 'M0,0L0,10', straight);
+
+  // a routed edge meets each node on its outline, where the route points
+  const { borderPoint } = await import('../src/edgePath.ts');
+  const box = { x: 0, y: 0, width: 100, height: 40 };
+  const below = borderPoint(box, 'rect', { x: 50, y: 200 });
+  check('a rect end sits on its bottom edge below it', below.x === 50 && below.y === 40, below);
+  const slant = borderPoint(box, 'rect', { x: 150, y: 70 });
+  check('a slanted rect end sits on the box', Math.abs(slant.x - 100) < 1e-9 || Math.abs(slant.y - 40) < 1e-9, slant);
+  const tip = borderPoint({ x: 0, y: 0, width: 80, height: 80 }, 'diamond', { x: 40, y: 300 });
+  check('a diamond end below it is its bottom tip', Math.abs(tip.x - 40) < 1e-9 && Math.abs(tip.y - 80) < 1e-9, tip);
+  const side = borderPoint({ x: 0, y: 0, width: 80, height: 80 }, 'diamond', { x: 140, y: 140 });
+  check('a diagonal diamond end sits on its edge, not the box corner', Math.abs(side.x - 60) < 1e-9 && Math.abs(side.y - 60) < 1e-9, side);
+  const ring = borderPoint({ x: 0, y: 0, width: 80, height: 80 }, 'circle', { x: 140, y: 140 });
+  check('a circle end sits on the circle', Math.abs(Math.hypot(ring.x - 40, ring.y - 40) - 40) < 1e-9, ring);
+}
+
+// ---- Tidy makes room for edge labels ----
+{
+  const { layoutShown } = await import('../src/layout.ts');
+  const { parseMermaid } = await import('../src/mermaid/io.ts');
+  const parsed = parseMermaid('flowchart TD\n  a -->|a rather long label| b\n  a --> c');
+  if (parsed.ok) {
+    const { nodes, edges } = layoutShown(parsed.diagram.nodes, parsed.diagram.edges, 'TB');
+    const labelled = edges.find((e) => e.label)!.route;
+    const plain = edges.find((e) => !e.label)!.route;
+    const at = (id: string) => nodes.find((n) => n.id === id)!.position;
+    check('a labelled edge has a label spot', !!labelled?.label, labelled);
+    check('an unlabelled edge has none', plain && !plain.label, plain);
+    check('the label spot lies between its ends', !!labelled?.label && labelled.label.y > at('a').y && labelled.label.y < at('b').y, labelled);
+  } else check('labelled text parses', false, parsed);
+}
+
 if (failed) process.exit(1);
 console.log('PASS: hand-written mermaid syntax imports as meant, and line kinds round-trip');

@@ -233,6 +233,7 @@ export function entityDiagram(entity: Extract<DiagramEntity, { kind: 'flowchart'
       return rest;
     }),
     edges: entity.edges,
+    ...(entity.direction === 'LR' && { direction: 'LR' as const }),
   };
 }
 

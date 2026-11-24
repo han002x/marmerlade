@@ -4,6 +4,7 @@ import { parseMermaid } from '../mermaid/io';
 import { isSequence, statements, validateSequence } from '../sequence/model';
 import { diagramSvg } from '../mermaid/svg';
 import { activeAppearance } from '../theme';
+import { tidyAsPreview } from '../tidy';
 
 /**
  * Source box for a workspace with no diagram open. Pasted Mermaid creates a
@@ -32,7 +33,7 @@ export function PasteSource() {
       const parsed = parseMermaid(src);
       if (!parsed.ok) return setErr(parsed.error);
       store.createDiagram({ kind: 'flowchart', nodes: [], edges: [] });
-      store.syncMermaid(src);
+      if (store.syncMermaid(src, { tidy: true }).ok) await tidyAsPreview(undefined, { undoable: false });
     } catch (error) {
       if (latest.current === src) setErr(String(error));
     }

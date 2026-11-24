@@ -90,6 +90,7 @@ exported to Mermaid; marmerlade draws a neutral placeholder glyph for it.
 | `source`, `target` | string | Node ids. |
 | `label?` | string | Edge text. |
 | `order?` | number | 1-based flow step. Overrides traversal order. Not in Mermaid. |
+| `route?` | `EdgeRoute` | Path from the last Tidy: end sides, bends, label spot, and the end positions it fits. Drawn only while both ends stay put and no side is set by hand. Not in Mermaid. |
 | `style?` | `ElementStyle` | Visual overrides. |
 
 Edges are directed and always rendered as `-->`. Parallel edges are allowed.
@@ -202,7 +203,7 @@ transition: fade             # fade | slide
 ## Mermaid mapping
 
 `src/mermaid/io.ts`: `toMermaid` / `fromMermaid` / `parseMermaid` (strict).
-Flowchart output begins with `flowchart TD`. The workspace also accepts an optional `sequence` string containing the original Mermaid sequence source. Both diagrams share pages and decks. Use `{{sequence}}` to embed the complete sequence.
+Flowchart output begins with `flowchart TD`, or `flowchart LR` when the diagram's `direction` is `LR` (read from the header on import; RL lays out as LR, BT as TD). The workspace also accepts an optional `sequence` string containing the original Mermaid sequence source. Both diagrams share pages and decks. Use `{{sequence}}` to embed the complete sequence.
 
 | marmerlade | Mermaid |
 | --- | --- |
@@ -219,6 +220,12 @@ Parser limits: chains (`A --> B --> C`) and `&` groups (`A & B --> C & D`)
 import as one edge per node pair and export one per line; `-->`, `---`,
 `-.->`, `==>` all import as a plain edge; flowchart import accepts `flowchart` and `graph`. Sequence imports go to the sequence canvas. Any line it cannot read makes `parseMermaid` fail, so the
 canvas holds its last good state.
+
+**Tidy follows the preview.** A diagram that is not open is drawn by Mermaid
+from this text. Tidy (paste, `L`, `Shift+L`, MCP `layout_diagram`) renders the
+same SVG (`src/mermaid/previewLayout.ts`) and takes its node centres and sizes,
+edge paths (`route`) and label spots, so the opened diagram matches its preview.
+Moving a node afterwards departs from the preview until the next Tidy.
 
 **Mermaid carries structure only.** It loses: `position`, `collapsed`,
 `style`, `order`, a group's `shape`/`icon`/`image`, edge ids, and all page and
@@ -302,7 +309,7 @@ In the browser console or a script, the store takes the same data:
 
 Version 5 workspaces include a `diagrams` array. Each diagram is an independent
 entity with an ID, title, canvas position, and frame size. A flowchart entity has
-`kind: "flowchart"`, `nodes`, and `edges`. A sequence entity has
+`kind: "flowchart"`, `nodes`, `edges`, and an optional `direction` (`TB` or `LR`, default `TB`). A sequence entity has
 `kind: "sequence"` and Mermaid `source`, plus optional `styles` and `links`.
 `links` maps a participant id to `{ pageIds?, deckIds? }`, ordered like a node's
 lists with the first as the default; Mermaid has no syntax for them, so they

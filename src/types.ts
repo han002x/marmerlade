@@ -151,6 +151,22 @@ export interface WikiFolder {
 /** A side of a node where an edge attaches. */
 export type Side = 'top' | 'right' | 'bottom' | 'left';
 
+/**
+ * An edge path from the last Tidy: the sides it leaves and enters by and the
+ * bends in between, in canvas coordinates. `from` and `to` are the source and
+ * target positions it was laid out for; once either end moves, the route no
+ * longer fits and the edge is drawn as a plain curve.
+ */
+export interface EdgeRoute {
+  sourceSide: Side;
+  targetSide: Side;
+  points: { x: number; y: number }[];
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  /** centre of the room Tidy left for the edge's label */
+  label?: { x: number; y: number };
+}
+
 export interface DiagramEdge {
   id: string;
   source: string;
@@ -161,11 +177,18 @@ export interface DiagramEdge {
   targetSide?: Side;
   /** 1-based step in the flow sequence; missing => follows the graph */
   order?: number;
+  /** the path Tidy found for this edge; drawn while both ends stay put */
+  route?: EdgeRoute;
   /** optional per-edge visual overrides */
   style?: ElementStyle;
 }
 
+/** Which way a flowchart's ranks run: down (`flowchart TD`) or across (`flowchart LR`). */
+export type FlowDirection = 'TB' | 'LR';
+
 export interface Diagram {
+  /** flowchart direction; missing => TB */
+  direction?: FlowDirection;
   diagrams?: DiagramEntity[];
   /** Mermaid sequence source, independent of the flowchart. */
   sequence?: string;
@@ -185,7 +208,7 @@ export type DiagramEntity = {
   position: { x: number; y: number };
   size: { width: number; height: number };
 } & (
-  | { kind: 'flowchart'; nodes: DiagramNode[]; edges: DiagramEdge[] }
+  | { kind: 'flowchart'; nodes: DiagramNode[]; edges: DiagramEdge[]; direction?: FlowDirection }
   | {
       kind: 'sequence';
       source: string;

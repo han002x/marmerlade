@@ -30,7 +30,7 @@ export interface RenderBridge {
   validateSequence(source: string): Promise<void>;
   diagram(): Diagram;
   measure(): Array<{ id: string; x: number; y: number; width: number; height: number }>;
-  layout(direction: 'TB' | 'LR'): Diagram;
+  layout(direction: 'TB' | 'LR'): Promise<Diagram>;
   importImage(base64: string, name: string, mime: string): Promise<NodeImage>;
   gif(options: RenderGifOptions): Promise<string>;
   /** the shown flowchart as a .pptx, base64 */

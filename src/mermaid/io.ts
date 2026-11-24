@@ -812,6 +812,21 @@ export type ParseResult =
  * node. Powers live editor->canvas sync, which must hold the last good canvas
  * while the text is mid-edit or malformed.
  */
+/**
+ * The layout direction a flowchart header asks for (`flowchart LR`, `graph RL`):
+ * horizontal for LR/RL, vertical otherwise. Tidy has no bottom-up or
+ * right-to-left mode, so BT and RL lay out as TB and LR. When text is pasted
+ * under an existing header the parser skips the repeat, so the last one wins.
+ */
+export function mermaidDirection(src: string): 'TB' | 'LR' {
+  let direction: 'TB' | 'LR' = 'TB';
+  for (const raw of src.split('\n')) {
+    const header = raw.trim().match(/^(?:flowchart|graph)\b\s*(\w*)/i);
+    if (header) direction = /^(LR|RL)$/i.test(header[1]) ? 'LR' : 'TB';
+  }
+  return direction;
+}
+
 export function parseMermaid(src: string): ParseResult {
   if (src.trim().length === 0) {
     return { ok: false, error: 'empty diagram' };
@@ -826,7 +841,7 @@ export function parseMermaid(src: string): ParseResult {
     // e.g. only a `flowchart TD` header and blank lines
     return { ok: false, error: meaningfulLines === 0 ? 'no statements' : 'no nodes' };
   }
-  return { ok: true, diagram };
+  return { ok: true, diagram: mermaidDirection(src) === 'LR' ? { ...diagram, direction: 'LR' } : diagram };
 }
 
 /**
@@ -870,10 +885,12 @@ export function mergeDiagram(parsed: Diagram, current: Diagram): Diagram {
       ...(prev.order != null && { order: prev.order }),
       ...(prev.sourceSide && { sourceSide: prev.sourceSide }),
       ...(prev.targetSide && { targetSide: prev.targetSide }),
+      ...(prev.route && { route: prev.route }),
     };
   });
 
-  return { nodes, edges };
+  // the text's header decides the direction
+  return { nodes, edges, ...(parsed.direction === 'LR' && { direction: 'LR' as const }) };
 }
 
 /**
@@ -950,7 +967,7 @@ export function toMermaidWithMap(diagram: Diagram): MermaidResult {
     return nodes.some((n) => n.parentId === id);
   }
 
-  const out: string[] = ['flowchart TD'];
+  const out: string[] = [diagram.direction === 'LR' ? 'flowchart LR' : 'flowchart TD'];
   const lineRefs = new Map<number, LineRef>();
   const indent = (d: number) => '  '.repeat(d + 1);
 

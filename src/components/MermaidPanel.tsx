@@ -9,6 +9,7 @@ import { AppearanceSettings } from './AppearanceSettings';
 import { TreePanel } from './TreePanel';
 import { useDock, type View } from '../dock';
 import { usePageBase } from '../pageBase';
+import { tidyAsPreview } from '../tidy';
 
 const PagePanel = lazy(() => import('./PagePanel'));
 
@@ -183,6 +184,7 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
   const syncMermaid = useDiagram((s) => s.syncMermaid);
   const nodes = useStructure();
   const edges = useDiagram((s) => s.edges);
+  const direction = useDiagram((s) => s.direction);
   const highlight = useDiagram((s) => s.highlight);
   const setHighlight = useDiagram((s) => s.setHighlight);
   const setInsertion = useDiagram((s) => s.setInsertion);
@@ -223,7 +225,7 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
   // user's own edit leaves the derived text matching what they typed once it
   // syncs, so we never snap their in-progress text to canonical form.
   useEffect(() => {
-    const { text: t, lineRefs: refs } = toMermaidWithMap({ nodes, edges });
+    const { text: t, lineRefs: refs } = toMermaidWithMap({ nodes, edges, direction });
     setLineRefs(refs);
     const canvasOrigin = t !== derivedText.current;
     derivedText.current = t;
@@ -232,7 +234,7 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
       setErr(null);
     }
     // `base` is read by toMermaidWithMap through io.ts; listing it re-derives the text
-  }, [nodes, edges, edited, base]);
+  }, [nodes, edges, direction, edited, base]);
 
   // never leave a preview caret/ghost behind when the panel closes
   useEffect(() => () => {
@@ -281,6 +283,9 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
   // good canvas and surface the message inline
   const syncTimer = useRef<number | null>(null);
   const pendingSource = useRef(savedDraft ?? '');
+  // set by a paste and held until the pasted text first syncs cleanly, so an
+  // import is tidied even when it needed a fix before it parsed
+  const pasted = useRef(false);
   const isCurrent = () => !diagramId || useDiagram.getState().activeDiagramId === diagramId;
   const runSync = (src: string) => {
     if(!isCurrent())return;
@@ -289,6 +294,7 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
       const check = statements(src).length ? diagramSvg(src,activeAppearance()) : validateSequence(src);
       void check.then(() => {
         if (!isCurrent() || pendingSource.current !== src || initial !== useDiagram.getState().sequenceHistory || !textareaRef.current?.checkVisibility()) return;
+        pasted.current = false;
         if(diagramId)drafts?.delete(diagramId);
         const store=useDiagram.getState();
         if(diagramId || store.diagrams)store.createDiagram({kind:'sequence',source:src});
@@ -300,8 +306,12 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
       }, error => { if (pendingSource.current === src) setErr(String(error)); });
       return;
     }
-    const res = syncMermaid(src);
+    const imported = pasted.current;
+    const res = syncMermaid(src, { tidy: imported });
     if (res.ok) {
+      pasted.current = false;
+      // then match the preview exactly, as part of the same undo step
+      if (imported) void tidyAsPreview(undefined, { undoable: false });
       if(diagramId)drafts?.delete(diagramId);
       setErr(null);
       setEdited(false);
@@ -318,6 +328,13 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
       runSync(src);
     }, 400);
   };
+  const edit = (value: string) => {
+    setText(value);
+    setEdited(true);
+    cancelDwell();
+    showGap(null);
+    scheduleSync(value);
+  };
   const flushSource = () => {
     if (syncTimer.current === null) return;
     window.clearTimeout(syncTimer.current);
@@ -329,7 +346,7 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
       if (syncTimer.current !== null) {
         window.clearTimeout(syncTimer.current);
         syncTimer.current = null;
-        if (!diagramId && !isSequence(pendingSource.current)) syncMermaid(pendingSource.current);
+        if (!diagramId && !isSequence(pendingSource.current)) syncMermaid(pendingSource.current, { tidy: pasted.current });
       }
     },
     [syncMermaid, diagramId],
@@ -547,19 +564,22 @@ export function FlowchartSource({diagramId,drafts}: {diagramId?:string;drafts?:M
             spellCheck={false}
             aria-label="Mermaid source"
             onBlur={flushSource}
+            onPaste={(e) => {
+              pasted.current = true;
+              // an empty diagram's box holds only its header: a paste replaces
+              // it, so the pasted header (and its direction) is the one kept
+              const incoming = e.clipboardData.getData('text/plain');
+              if (!incoming.trim() || !/^((flowchart|graph)(\s+\w+)?)?$/i.test(text.trim())) return;
+              e.preventDefault();
+              edit(incoming);
+            }}
             onScroll={syncScroll}
             onMouseMove={hoverFromMouse}
             onMouseLeave={clearHover}
             onMouseDown={insertAtGap}
             style={gapLine !== null ? { cursor: 'copy' } : undefined}
             title={gapLine !== null ? 'Click to insert a node here' : undefined}
-            onChange={(e) => {
-              setText(e.target.value);
-              setEdited(true);
-              cancelDwell();
-              showGap(null);
-              scheduleSync(e.target.value);
-            }}
+            onChange={(e) => edit(e.target.value)}
           />
         </div>
 

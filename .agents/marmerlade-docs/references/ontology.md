@@ -11,7 +11,10 @@ Flowchart-only saves use `.marmerlade.json` and the following version-3 envelope
 }
 ```
 
-`nodes` and `edges` are required arrays. `pages` and `decks` default to empty
+`nodes` and `edges` are required arrays. An optional `direction` (`TB` or `LR`,
+default `TB`) says which way the flowchart runs; flowchart entities carry their own.
+`layout_diagram` lays a flowchart out as its Mermaid preview draws it, writing
+node `size`, `position`, and edge `route`. `pages` and `decks` default to empty
 arrays at the runtime schema boundary. The file contains a flat collection;
 nesting is expressed with IDs, not nested JSON objects. See
 [example.marmerlade.json](example.marmerlade.json) for a linked workspace.
@@ -100,6 +103,7 @@ deliverable. Embedded data travels with JSON; a remote URL depends on its host.
 | `source`, `target` | Yes | Existing node IDs |
 | `label` | No | String describing the relationship |
 | `order` | No | Positive integer, a one-based flow step |
+| `route` | No | Written by layout: `sourceSide`, `targetSide`, bend `points`, the `from`/`to` end positions it fits, and an optional `label` spot. Omit it when writing edges; it is ignored once either end moves |
 | `style` | No | ElementStyle object |
 
 Edges are directed. Parallel edges are allowed. A diagram can have cycles;

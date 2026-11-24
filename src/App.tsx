@@ -65,11 +65,12 @@ import { showDeck, showPage, useDock } from './dock';
 import { isTyping, useHotkeys } from './useHotkeys';
 import { copyNodes, imagesFromClipboard, nodesFromClipboard, snapshotClipboard } from './clipboard';
 import { importFile, saveForNavigation } from './persist';
+import { tidyAsPreview } from './tidy';
 import { cycleSeconds, exportGif, exportImage } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
 import { FlowControls } from './components/FlowControls';
-import type { DiagramNode as DNode, Side } from './types';
+import type { DiagramEdge as DEdge, DiagramNode as DNode, Side } from './types';
 import { hasOutline, shapeDef } from './shapes';
 import { installRenderBridge } from './renderBridge';
 import './App.css';
@@ -122,7 +123,6 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const isGroup = useDiagram((s) => s.isGroup);
   const hiddenNodeIds = useDiagram((s) => s.hiddenNodeIds);
   const insertion = useDiagram((s) => s.insertion);
-  const autoLayout = useDiagram((s) => s.autoLayout);
   const undo = useDiagram((s) => s.undo);
   const { fitView, screenToFlowPosition, getZoom, setViewport } = useReactFlow();
   useWorkspaceZoom(slots?.workspaceZoom);
@@ -246,13 +246,12 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
 
   const tidy = useCallback(
     (direction: 'TB' | 'LR') => {
-      autoLayout(direction);
-      // let positions commit, then frame the result
-      window.requestAnimationFrame(() =>
-        fitView({ padding: 0.2, duration: 300 }),
+      // lay out as the preview draws it, then frame the result once it commits
+      void tidyAsPreview(direction).then(() =>
+        window.requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 })),
       );
     },
-    [autoLayout, fitView],
+    [fitView],
   );
 
   // Export an animated GIF of the whole diagram: frame it, drop the live
@@ -560,6 +559,17 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const rfEdges: Edge[] = useMemo(() => {
     const selEdge = new Set(selectedEdges);
     const { direct, placed, folded, endOf } = shown;
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const still = (id: string, at: { x: number; y: number }) => {
+      const n = byId.get(id);
+      return !!n && Math.abs(n.position.x - at.x) < 0.5 && Math.abs(n.position.y - at.y) < 0.5;
+    };
+    // Tidy's route, while it still fits: the user has not picked sides and
+    // neither end has moved since (an end drawn on a sheet is never found)
+    const routeOf = (e: DEdge) =>
+      e.route && !e.sourceSide && !e.targetSide && still(e.source, e.route.from) && still(e.target, e.route.to)
+        ? e.route
+        : undefined;
     // while previewing an insertion that splits A → B, draw A → ghost → B as
     // dashed preview legs in place of the edge it would replace
     const split = ghostNode ? splitEdgeFor(edges, insertion) : undefined;
@@ -586,19 +596,22 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
       ...previewLegs,
       // the split edge stays mounted (faded) so its label and insert button
       // keep the pointer, otherwise the preview would end the hover it came from
-      ...placed.map((e) => ({
-        id: e.id,
-        className: e.id === splitting?.id ? 'mf-edge-splitting' : undefined,
-        type: 'diagram',
-        selected: selEdge.has(e.id),
-        source: e.source,
-        target: e.target,
-        sourceHandle: e.sourceSide ?? 'bottom',
-        targetHandle: e.targetSide ?? 'top',
-        label: e.label,
-        animated: false,
-        data: { style: e.style, flowStep: flow.edgeStep.get(e.id) },
-      })),
+      ...placed.map((e) => {
+        const route = routeOf(e);
+        return {
+          id: e.id,
+          className: e.id === splitting?.id ? 'mf-edge-splitting' : undefined,
+          type: 'diagram',
+          selected: selEdge.has(e.id),
+          source: e.source,
+          target: e.target,
+          sourceHandle: route?.sourceSide ?? e.sourceSide ?? 'bottom',
+          targetHandle: route?.targetSide ?? e.targetSide ?? 'top',
+          label: e.label,
+          animated: false,
+          data: { style: e.style, flowStep: flow.edgeStep.get(e.id), points: route?.points, labelAt: route?.label },
+        };
+      }),
       ...folded.map((f) => ({
         id: f.id,
         type: 'diagram',
@@ -613,7 +626,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id) },
       })),
     ]);
-  }, [shown, flow, edges, ghostNode, insertion, selectedEdges]);
+  }, [shown, flow, edges, nodes, ghostNode, insertion, selectedEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {

@@ -161,8 +161,20 @@ export function createRenderer(workspace: Workspace, url: string) {
             if (!window.marmerladeRenderer) throw new Error('Renderer not ready');
             return window.marmerladeRenderer.layout(direction);
           }, direction);
-          const positions = new Map(laidOut.nodes.map(node => [node.id, node.position]));
-          return workspace.commit(revision, current => ({ ...current, nodes: current.nodes.map(node => ({ ...node, position: positions.get(node.id) ?? node.position })) }));
+          const placed = new Map(laidOut.nodes.map(node => [node.id, node]));
+          const routes = new Map(laidOut.edges.map(edge => [edge.id, edge.route]));
+          return workspace.commit(revision, current => ({
+            ...current,
+            ...(direction === 'LR' ? { direction } : { direction: undefined }),
+            nodes: current.nodes.map(node => {
+              const laid = placed.get(node.id);
+              return laid ? { ...node, position: laid.position, ...(laid.size && { size: laid.size }) } : node;
+            }),
+            edges: current.edges.map(({ route: _old, ...edge }) => {
+              const route = routes.get(edge.id);
+              return route ? { ...edge, route } : edge;
+            }),
+          }));
         } finally { await session.close(); }
       });
     },

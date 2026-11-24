@@ -9,6 +9,7 @@ import { newNodeId } from './nodeId.ts';
 import { remapSequenceStyles, type SequenceStyles } from './sequence/styleMap.ts';
 import type {
   Diagram,
+  FlowDirection,
   DiagramEdge,
   DiagramNode,
   Side,
@@ -19,7 +20,7 @@ import type {
   Page,
   WikiFolder,
 } from './types';
-import { fromMermaid, mergeDiagram, parseMermaid, toMermaid } from './mermaid/io.ts';
+import { fromMermaid, mergeDiagram, mermaidDirection, parseMermaid, toMermaid } from './mermaid/io.ts';
 import { layout, layoutShown, nodeSize, type Direction } from './layout.ts';
 import type { NodeClipboard } from './clipboard.ts';
 import { createPageFor, mergePages, newPageId, normalizeDiagram, resolveLink, type LinkKey } from './pages.ts';
@@ -146,7 +147,11 @@ export function splitEdgeFor(
 interface Snapshot {
   nodes: DiagramNode[];
   edges: DiagramEdge[];
+  direction?: FlowDirection;
 }
+
+/** `direction` as stored: TB is the default, so only LR is written. */
+const dirField = (direction: FlowDirection | undefined) => (direction === 'LR' ? { direction: 'LR' as const } : {});
 
 interface SequenceSnapshot {
   source: string | undefined;
@@ -170,6 +175,8 @@ interface State {
   undoSequence: () => void;
   nodes: DiagramNode[];
   edges: DiagramEdge[];
+  /** which way the open flowchart runs, as its Mermaid header says */
+  direction: FlowDirection;
   /** wiki pages; not part of undo history */
   pages: Page[];
   wikiFolders: WikiFolder[];
@@ -280,6 +287,8 @@ interface State {
   groupNodes: (ids: string[]) => string | null;
   ungroupNodes: (ids: string[]) => void;
   autoLayout: (direction?: Direction) => void;
+  /** Take a finished layout (see tidyAsPreview): positions, sizes, routes and direction. */
+  applyLayout: (nodes: DiagramNode[], edges: DiagramEdge[], direction: FlowDirection, undoable: boolean) => void;
 
   // interop
   loadMermaid: (src: string) => void;
@@ -289,8 +298,12 @@ interface State {
    * laying out only genuinely new nodes. Invalid or empty text is a no-op and
    * returns a readable error so the editor can hold the last good canvas.
    * A run of rapid edits coalesces into a single undo step.
+   *
+   * With `tidy` (an import: pasted text), the whole visible diagram is laid out
+   * as Tidy would, in the direction the header names, and the import is its
+   * own undo step.
    */
-  syncMermaid: (src: string) => { ok: true } | { ok: false; error: string };
+  syncMermaid: (src: string, opts?: { tidy?: boolean }) => { ok: true } | { ok: false; error: string };
   exportMermaid: () => string;
   load: (d: Diagram) => void;
   /**
@@ -320,8 +333,8 @@ export const useDiagram = create<State>((set, get) => {
     lastMoveId = null; // any snapshotted change ends a drag-coalescing run
     lastStyleKey = null; // ...and ends a style-coalescing run
     syncing = false; // ...and ends a live-mermaid-sync run
-    const { nodes, edges, history } = get();
-    const next = [...history, { nodes, edges }];
+    const { nodes, edges, direction, history } = get();
+    const next = [...history, { nodes, edges, direction }];
     if (next.length > HISTORY_LIMIT) next.shift();
     return { history: next };
   };
@@ -336,8 +349,8 @@ export const useDiagram = create<State>((set, get) => {
     lastMoveId = null;
     syncing = false;
     if (coalesce) return null;
-    const { nodes, edges, history } = get();
-    const next = [...history, { nodes, edges }];
+    const { nodes, edges, direction, history } = get();
+    const next = [...history, { nodes, edges, direction }];
     if (next.length > HISTORY_LIMIT) next.shift();
     return { history: next };
   };
@@ -450,6 +463,7 @@ export const useDiagram = create<State>((set, get) => {
   selectedNodeIds: [],
   selectedEdgeIds: [],
   history: [],
+  direction: 'TB',
 
   activeDiagramId: null,
   diagrams: undefined,
@@ -462,6 +476,7 @@ export const useDiagram = create<State>((set, get) => {
         diagrams,
         nodes: flow?.nodes ?? [],
         edges: flow?.edges ?? [],
+        direction: flow?.direction ?? 'TB',
         sequence: sequence?.source,
         sequenceStyles: sequence?.styles ?? {},
       };
@@ -492,6 +507,7 @@ export const useDiagram = create<State>((set, get) => {
       activeDiagramId: entity?.id ?? null,
       nodes: flow?.nodes ?? [],
       edges: flow?.edges ?? [],
+      direction: flow?.direction ?? 'TB',
       sequence: sequence?.source,
       sequenceStyles: sequence?.styles ?? {},
       history: [],
@@ -584,6 +600,7 @@ export const useDiagram = create<State>((set, get) => {
       return {
         nodes: prev.nodes,
         edges: prev.edges,
+        direction: prev.direction ?? s.direction,
         history: s.history.slice(0, -1),
         selectedNodeIds: s.selectedNodeIds.filter((id) => prev.nodes.some((node) => node.id === id)),
         selectedEdgeIds: s.selectedEdgeIds.filter((id) => prev.edges.some((edge) => edge.id === id)),
@@ -1119,33 +1136,40 @@ export const useDiagram = create<State>((set, get) => {
   autoLayout: (direction = 'TB') =>
     set((s) => {
       // only lay out what's on screen; folded contents travel with their card
-      const nodes = layoutShown(s.nodes, s.edges, direction);
-      if (nodes === s.nodes) return s;
-      return { ...snapshot(), nodes };
+      const { nodes, edges } = layoutShown(s.nodes, s.edges, direction);
+      if (nodes === s.nodes && direction === s.direction) return s;
+      return { ...snapshot(), nodes, edges, direction };
     }),
+
+  applyLayout: (nodes, edges, direction, undoable) =>
+    set(() => ({ ...(undoable ? snapshot() : {}), nodes, edges, direction })),
 
   loadMermaid: (src) => {
     const d = fromMermaid(src);
-    set({ ...snapshot(), nodes: d.nodes, edges: d.edges });
+    set({ ...snapshot(), nodes: d.nodes, edges: d.edges, direction: mermaidDirection(src) });
   },
 
-  syncMermaid: (src) => {
+  syncMermaid: (src, opts) => {
     const result = parseMermaid(src);
     if (!result.ok) return result; // hold the last good canvas
 
-    const { nodes: curNodes, edges: curEdges } = get();
+    const { nodes: curNodes, edges: curEdges, direction: curDirection } = get();
     const merged = mergeDiagram(result.diagram, { nodes: curNodes, edges: curEdges });
+    const direction = merged.direction ?? 'TB';
 
     // bail out when the merge changed nothing structural or textual, so moving
     // the caret or a no-op re-sync neither re-renders nor touches undo history
-    if (unchanged(merged, { nodes: curNodes, edges: curEdges })) return { ok: true };
+    if (direction === curDirection && unchanged(merged, { nodes: curNodes, edges: curEdges })) return { ok: true };
 
     // lay out only genuinely new nodes (absent from the current diagram), so
     // existing nodes keep the positions the merge preserved
     const curIds = new Set(curNodes.map((n) => n.id));
     const isNew = (n: DiagramNode) => !curIds.has(n.id);
     let laidOut = merged.nodes;
-    if (merged.nodes.some(isNew)) {
+    let routed = merged.edges;
+    if (opts?.tidy) {
+      ({ nodes: laidOut, edges: routed } = layoutShown(merged.nodes, merged.edges, direction));
+    } else if (merged.nodes.some(isNew)) {
       const positions = layout(merged.nodes, merged.edges, 'TB');
       laidOut = merged.nodes.map((n) =>
         isNew(n) && positions[n.id] ? { ...n, position: positions[n.id] } : n,
@@ -1155,15 +1179,15 @@ export const useDiagram = create<State>((set, get) => {
     // coalesce a run of live edits into one undo entry: snapshot only the
     // first edit of the run, then keep extending it until another mutation
     // (drag, delete, style, undo) ends the run via snapshot()/styleSnapshot()
-    const coalesce = syncing && get().history.length > 0;
+    const coalesce = !opts?.tidy && syncing && get().history.length > 0;
     const hist = coalesce ? null : snapshot();
     syncing = true;
 
-    set({ ...hist, nodes: laidOut, edges: merged.edges });
+    set({ ...hist, nodes: laidOut, edges: routed, direction });
     return { ok: true };
   },
 
-  exportMermaid: () => toMermaid({ nodes: get().nodes, edges: get().edges }),
+  exportMermaid: () => toMermaid({ nodes: get().nodes, edges: get().edges, ...dirField(get().direction) }),
 
   applyRemote: (incoming) => {
     const d = normalizeDiagram(incoming);
@@ -1184,6 +1208,7 @@ export const useDiagram = create<State>((set, get) => {
           activeDiagramId: entity?.id ?? null,
           nodes: flow?.nodes ?? [],
           edges: flow?.edges ?? [],
+          direction: flow?.direction ?? 'TB',
           sequence: sequence?.source,
           sequenceStyles: sequence?.styles ?? {},
           pages,
@@ -1194,7 +1219,8 @@ export const useDiagram = create<State>((set, get) => {
         };
       }
       const sequenceState = d.sequence === s.sequence ? {} : { sequence: d.sequence, sequenceHistory: [] };
-      const same = JSON.stringify([s.nodes, s.edges]) === JSON.stringify([d.nodes, d.edges]);
+      const same =
+        JSON.stringify([s.nodes, s.edges, s.direction]) === JSON.stringify([d.nodes, d.edges, d.direction ?? 'TB']);
       if (
         same &&
         d.sequence === s.sequence &&
@@ -1205,7 +1231,7 @@ export const useDiagram = create<State>((set, get) => {
         return s;
       return {
         ...sequenceState,
-        ...(same ? {} : { nodes: d.nodes, edges: d.edges }),
+        ...(same ? {} : { nodes: d.nodes, edges: d.edges, direction: d.direction ?? 'TB' }),
         pages,
         decks,
         wikiFolders,
@@ -1228,6 +1254,7 @@ export const useDiagram = create<State>((set, get) => {
       sequenceStyles: d.diagrams?.find((item) => item.kind === 'sequence')?.styles ?? {},
       nodes: d.nodes,
       edges: d.edges,
+      direction: d.direction ?? 'TB',
       pages: d.pages ?? [],
       decks: d.decks ?? [],
       wikiFolders: d.wikiFolders ?? [],
@@ -1298,6 +1325,7 @@ export function workspaceDiagram(state: Diagram = useDiagram.getState()): Diagra
   const base: Diagram = {
     nodes,
     edges,
+    ...dirField(state.direction),
     pages,
     decks,
     ...(state.sequence !== undefined && { sequence: state.sequence }),
@@ -1315,7 +1343,11 @@ export function workspaceDiagram(state: Diagram = useDiagram.getState()): Diagra
   const active = 'activeDiagramId' in state ? state.activeDiagramId : null;
   const diagrams = state.diagrams.map((entity) => {
     if (entity.id !== active) return entity;
-    if (entity.kind === 'flowchart') return { ...entity, nodes, edges };
+    if (entity.kind === 'flowchart') {
+      const { direction: was, ...rest } = entity;
+      void was;
+      return { ...rest, nodes, edges, ...dirField(state.direction) };
+    }
     // The store keeps the open sequence's styles beside its source.
     const styles = sequenceStyles ?? entity.styles;
     const { styles: previous, ...rest } = entity;

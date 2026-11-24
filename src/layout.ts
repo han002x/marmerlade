@@ -7,7 +7,7 @@
 import Dagre from '@dagrejs/dagre';
 import { DIAMOND_SIZE } from './shapes.ts';
 import { childrenOf, descendants, foldEdges, groupOrigin, hiddenIds } from './fold.ts';
-import { DEFAULT_IMAGE_SIZE, type DiagramEdge, type DiagramNode, type NodeImage, type NodeShape } from './types.ts';
+import { DEFAULT_IMAGE_SIZE, type DiagramEdge, type DiagramNode, type EdgeRoute, type NodeImage, type NodeShape, type Side } from './types.ts';
 
 export type Direction = 'TB' | 'LR';
 
@@ -63,6 +63,18 @@ export function layout(
   direction: Direction = 'TB',
   sizes: Record<string, { width: number; height: number }> = {},
 ): Record<string, { x: number; y: number }> {
+  return layoutRouted(nodes, edges, direction, sizes).positions;
+}
+
+type Point = { x: number; y: number };
+
+/** `layout`, plus the route dagre found for each edge, keyed by edge id. */
+function layoutRouted(
+  nodes: DiagramNode[],
+  edges: Pick<DiagramEdge, 'id' | 'source' | 'target' | 'label'>[],
+  direction: Direction,
+  sizes: Record<string, { width: number; height: number }>,
+): { positions: Record<string, Point>; routes: Record<string, EdgeRoute> } {
   try {
     return run(nodes, edges, direction, true, sizes);
   } catch {
@@ -84,13 +96,13 @@ export function layoutShown(
   edges: DiagramEdge[],
   direction: Direction = 'TB',
   sizes: Record<string, { width: number; height: number }> = {},
-): DiagramNode[] {
+): { nodes: DiagramNode[]; edges: DiagramEdge[] } {
   const hidden = hiddenIds(nodes);
   const visible = nodes.filter((n) => !hidden.has(n.id));
-  if (visible.length === 0) return nodes;
+  if (visible.length === 0) return { nodes, edges };
   const { direct, folded } = foldEdges(nodes, edges, hidden);
   const shownEdges = [...direct, ...folded.map(({ id, source, target }) => ({ id, source, target }))];
-  const positions = layout(visible, shownEdges, direction, sizes);
+  const { positions, routes } = layoutRouted(visible, shownEdges, direction, sizes);
 
   const kids = childrenOf(nodes);
   const shift = new Map<string, { x: number; y: number }>();
@@ -102,23 +114,48 @@ export function layoutShown(
     const by = { x: to.x - from.x, y: to.y - from.y };
     for (const id of descendants(n.id, kids)) shift.set(id, by);
   }
-  return nodes.map((n) => {
+  const laidOut = nodes.map((n) => {
     const at = positions[n.id];
     if (at) return { ...n, position: at };
     const by = shift.get(n.id);
     return by ? { ...n, position: { x: n.position.x + by.x, y: n.position.y + by.y } } : n;
   });
+  // an edge Tidy did not route (folded away, or touching an open sheet) drops
+  // any older route: its ends have moved, so it would no longer fit
+  const routed = edges.map((e) => {
+    const route = routes[e.id];
+    if (route) return { ...e, route };
+    if (!e.route) return e;
+    const { route: _stale, ...rest } = e;
+    return rest;
+  });
+  return { nodes: laidOut, edges: routed };
+}
+
+/**
+ * The side of a node centred at `c` that a route end `p` sits on. Every edge
+ * spans at least one rank, so it leaves and arrives across the rank axis:
+ * top or bottom when ranks run down, left or right when they run across.
+ */
+function sideOf(c: Point, p: Point, direction: Direction): Side {
+  if (direction === 'LR') return p.x < c.x ? 'left' : 'right';
+  return p.y < c.y ? 'top' : 'bottom';
+}
+
+/** Approximate box of an edge label pill (13px text, see `.mf-edge-text`). */
+function labelSize(label: string) {
+  return { width: label.length * 7 + 18, height: 22 };
 }
 
 const sheetId = (groupId: string) => `__sheet__${groupId}`;
 
 function run(
   nodes: DiagramNode[],
-  edges: DiagramEdge[],
+  edges: Pick<DiagramEdge, 'id' | 'source' | 'target' | 'label'>[],
   direction: Direction,
   compound: boolean,
   sizes: Record<string, { width: number; height: number }>,
-): Record<string, { x: number; y: number }> {
+): { positions: Record<string, Point>; routes: Record<string, EdgeRoute> } {
   const visible = new Set(nodes.map((n) => n.id));
   // Each unfolded group becomes a cluster holding its visible children, so the
   // paper sheet drawn around them never overlaps others.
@@ -153,7 +190,8 @@ function run(
 
   for (const e of edges) {
     if (g.hasNode(e.source) && g.hasNode(e.target)) {
-      g.setEdge(e.source, e.target);
+      // a labelled edge gets room for its label, as Mermaid's own layout does
+      g.setEdge(e.source, e.target, e.label ? { ...labelSize(e.label), labelpos: 'c' } : {});
     }
   }
 
@@ -167,5 +205,28 @@ function run(
     const { width, height } = sizes[n.id] ?? nodeSize(n);
     positions[n.id] = { x: p.x - width / 2, y: p.y - height / 2 };
   }
-  return positions;
+
+  // dagre routes each edge around the nodes between its ends; keep the bends
+  // and the sides its ends sit on. Its end points lie on the estimated box, so
+  // the drawn edge starts from the real handle instead.
+  const routes: Record<string, EdgeRoute> = {};
+  for (const e of edges) {
+    if (e.source === e.target) continue;
+    const from = positions[e.source];
+    const to = positions[e.target];
+    const points = g.edge(e.source, e.target)?.points as Point[] | undefined;
+    if (!from || !to || !points || points.length < 2) continue;
+    if (!points.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))) continue;
+    const placed = g.edge(e.source, e.target);
+    const label = e.label && Number.isFinite(placed.x) && Number.isFinite(placed.y) ? { x: placed.x, y: placed.y } : undefined;
+    routes[e.id] = {
+      ...(label && { label }),
+      sourceSide: sideOf(g.node(e.source), points[0], direction),
+      targetSide: sideOf(g.node(e.target), points[points.length - 1], direction),
+      points: points.slice(1, -1).map(({ x, y }) => ({ x, y })),
+      from,
+      to,
+    };
+  }
+  return { positions, routes };
 }

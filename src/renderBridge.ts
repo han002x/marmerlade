@@ -7,6 +7,7 @@ import { cycleSeconds, frameCount, fitScale, GIF_PIXEL_BUDGET } from './gifMath.
 import { flowCycle, flowSeconds, FLOW_LEAD } from './flow.ts';
 import { seek, usePlayer } from './flowPlayer.ts';
 import { layoutShown, type Direction } from './layout.ts';
+import { previewLayout } from './mermaid/previewLayout.ts';
 import type { RenderGifOptions, RenderBridge } from './renderContract.ts';
 
 export function measureNodes() {
@@ -22,14 +23,20 @@ function createBridge(fit: () => Promise<void>) {
     diagram: workspaceDiagram,
     measure: measureNodes,
     validateSequence,
-    layout(direction: Direction) {
+    async layout(direction: Direction) {
       const current = workspaceDiagram();
+      // the layout the diagram's preview shows; the measured built-in layout if Mermaid cannot draw it
+      try {
+        return { ...current, ...(await previewLayout({ nodes: current.nodes, edges: current.edges, direction })), ...(direction === 'LR' ? { direction } : {}) };
+      } catch {
+        // fall through
+      }
       const sizes = Object.fromEntries(measureNodes().map(node => [node.id, { width: node.width, height: node.height }]));
       // Measure in canvas coordinates rather than the fitted screen scale.
       const viewport = document.querySelector<HTMLElement>('.react-flow__viewport');
       const scale = viewport ? new DOMMatrix(getComputedStyle(viewport).transform).a : 1;
       for (const size of Object.values(sizes)) { size.width /= scale; size.height /= scale; }
-      return { ...current, nodes: layoutShown(current.nodes, current.edges, direction, sizes) };
+      return { ...current, ...layoutShown(current.nodes, current.edges, direction, sizes), ...(direction === 'LR' ? { direction } : {}) };
     },
     async importImage(base64: string, name: string, mime: string) {
       const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));

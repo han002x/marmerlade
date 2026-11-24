@@ -131,7 +131,7 @@ const edges = [E('1', 'A', 'x', 'calls'), E('2', 'A', 'y'), E('3', 'y', 'B', 'wr
 {
   // Tidy with G folded: the card is ranked by its creases, and its contents follow it
   const nodes = tree(true);
-  const laid = layoutShown(nodes, edges, 'TB');
+  const laid = layoutShown(nodes, edges, 'TB').nodes;
   const g = groupOrigin('G', laid);
   const a = laid.find((n) => n.id === 'A')!.position;
   const b = laid.find((n) => n.id === 'B')!.position;

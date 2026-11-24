@@ -23,7 +23,9 @@ export const nodeSchema = z.object({
   style: style.optional(),
 });
 const side = z.enum(['top', 'right', 'bottom', 'left']);
-export const edgeSchema = z.object({ id, source: id, target: id, label: z.string().optional(), sourceSide: side.optional(), targetSide: side.optional(), order: z.number().int().positive().optional(), style: style.optional() });
+const point = z.object({ x: z.number().finite(), y: z.number().finite() });
+const route = z.object({ sourceSide: side, targetSide: side, points: z.array(point), from: point, to: point, label: point.optional() });
+export const edgeSchema = z.object({ id, source: id, target: id, label: z.string().optional(), sourceSide: side.optional(), targetSide: side.optional(), order: z.number().int().positive().optional(), route: route.optional(), style: style.optional() });
 export const documentSchema = z.object({ id: id.regex(/^[A-Za-z0-9_-]+$/), title: z.string(), body: z.string(), updatedAt: z.number().nonnegative() });
 const entityBase = {
   id,
@@ -37,6 +39,7 @@ export const diagramEntitySchema = z.discriminatedUnion('kind', [
     kind: z.literal('flowchart'),
     nodes: z.array(nodeSchema),
     edges: z.array(edgeSchema),
+    direction: z.enum(['TB', 'LR']).optional(),
   }),
   z.object({
     ...entityBase,
@@ -46,7 +49,7 @@ export const diagramEntitySchema = z.discriminatedUnion('kind', [
     links: z.record(z.string(), z.object({ pageIds: z.array(id).optional(), deckIds: z.array(id).optional() })).optional(),
   }),
 ]);
-export const diagramSchema = z.object({ diagrams:z.array(diagramEntitySchema).optional(), sequence: z.string().refine(isSequence, 'Expected a Mermaid sequenceDiagram').optional(), nodes: z.array(nodeSchema), edges: z.array(edgeSchema), pages: z.array(documentSchema).default([]), decks: z.array(documentSchema).default([]), wikiFolders: wikiFoldersSchema.optional() });
+export const diagramSchema = z.object({ diagrams:z.array(diagramEntitySchema).optional(), direction: z.enum(['TB', 'LR']).optional(), sequence: z.string().refine(isSequence, 'Expected a Mermaid sequenceDiagram').optional(), nodes: z.array(nodeSchema), edges: z.array(edgeSchema), pages: z.array(documentSchema).default([]), decks: z.array(documentSchema).default([]), wikiFolders: wikiFoldersSchema.optional() });
 export const snapshotSchema = z.object({ revision: z.number().int().nonnegative(), diagram: diagramSchema });
 export const bootstrapSchema = snapshotSchema.extend({ token: z.string().min(1) });
 export const changeSchema = z.discriminatedUnion('kind', [

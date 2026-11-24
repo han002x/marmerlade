@@ -178,9 +178,11 @@ export type Side = 'top' | 'bottom' | 'left' | 'right';
 export function arrowHead(
   x: number,
   y: number,
-  side: Side,
+  side: Side | { x: number; y: number },
   { sloppiness, seed, size = 8 }: { sloppiness: Sloppiness; seed: number; size?: number },
 ): string {
+  // a point instead of a side: the chevron comes in from that point's direction
+  if (typeof side !== 'string') return arrowFrom(x, y, side, { sloppiness, seed, size });
   const s = size;
   const half = s * 0.62;
   const wings: [number, number][] =
@@ -191,7 +193,26 @@ export function arrowHead(
         : side === 'left'
           ? [[x - s, y - half], [x - s, y + half]]
           : [[x + s, y - half], [x + s, y + half]];
-  const [[ax, ay], [bx, by]] = wings;
+  return chevron(x, y, wings, sloppiness, seed);
+}
+
+function chevron(x: number, y: number, [[ax, ay], [bx, by]]: [number, number][], sloppiness: Sloppiness, seed: number) {
   const d = `M${fmt(ax)} ${fmt(ay)}L${fmt(x)} ${fmt(y)}L${fmt(bx)} ${fmt(by)}`;
   return ink(d, { sloppiness: sloppiness === 2 ? 1 : sloppiness, seed, continuous: true, pinEnds: true });
+}
+
+/** The chevron at (x, y) for a line arriving from `from`. */
+function arrowFrom(
+  x: number,
+  y: number,
+  from: { x: number; y: number },
+  { sloppiness, seed, size }: { sloppiness: Sloppiness; seed: number; size: number },
+): string {
+  const len = Math.hypot(x - from.x, y - from.y) || 1;
+  const ux = (x - from.x) / len;
+  const uy = (y - from.y) / len;
+  const half = size * 0.62;
+  const bx = x - ux * size;
+  const by = y - uy * size;
+  return chevron(x, y, [[bx - uy * half, by + ux * half], [bx + uy * half, by - ux * half]], sloppiness, seed);
 }

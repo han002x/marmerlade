@@ -10,6 +10,7 @@ export function diagramEntities(diagram: Diagram): DiagramEntity[] {
     size: { width: 900, height: 650 },
     nodes: diagram.nodes,
     edges: diagram.edges,
+    ...(diagram.direction === 'LR' && { direction: 'LR' as const }),
   };
   return [
     flow,
@@ -41,10 +42,12 @@ export function uniqueTitle(entities: DiagramEntity[], id: string, wanted: strin
 export function projectDiagrams(diagram: Diagram, diagrams: DiagramEntity[]): Diagram {
   const flow = diagrams.find((entity) => entity.kind === 'flowchart');
   const sequence = diagrams.find((entity) => entity.kind === 'sequence');
-  const { sequence: previous, ...rest } = diagram;
+  const { sequence: previous, direction: was, ...rest } = diagram;
   void previous;
+  void was;
   return {
     ...rest,
+    ...(flow?.kind === 'flowchart' && flow.direction === 'LR' && { direction: 'LR' as const }),
     diagrams,
     nodes: flow?.nodes ?? [],
     edges: flow?.edges ?? [],

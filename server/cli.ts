@@ -122,8 +122,10 @@ async function main() {
           const content = target?.kind === 'flowchart' ? target : current;
           const parsed = parseMermaid(source);
           if (!parsed.ok) throw new Error(parsed.error);
+          const { direction: previous, ...rest } = current;
+          void previous;
           const d = {
-            ...current,
+            ...rest,
             ...mergeDiagram(parsed.diagram, content),
             pages: current.pages ?? [],
             decks: current.decks ?? [],
@@ -139,7 +141,7 @@ async function main() {
           }
           parseDiagram(d);
           if (tidy) {
-            const positions = layout(d.nodes, d.edges);
+            const positions = layout(d.nodes, d.edges, d.direction ?? 'TB');
             d.nodes = d.nodes.map((n) => ({ ...n, position: positions[n.id] ?? n.position }));
           }
           if (entities) {
@@ -154,6 +156,7 @@ async function main() {
               kind: 'flowchart' as const,
               nodes: d.nodes,
               edges: d.edges,
+              ...(d.direction === 'LR' && { direction: 'LR' as const }),
             };
             return projectDiagrams(
               { ...current, pages: d.pages, decks: d.decks },

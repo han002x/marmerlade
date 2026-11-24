@@ -75,8 +75,8 @@ function DiagramFrame({ data }: NodeProps<EntityNode>) {
   const flow = entity.kind === 'flowchart' ? entity : undefined;
   const sequence = entity.kind === 'sequence' ? entity.source : undefined;
   const source = useMemo(
-    () => sequence ?? toMermaid({ nodes: flow?.nodes ?? [], edges: flow?.edges ?? [] }),
-    [sequence, flow?.nodes, flow?.edges],
+    () => sequence ?? toMermaid({ nodes: flow?.nodes ?? [], edges: flow?.edges ?? [], direction: flow?.direction }),
+    [sequence, flow?.nodes, flow?.edges, flow?.direction],
   );
   useEffect(() => {
     if (editing) return;

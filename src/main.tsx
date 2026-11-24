@@ -15,7 +15,6 @@ import { initializeWorkspace, isLiveWorkspace } from './liveWorkspace.ts'
 import { readSaved, startAutosave, startSync } from './persist.ts'
 import { parseRoute } from './route.ts'
 import { useDiagram } from './store.ts'
-import { SAMPLE } from './sample.ts'
 import { isFirstRun } from './components/Welcome.tsx'
 
 async function start() {
@@ -28,7 +27,6 @@ async function start() {
     startSync();
     const { kind } = parseRoute(window.location.hash);
     if (!saved && (kind === 'canvas' || kind === 'node' || kind === 'diagram')) {
-      useDiagram.getState().load(SAMPLE);
       showWelcome = isFirstRun();
     }
   }

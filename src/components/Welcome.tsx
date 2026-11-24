@@ -116,12 +116,12 @@ export function Welcome({ onDone, onAddDiagram, onPasteMermaid }: {
   useLayoutEffect(() => {
     const measure = () => {
       const bar = document.querySelector('.mf-toolbar')?.getBoundingClientRect();
-      const panel = document.querySelector('.mf-reopen, .mf-panel-head')?.getBoundingClientRect();
+      const panel = document.querySelector('[aria-label="Open Mermaid panel"], #mf-right-panel .mf-panel-head')?.getBoundingClientRect();
       if (bar && panel) setRects({ bar, panel, vw: window.innerWidth });
     };
     measure();
     const watch = new ResizeObserver(measure);
-    for (const el of document.querySelectorAll('.mf-toolbar, .mf-reopen, .mf-panel-head')) watch.observe(el);
+    for (const el of document.querySelectorAll('.mf-toolbar, [aria-label="Open Mermaid panel"], #mf-right-panel .mf-panel-head')) watch.observe(el);
     window.addEventListener('resize', measure);
     document.fonts?.ready.then(measure);
     return () => {

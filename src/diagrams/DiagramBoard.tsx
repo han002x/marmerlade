@@ -775,7 +775,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
           fitView
           fitViewOptions={{ padding: 0.15, maxZoom: 0.85 }}
           minZoom={0.05}
-          maxZoom={2}
+          maxZoom={8}
           deleteKeyCode={null}
           nodesConnectable={false}
           zoomOnDoubleClick={false}

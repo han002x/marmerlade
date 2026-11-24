@@ -897,6 +897,7 @@ export default function SequenceCanvas({
             fit(geometry.box);
         }}
         minZoom={0.05}
+        maxZoom={8}
         panOnDrag={workspaceZoom ? false : [1, 2]}
         panActivationKeyCode={workspaceZoom ? null : 'Space'}
         zoomOnScroll={!workspaceZoom}

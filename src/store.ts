@@ -52,6 +52,17 @@ function nextNodeId(nodes: DiagramNode[]): string {
 const imageKey = (i?: NodeImage) =>
   i ? `${i.src}\u0000${i.pos ?? ''}\u0000${i.w ?? ''}\u0000${i.h ?? ''}\u0000${i.constraint ? 1 : 0}` : '';
 
+/**
+ * A style as an order-free key. Missing fields, and the `arrowheads: 'none'`
+ * a parse writes for a plain `---`, compare as equal to an absent style.
+ */
+const styleKey = (s?: ElementStyle) =>
+  JSON.stringify(
+    Object.entries(s ?? {})
+      .filter(([k, v]) => v !== undefined && !(k === 'arrowheads' && v === 'none'))
+      .sort(([x], [y]) => (x < y ? -1 : 1)),
+  );
+
 function unchanged(a: Diagram, b: Diagram): boolean {
   if (a.nodes.length !== b.nodes.length || a.edges.length !== b.edges.length) return false;
   for (let i = 0; i < a.nodes.length; i++) {
@@ -67,7 +78,8 @@ function unchanged(a: Diagram, b: Diagram): boolean {
       imageKey(x.image) !== imageKey(y.image) ||
       x.parentId !== y.parentId ||
       x.position.x !== y.position.x ||
-      x.position.y !== y.position.y
+      x.position.y !== y.position.y ||
+      styleKey(x.style) !== styleKey(y.style)
     )
       return false;
   }
@@ -75,7 +87,8 @@ function unchanged(a: Diagram, b: Diagram): boolean {
     const x = a.edges[i];
     const y = b.edges[i];
     if (x.source !== y.source || x.target !== y.target || x.label !== y.label ||
-      x.sourceSide !== y.sourceSide || x.targetSide !== y.targetSide) return false;
+      x.sourceSide !== y.sourceSide || x.targetSide !== y.targetSide ||
+      styleKey(x.style) !== styleKey(y.style)) return false;
   }
   return true;
 }

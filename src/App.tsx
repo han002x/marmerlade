@@ -1096,6 +1096,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         autoPanOnNodeDrag={!slots}
         autoPanOnConnect={!slots}
         minZoom={slots ? 0.05 : undefined}
+        maxZoom={8}
         fitView={!slots}
       >
         <NodeToolbar

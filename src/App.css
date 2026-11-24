@@ -1253,9 +1253,7 @@
    When folded, the group becomes a card with its pages stacked beneath it. */
 
 .mf-sheet {
-  --ear: 16px;
   position: relative;
-  /* the shadow follows the clipped paper, dog-ear cut included */
   filter: drop-shadow(0 10px 16px color-mix(in srgb, var(--mf-shadow) 45%, transparent));
   transition:
     width 260ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -1284,14 +1282,6 @@
     var(--mf-grain),
     color-mix(in srgb, var(--mf-group) 60%, transparent);
   border: 1px solid var(--mf-border);
-  clip-path: polygon(
-    0 0,
-    calc(100% - var(--ear)) 0,
-    100% var(--ear),
-    100% 100%,
-    0 100%
-  );
-  transition: clip-path 160ms ease;
 }
 .mf-sheet[data-depth='1'] .mf-sheet-paper {
   background-color: color-mix(in srgb, var(--mf-group) 72%, transparent);
@@ -1307,7 +1297,7 @@
   position: absolute;
   top: 7px;
   left: 12px;
-  max-width: calc(100% - 48px);
+  max-width: calc(100% - 72px);
   height: 22px;
   padding: 0 6px;
   font-family: var(--mf-content-font, var(--mf-hand));
@@ -1321,7 +1311,7 @@
 .mf-sheet-title {
   overflow: hidden;
   height: auto;
-  white-space: pre-wrap;
+  white-space: pre;
   text-overflow: ellipsis;
   cursor: move;
 }
@@ -1370,7 +1360,7 @@
 }
 .mf-sheet:has(> .mf-fold-toggle) :is(.mf-sheet-title, .mf-sheet-title-input) {
   left: 34px;
-  max-width: calc(100% - 70px);
+  max-width: calc(100% - 94px);
 }
 .mf-shape-diamond > .mf-fold-toggle {
   transform: rotate(-45deg);
@@ -1448,8 +1438,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mf-sheet,
-  .mf-sheet-paper {
+  .mf-sheet {
     transition: none;
   }
   .react-flow__node.mf-folding .mf-node,
@@ -2108,7 +2097,7 @@
   transform: scale(1.1);
 }
 .mf-sheet > .mf-page {
-  right: calc(var(--ear) + 6px);
+  right: 6px;
   top: 6px;
 }
 .mf-deck.has-page { border-color: color-mix(in srgb, var(--mf-slides-icon) 45%, transparent); }
@@ -2117,7 +2106,7 @@
   right: 17px;
 }
 .mf-sheet > .mf-deck {
-  right: calc(var(--ear) + 32px);
+  right: 32px;
 }
 @media (prefers-reduced-motion: reduce) {
   .mf-page {

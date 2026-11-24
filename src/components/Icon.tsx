@@ -52,6 +52,8 @@ export type IconName =
   | 'square-p'
   | 'grid'
   | 'expand'
+  | 'minimize-2'
+  | 'maximize-2'
   | 'play'
   | 'pause'
   | 'stop'
@@ -129,6 +131,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   expand: <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />,
+  'minimize-2': <path d="m14 10 7-7m-1 7h-6V4M3 21l7-7m-6 0h6v6" />,
+  'maximize-2': <path d="M15 3h6v6m0-6-7 7M3 21l7-7m-1 7H3v-6" />,
   rect: <rect x="3" y="6" width="18" height="12" rx="2" />,
   round: <rect x="3" y="6" width="18" height="12" rx="6" />,
   diamond: <path d="M12 3 21 12 12 21 3 12Z" />,

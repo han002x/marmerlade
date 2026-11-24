@@ -1,4 +1,5 @@
 import { useFoldMotion } from '../foldMotion';
+import { Icon } from './Icon';
 
 export function FoldButton({ id, label, collapsed }: { id: string; label: string; collapsed: boolean }) {
   const fold = useFoldMotion((s) => s.fold);
@@ -17,9 +18,7 @@ export function FoldButton({ id, label, collapsed }: { id: string; label: string
         (collapsed ? unfold : fold)([id]);
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-        <path d={collapsed ? 'M4 8h8M8 4v8' : 'M4 8h8'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
+      <Icon name={collapsed ? 'maximize-2' : 'minimize-2'} size={14} />
     </button>
   );
 }

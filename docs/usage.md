@@ -19,9 +19,9 @@ navigate between diagrams. Built on [React Flow](https://reactflow.dev) (`@xyflo
 ## Origami folding
 
 Any node that has children is a *group*, and an
-unfolded group lies on a sheet of paper wrapping its subtree. Click the minus
-button on the sheet to fold it into a card. Click the plus button on the card
-to open it again. You can also select the group and press `F` to toggle it.
+unfolded group lies on a sheet of paper wrapping its subtree. Click the inward
+arrows on the sheet to fold it into a card. Click the outward arrows on the
+card to open it again. You can also select the group and press `F` to toggle it.
 Edges into a folded group crease onto its card (dashed, merged as `×n`) so folding never
 loses connections. `[` / `]` fold or unfold the whole diagram one level at a
 time. Nesting is arbitrary depth.

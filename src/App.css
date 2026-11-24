@@ -1250,8 +1250,7 @@
 
 /* ---- origami: folding and unfolding groups --------------------------------
    An unfolded group lies on a sheet of paper drawn under edges and nodes.
-   Its dog-eared corner folds the sheet away; the group then
-   becomes a card with the folded pages stacked beneath it. */
+   When folded, the group becomes a card with its pages stacked beneath it. */
 
 .mf-sheet {
   --ear: 16px;
@@ -1341,6 +1340,40 @@
   background: var(--mf-input);
   border: 1px solid var(--mf-accent);
   outline: none;
+}
+
+.mf-fold-toggle {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: 50%;
+  background: var(--mf-panel);
+  color: var(--mf-text);
+  cursor: pointer;
+  pointer-events: all;
+}
+.mf-fold-toggle:hover,
+.mf-fold-toggle:focus-visible {
+  border-color: var(--mf-accent);
+  color: var(--mf-accent);
+}
+.mf-sheet > .mf-fold-toggle {
+  top: 6px;
+  left: 8px;
+}
+.mf-sheet:has(> .mf-fold-toggle) :is(.mf-sheet-title, .mf-sheet-title-input) {
+  left: 34px;
+  max-width: calc(100% - 70px);
+}
+.mf-shape-diamond > .mf-fold-toggle {
+  transform: rotate(-45deg);
 }
 
 /* fold: the subtree slides onto its card (node transform transition) while

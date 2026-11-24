@@ -4,6 +4,7 @@ import { useDiagram } from '../store';
 import { SideHandles } from './SideHandles';
 import { PageButton } from './PageButton';
 import { DeckButton } from './DeckButton';
+import { FoldButton } from './FoldButton';
 
 export interface SheetData {
   groupId: string;
@@ -80,6 +81,7 @@ function SheetNodeInner({ data }: NodeProps) {
             {d.title || 'Untitled'}
           </span>
         )}
+      <FoldButton id={d.groupId} label={d.title ?? ''} collapsed={false} />
       <PageButton owner={d.groupId} />
       <DeckButton owner={d.groupId} />
     </div>

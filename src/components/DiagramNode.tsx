@@ -8,6 +8,7 @@ import { animationClass, flowDash, fontFamilyCss, inkOn } from '../style';
 import { CatalogIcon, ShapeOutline } from './ShapeOutline';
 import { PageButton } from './PageButton';
 import { DeckButton } from './DeckButton';
+import { FoldButton } from './FoldButton';
 import { iconTileCss, shapeCss, shapeDef } from '../shapes';
 import { seedOf } from '../rough';
 
@@ -20,7 +21,6 @@ export interface NodeData {
   image?: NodeImage;
   isGroup: boolean;
   collapsed: boolean;
-  /** how many nodes are folded inside this card */
   style?: ElementStyle;
   sized?: boolean;
   /** flow clock reading at which the sequence reaches this node */
@@ -233,6 +233,7 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
           </span>
         )}
       </div>
+      {d.isGroup && d.collapsed && <FoldButton id={id} label={d.label} collapsed />}
       <PageButton owner={id} />
       <DeckButton owner={id} />
     </div>

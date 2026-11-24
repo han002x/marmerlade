@@ -15,7 +15,9 @@ link syntax, and editing contracts. The director chooses the content and order
 of work; the docs skill describes what the product can represent. To map or
 refresh a repository's architecture, use
 [marmerlade-codebase-map](../marmerlade-codebase-map/SKILL.md), which applies
-steps 2 to 5 and 7 to source code.
+the workflow to source code. For an entire repository explanation, follow its
+README deck and overview diagram entry-point requirements, including linked
+detail; a single prompt authorizes the requested workspace construction.
 
 ## 1. Establish the brief
 
@@ -40,7 +42,7 @@ have an MCP server prefix; discover their registered names before calling them.
 Unresolved assumptions are identified. A wiki page per node and a slide deck
 per project are not automatic requirements.
 
-Discuss who starts each key workflow, its inputs, important decisions, successful
+For other project briefs, discuss who starts each key workflow, its inputs, important decisions, successful
 result, and relevant failure or handoff paths. Ask a small batch of questions
 when the sources cannot establish these. Reflect the proposed workflow back to
 the user before building a large model, while continuing useful source review.

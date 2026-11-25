@@ -22,7 +22,7 @@ export interface SheetData {
  * point at the group. Dragging the sheet moves the group; F folds it into a
  * card.
  */
-function SheetNodeInner({ data }: NodeProps) {
+function SheetNodeInner({ data, selected }: NodeProps) {
   const d = data as SheetData;
   const updateLabel = useDiagram((s) => s.updateLabel);
   const setHighlight = useDiagram((s) => s.setHighlight);
@@ -81,7 +81,7 @@ function SheetNodeInner({ data }: NodeProps) {
             {d.title || 'Untitled'}
           </span>
         )}
-      <FoldButton id={d.groupId} label={d.title ?? ''} collapsed={false} />
+      <FoldButton id={d.groupId} label={d.title ?? ''} collapsed={false} selected={selected} />
       <PageButton owner={d.groupId} />
       <DeckButton owner={d.groupId} />
     </div>

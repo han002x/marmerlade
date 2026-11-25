@@ -234,7 +234,7 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
           </span>
         )}
       </div>
-      {d.isGroup && d.collapsed && <FoldButton id={id} label={d.label} collapsed />}
+      {d.isGroup && d.collapsed && <FoldButton id={id} label={d.label} collapsed selected={selected} />}
       <PageButton owner={id} />
       <DeckButton owner={id} />
     </div>

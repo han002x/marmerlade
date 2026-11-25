@@ -1,7 +1,7 @@
 import { useFoldMotion } from '../foldMotion';
 import { Icon } from './Icon';
 
-export function FoldButton({ id, label, collapsed }: { id: string; label: string; collapsed: boolean }) {
+export function FoldButton({ id, label, collapsed, selected }: { id: string; label: string; collapsed: boolean; selected: boolean }) {
   const fold = useFoldMotion((s) => s.fold);
   const unfold = useFoldMotion((s) => s.unfold);
   if (window.__marmerladeRender) return null;
@@ -19,6 +19,7 @@ export function FoldButton({ id, label, collapsed }: { id: string; label: string
       }}
     >
       <Icon name={collapsed ? 'maximize-2' : 'minimize-2'} size={14} />
+      {selected && <kbd className="mf-fold-key" aria-hidden="true">F</kbd>}
     </button>
   );
 }

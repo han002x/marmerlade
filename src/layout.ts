@@ -30,7 +30,11 @@ export function sizeFor(
     const h = image.h ?? DEFAULT_IMAGE_SIZE;
     return { width: Math.max(w + 16, 96), height: h + IMAGE_LABEL_SPACE };
   }
-  if (icon) return shape === 'circle' ? { width: 96, height: 96 } : { width: 96, height: 84 };
+  if (icon) {
+    if (shape === 'diamond') return { width: DIAMOND_SIZE, height: DIAMOND_SIZE };
+    if (shape === 'circle' || shape === 'dbl-circle') return { width: 96, height: 96 };
+    return { width: 96, height: 84 };
+  }
   switch (shape) {
     case 'circle':
     case 'dbl-circle':

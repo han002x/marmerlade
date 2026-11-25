@@ -33,11 +33,11 @@ export function ImagePicker({
         className={open ? 'mf-tool is-active' : 'mf-tool'}
         aria-label="Image"
         aria-expanded={open}
-        title="Image  ·  I"
+        title="Image  ·  T"
         onClick={() => onOpenChange(!open)}
       >
         <Icon name="image" />
-        <kbd className="mf-tool-key" aria-hidden="true">I</kbd>
+        <kbd className="mf-tool-key" aria-hidden="true">T</kbd>
       </button>
       {open && <ImagePanel onPick={pick} />}
     </div>

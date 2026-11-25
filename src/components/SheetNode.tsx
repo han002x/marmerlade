@@ -72,7 +72,7 @@ function SheetNodeInner({ data }: NodeProps) {
             title="Drag to move · Double-click to rename"
             onPointerEnter={() => setHighlight({ kind: 'node', id: d.groupId })}
             onPointerLeave={() => setHighlight(null)}
-            onDoubleClick={(e) => {
+            onDoubleClickCapture={(e) => {
               e.stopPropagation();
               setDraft(d.title ?? '');
               setEditing(true);

@@ -7,7 +7,8 @@
 import { groupOrigin, childrenOf, sheets, visibleGraph, type Rect } from '../fold.ts';
 import { IMAGE_LABEL_SPACE, nodeSize } from '../layout.ts';
 import { inkOn } from '../style.ts';
-import { DEFAULT_IMAGE_SIZE, type DiagramEdge, type DiagramNode, type FontFamily, type NodeShape, type Side } from '../types.ts';
+import { autoSides } from '../edgePath.ts';
+import { DEFAULT_IMAGE_SIZE, type DiagramEdge, type DiagramNode, type FlowDirection, type FontFamily, type NodeShape, type Side } from '../types.ts';
 
 /** 16:9 slide, in inches */
 export const SLIDE_W = 13.333;
@@ -57,6 +58,8 @@ export interface SceneInput {
   /** rendered sizes in canvas px, for nodes that auto-size */
   sizes?: Record<string, { width: number; height: number }>;
   palette: Palette;
+  /** flowchart direction, for the sides an unpinned edge joins by */
+  direction?: FlowDirection;
 }
 
 const FONTS: Record<Exclude<FontFamily, 'hand'>, string> = { sans: 'Inter', serif: 'Georgia', mono: 'JetBrains Mono' };
@@ -92,18 +95,11 @@ const anchor = (r: Rect, side: Side) =>
       : side === 'left' ? { x: r.x, y: r.y + r.height / 2 }
         : { x: r.x + r.width, y: r.y + r.height / 2 };
 
-/** the sides that face each other, by whichever axis the two centres differ on most */
-function facing(a: Rect, b: Rect): [Side, Side] {
-  const dx = b.x + b.width / 2 - (a.x + a.width / 2);
-  const dy = b.y + b.height / 2 - (a.y + a.height / 2);
-  if (Math.abs(dx) > Math.abs(dy)) return dx >= 0 ? ['right', 'left'] : ['left', 'right'];
-  return dy >= 0 ? ['bottom', 'top'] : ['top', 'bottom'];
-}
 
 const dashOf = (style: string | undefined): Stroke['dash'] => (style === 'dashed' ? 'dash' : style === 'dotted' ? 'sysDot' : 'solid');
 
 /** Everything in canvas px; `buildScene` scales it onto the slide at the end. */
-export function buildScene({ nodes, edges, sizes = {}, palette }: SceneInput): Scene {
+export function buildScene({ nodes, edges, sizes = {}, palette, direction }: SceneInput): Scene {
   const graph = visibleGraph(nodes, edges);
   const kids = childrenOf(nodes);
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -150,7 +146,7 @@ export function buildScene({ nodes, edges, sizes = {}, palette }: SceneInput): S
     const a = rectFor(e.source);
     const b = rectFor(e.target);
     if (!a || !b) return;
-    const [fromSide, toSide] = facing(a, b);
+    const [fromSide, toSide] = autoSides(a, b, direction);
     const p = anchor(a, e.sourceSide ?? fromSide);
     const q = anchor(b, e.targetSide ?? toSide);
     const heads = e.style?.arrowheads ?? 'none';
@@ -182,7 +178,7 @@ export function buildScene({ nodes, edges, sizes = {}, palette }: SceneInput): S
     const line: Stroke = { color: ink, width: st?.strokeWidth ?? 1, dash: dashOf(st?.strokeStyle) };
     const transparency = st?.opacity != null ? Math.round((1 - st.opacity) * 100) : undefined;
     const tile = !!(n.icon || n.image);
-    const map = tile ? { preset: n.shape === 'circle' ? 'ellipse' as const : n.shape === 'round' ? 'roundRect' as const : 'rect' as const } : PRESETS[n.shape];
+    const map = n.image ? { preset: n.shape === 'circle' ? 'ellipse' as const : n.shape === 'round' ? 'roundRect' as const : 'rect' as const } : PRESETS[n.shape];
 
     if (n.collapsed && kids.has(n.id)) {
       // a folded card reads as a stack of paper behind it

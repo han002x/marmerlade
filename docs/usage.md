@@ -230,16 +230,17 @@ survive reloads. Reset Custom from any preset to start again.
 
 | Key | Action |
 | --- | --- |
-| `R` / `O` / `D` / `C` | Add rectangle / rounded / diamond / circle |
-| `S` | Open the shape + icon picker (type to filter, `Enter` picks the first) |
-| `I` | Add an image: paste a URL, upload a file, or take it from the clipboard |
+| `Q` / `W` / `E` | Add rectangle / diamond / circle (flowchart) |
+| `O` | Add a rounded shape (flowchart) |
+| `R` / `Y` | Open the icon / shape picker (flowchart; type to filter, `Enter` picks the first) |
+| `T` | Add an image: paste a URL, upload a file, or take it from the clipboard (flowchart) |
 | `L` | Tidy top-down |
 | `⇧L` | Tidy left-right |
-| `T` | Open app appearance |
+| `⇧T` (flowchart) / `T` (sequence) | Open app appearance |
 | `Space` | Toggle Mermaid panel |
-| `W` | Open the selected node's or sequence participant's default wiki page in the side panel |
+| `⇧W` (flowchart) / `W` (sequence) | Open the selected node's or sequence participant's default wiki page in the side panel |
 | `K` | Open the selected node's or sequence participant's default slide deck in the side panel (all decks when nothing is selected) |
-| `E` | Page tab: switch between Edit and Read |
+| `⇧E` | Page tab: switch between Edit and Read (flowchart) |
 | `F` | Fold / unfold the selected group (or the sheet a selected node sits on) |
 | `G` | Group selected nodes, or ungroup a selected group or all of its children. A group with a label, links, connections, or styling remains as a node. |
 | `[` / `]` | Fold / unfold one level |

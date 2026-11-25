@@ -70,9 +70,9 @@ function createBridge(fit: () => Promise<void>) {
     },
     async pptx() {
       if (!document.querySelector('.react-flow')) throw new Error('PowerPoint export requires the canvas view');
-      const { nodes, edges } = useDiagram.getState();
+      const { nodes, edges, direction } = useDiagram.getState();
       const { diagramPptx } = await import('./pptx/export.ts');
-      const bytes = await diagramPptx(nodes, edges);
+      const bytes = await diagramPptx(nodes, edges, direction);
       let binary = '';
       for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
       return btoa(binary);

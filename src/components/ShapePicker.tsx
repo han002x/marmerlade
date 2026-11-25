@@ -1,5 +1,4 @@
-// Toolbar popover listing every shape and catalog icon. Picking one arms it for
-// placement, exactly like the toolbar's own shape buttons.
+// Toolbar popovers for shapes and catalog icons.
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { NodeImage, NodeShape } from '../types';
 import { SHAPES } from '../shapes';
@@ -69,7 +68,9 @@ export function ShapePicker({
   open,
   onOpenChange,
   onPick,
+  kind = 'shapes',
 }: {
+  kind?: 'shapes' | 'icons';
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (p: Placement) => void;
@@ -86,31 +87,32 @@ export function ShapePicker({
     <div className="mf-menu-wrap" ref={wrap}>
       <button
         className={open ? 'mf-tool is-active' : 'mf-tool'}
-        aria-label="Shapes and icons"
+        aria-label={kind === 'shapes' ? 'Shapes' : 'Icons'}
         aria-expanded={open}
-        title="Shapes and icons  ·  S"
+        title={kind === 'shapes' ? 'Shapes  ·  Y' : 'Icons  ·  R'}
         onClick={() => onOpenChange(!open)}
       >
-        <Icon name="shapes" />
-        <kbd className="mf-tool-key" aria-hidden="true">S</kbd>
+        <Icon name={kind === 'shapes' ? 'shapes' : 'icon-library'} />
+        <kbd className="mf-tool-key" aria-hidden="true">{kind === 'shapes' ? 'Y' : 'R'}</kbd>
       </button>
-      {open && <PickerPanel onPick={pick} />}
+      {open && <PickerPanel onPick={pick} kind={kind} />}
     </div>
   );
 }
 
 /** The open popover: mounted fresh on every open, so the filter starts empty. */
-function PickerPanel({ onPick }: { onPick: (p: Placement) => void }) {
+function PickerPanel({ onPick, kind }: { onPick: (p: Placement) => void; kind: 'shapes' | 'icons' }) {
   const [query, setQuery] = useState('');
 
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return SECTIONS;
-    return SECTIONS.map((s) => ({
+    const available = kind === 'shapes' ? SECTIONS.slice(0, 1) : SECTIONS.slice(1);
+    if (!q) return available;
+    return available.map((s) => ({
       ...s,
       items: s.items.filter((i) => i.name.toLowerCase().includes(q) || i.key.includes(q)),
     })).filter((s) => s.items.length > 0);
-  }, [query]);
+  }, [query, kind]);
 
   return (
     <div className="mf-menu mf-picker">

@@ -2,6 +2,8 @@
 // draws its own: a uniform B-spline through the bends (d3's curveBasis), which
 // starts and ends exactly on the end points and bends smoothly in between.
 
+import type { FlowDirection, Side } from './types.ts';
+
 type Point = { x: number; y: number };
 
 const fmt = (n: number) => Math.round(n * 100) / 100;
@@ -68,4 +70,19 @@ export function borderPoint(box: Box, shape: string | undefined, toward: Point):
   else t = 1 / Math.max(Math.abs(dx) / w, Math.abs(dy) / h);
   // a bend inside the outline (nodes resized since Tidy) keeps the end on it
   return { x: cx + dx * t, y: cy + dy * t };
+}
+
+/**
+ * The sides two boxes face each other by, for an edge with no side pinned: the
+ * axis with the wider clear gap between them (so wide nodes stacked a little
+ * off-centre still join bottom to top), the flow direction breaking a tie.
+ */
+export function autoSides(a: Box, b: Box, direction: FlowDirection = 'TB'): [Side, Side] {
+  const dx = b.x + b.width / 2 - (a.x + a.width / 2);
+  const dy = b.y + b.height / 2 - (a.y + a.height / 2);
+  const gapX = Math.abs(dx) - (a.width + b.width) / 2;
+  const gapY = Math.abs(dy) - (a.height + b.height) / 2;
+  const horizontal = gapX === gapY ? direction === 'LR' : gapX > gapY;
+  if (horizontal) return dx >= 0 ? ['right', 'left'] : ['left', 'right'];
+  return dy >= 0 ? ['bottom', 'top'] : ['top', 'bottom'];
 }

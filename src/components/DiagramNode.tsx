@@ -123,7 +123,7 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
   const image = d.image;
   // an image wins over an icon; both draw as a tile whose shape picks corners
   const icon = image ? undefined : d.icon;
-  const tile = !!(icon || image);
+  const tile = !!image || (!!icon && (d.shape === 'rect' || d.shape === 'round' || d.shape === 'circle'));
   const seed = useMemo(() => seedOf(id), [id]);
 
   const st = d.style;
@@ -189,7 +189,8 @@ function DiagramNodeInner({ id, data: d, selected, dragging }: NodeProps<Node<No
       style={styleCss}
       onPointerEnter={() => setHighlight({ kind: 'node', id })}
       onPointerLeave={() => setHighlight(null)}
-      onDoubleClick={() => {
+      onDoubleClickCapture={(e) => {
+        e.stopPropagation();
         setDraft(d.label);
         setEditing(true);
       }}

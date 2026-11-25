@@ -33,6 +33,7 @@ export type IconName =
   | 'group'
   | 'more'
   | 'shapes'
+  | 'icon-library'
   | 'flowchart'
   | 'sequence'
   | 'product-diagrams'
@@ -221,7 +222,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M6 7l1 13h10l1-13" />
     </>
   ),
-  // a square, a circle and a triangle: the shape + icon library
+  'icon-library': <><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="12" cy="10" r="3" /><path d="M7 18c.5-2.5 2.3-4 5-4s4.5 1.5 5 4" /></>,
+  // a square, a circle and a triangle: the shape library
   shapes: (
     <>
       <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />

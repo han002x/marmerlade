@@ -831,6 +831,23 @@
   }
 }
 
+/* a selected edge's end grips: drag one to another side or node. A hollow
+   grip follows the other node (auto); a filled one is pinned to its side. */
+.react-flow__edge .react-flow__edgeupdater {
+  fill: var(--mf-bg);
+  stroke: var(--mf-accent);
+  stroke-width: 2px;
+  cursor: grab;
+  filter: drop-shadow(0 1px 2px var(--mf-shadow));
+}
+.react-flow__edge.mf-pin-source .react-flow__edgeupdater-source,
+.react-flow__edge.mf-pin-target .react-flow__edgeupdater-target {
+  fill: var(--mf-accent);
+}
+.react-flow__edge .react-flow__edgeupdater:hover {
+  stroke-width: 3px;
+}
+
 /* the live join-preview line drawn to the cursor */
 .mf-join-path {
   stroke: var(--mf-accent);
@@ -1536,6 +1553,24 @@
 }
 .mf-seg.mf-anim-speed {
   margin-top: 6px;
+}
+/* edge ends: a short row label, then the side choices */
+.mf-seg.mf-seg-labelled {
+  align-items: center;
+}
+.mf-seg.mf-seg-labelled + .mf-seg.mf-seg-labelled {
+  margin-top: 6px;
+}
+.mf-seg.mf-seg-labelled button:first-of-type {
+  flex: 1.8;
+  font-size: 11px;
+}
+.mf-seg-label {
+  width: 52px;
+  flex: none;
+  padding-left: 6px;
+  color: var(--mf-muted, var(--mf-text));
+  font-size: 11px;
 }
 
 /* ── Outline shapes ────────────────────────────────────────────────────

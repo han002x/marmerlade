@@ -1,7 +1,7 @@
 import { useStyleDefaults } from '../useStyleDefaults';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useDiagram, useStructure } from '../store';
-import { DEFAULT_IMAGE_SIZE, type Arrowheads, type DiagramNode, type ElementStyle } from '../types';
+import { DEFAULT_IMAGE_SIZE, type Arrowheads, type DiagramNode, type ElementStyle, type Side } from '../types';
 import { asImageSrc, isDataUri, kb, readImageFile, sizedImage } from '../imageUpload';
 import {
   ANIMATIONS,
@@ -22,6 +22,14 @@ const STROKE_STYLE_GLYPH: Record<string, string> = {
   dashed: '- -',
   dotted: '···',
 };
+/** where an edge end attaches; Auto faces the other end */
+const SIDE_CHOICES: { value: Side | null; glyph: string; title: string }[] = [
+  { value: null, glyph: 'Auto', title: 'auto' },
+  { value: 'top', glyph: '↑', title: 'top' },
+  { value: 'right', glyph: '→', title: 'right' },
+  { value: 'bottom', glyph: '↓', title: 'bottom' },
+  { value: 'left', glyph: '←', title: 'left' },
+];
 const SLOPPINESS_GLYPH = ['╱', '〰', '≈'];
 const FONT_GLYPH: Record<string, string> = {
   hand: '✎',
@@ -43,6 +51,7 @@ export function StylePanel() {
   const updateNodeStyle = useDiagram((s) => s.updateNodeStyle);
   const updateEdgeStyle = useDiagram((s) => s.updateEdgeStyle);
   const setEdgeOrder = useDiagram((s) => s.setEdgeOrder);
+  const setEdgeSides = useDiagram((s) => s.setEdgeSides);
 
   const hasNodes = selectedNodeIds.length > 0;
   const hasEdges = selectedEdgeIds.length > 0;
@@ -106,6 +115,22 @@ export function StylePanel() {
           </section>
         )}
       </StyleFields>
+
+      {singleEdge && (
+        <section className="mf-style-section">
+          <label className="mf-style-label">Ends</label>
+          {([['sourceSide', 'Leaves'], ['targetSide', 'Arrives']] as const).map(([key, name]) => (
+            <div key={key} className="mf-seg mf-seg-labelled" role="group" aria-label={`${name} by side`}>
+              <span className="mf-seg-label">{name}</span>
+              {SIDE_CHOICES.map(({ value, glyph, title }) => {
+                const isActive = (singleEdge[key] ?? null) === value;
+                return <button key={title} className={isActive ? 'active' : ''} aria-label={`${name} ${title}`}
+                  aria-pressed={isActive} title={title} onClick={() => setEdgeSides(singleEdge.id, { [key]: value })}>{glyph}</button>;
+              })}
+            </div>
+          ))}
+        </section>
+      )}
 
       {hasEdges && (
         <section className="mf-style-section">

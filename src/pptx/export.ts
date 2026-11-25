@@ -5,7 +5,7 @@ import { FONTS } from '../appearance.ts';
 import { download } from '../gif.ts';
 import { ICON_BY_ID } from '../icons/catalog.ts';
 import { activeAppearance } from '../theme.ts';
-import type { DiagramEdge, DiagramNode } from '../types.ts';
+import type { DiagramEdge, DiagramNode, FlowDirection } from '../types.ts';
 import { buildScene, pictureScene, type Palette, type Scene } from './scene.ts';
 import { PPTX_MIME, writePptx } from './write.ts';
 
@@ -68,13 +68,13 @@ export async function resolvePictures(scene: Scene): Promise<Scene> {
 const blob = (bytes: Uint8Array<ArrayBufferLike>) => new Blob([bytes as BlobPart], { type: PPTX_MIME });
 
 /** The shown flowchart as editable shapes. */
-export async function diagramPptx(nodes: DiagramNode[], edges: DiagramEdge[]): Promise<Uint8Array> {
-  const scene = buildScene({ nodes, edges, sizes: measuredSizes(), palette: currentPalette() });
+export async function diagramPptx(nodes: DiagramNode[], edges: DiagramEdge[], direction?: FlowDirection): Promise<Uint8Array> {
+  const scene = buildScene({ nodes, edges, sizes: measuredSizes(), palette: currentPalette(), direction: direction });
   return writePptx(await resolvePictures(scene));
 }
 
-export async function exportDiagramPptx(nodes: DiagramNode[], edges: DiagramEdge[]) {
-  download(blob(await diagramPptx(nodes, edges)), FILE);
+export async function exportDiagramPptx(nodes: DiagramNode[], edges: DiagramEdge[], direction?: FlowDirection) {
+  download(blob(await diagramPptx(nodes, edges, direction)), FILE);
 }
 
 /** A picture of a diagram that has no editable form (a sequence diagram). */

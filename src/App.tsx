@@ -71,6 +71,7 @@ import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
 import { FlowControls } from './components/FlowControls';
 import type { DiagramEdge as DEdge, DiagramNode as DNode, Side } from './types';
+import { autoSides } from './edgePath';
 import { hasOutline, shapeDef } from './shapes';
 import { installRenderBridge } from './renderBridge';
 import './App.css';
@@ -120,6 +121,8 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const removeNode = useDiagram((s) => s.removeNode);
   const removeEdge = useDiagram((s) => s.removeEdge);
   const connect = useDiagram((s) => s.connect);
+  const reconnectEdge = useDiagram((s) => s.reconnectEdge);
+  const direction = useDiagram((s) => s.direction);
   const isGroup = useDiagram((s) => s.isGroup);
   const hiddenNodeIds = useDiagram((s) => s.hiddenNodeIds);
   const insertion = useDiagram((s) => s.insertion);
@@ -187,6 +190,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const [pending, setPending] = useState<Placement | null>(null);
   /** the shape + icon library popover */
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [iconsOpen, setIconsOpen] = useState(false);
   /** the image (URL / upload / clipboard) popover */
   const [imageOpen, setImageOpen] = useState(false);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
@@ -263,9 +267,9 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     setExporting(format);
     if (format === 'pptx') {
       try {
-        const { nodes: ns, edges: es } = useDiagram.getState();
+        const { nodes: ns, edges: es, direction: dir } = useDiagram.getState();
         const { exportDiagramPptx } = await import('./pptx/export.ts');
-        await exportDiagramPptx(ns, es);
+        await exportDiagramPptx(ns, es, dir);
       } catch (error) {
         flash(`Couldn't export PowerPoint: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
@@ -559,6 +563,18 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const rfEdges: Edge[] = useMemo(() => {
     const selEdge = new Set(selectedEdges);
     const { direct, placed, folded, endOf } = shown;
+    // an end with no side pinned faces the other end, so a moved node or an
+    // LR flow is joined by the sides that point at each other
+    const rects = new Map(rfNodesWithGhost.map((n) => {
+      const size = n.measured ?? n;
+      return [n.id, { ...n.position, width: size.width ?? GHOST_SIZE.width, height: size.height ?? GHOST_SIZE.height }];
+    }));
+    const sidesOf = (source: string, target: string, pinned: { sourceSide?: Side; targetSide?: Side } = {}) => {
+      const a = rects.get(source);
+      const b = rects.get(target);
+      const [from, to] = a && b ? autoSides(a, b, direction) : ['bottom', 'top'];
+      return { sourceHandle: pinned.sourceSide ?? from, targetHandle: pinned.targetSide ?? to };
+    };
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const still = (id: string, at: { x: number; y: number }) => {
       const n = byId.get(id);
@@ -583,8 +599,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           type: 'diagram',
           source: endOf(leg.source),
           target: endOf(leg.target),
-          sourceHandle: 'bottom',
-          targetHandle: 'top',
+          ...sidesOf(endOf(leg.source), endOf(leg.target)),
           className: 'mf-ghost-edge',
           selectable: false,
           focusable: false,
@@ -598,15 +613,25 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
       // keep the pointer, otherwise the preview would end the hover it came from
       ...placed.map((e) => {
         const route = routeOf(e);
+        const isSelected = selEdge.has(e.id);
         return {
           id: e.id,
-          className: e.id === splitting?.id ? 'mf-edge-splitting' : undefined,
+          className: [
+            e.id === splitting?.id && 'mf-edge-splitting',
+            e.sourceSide && 'mf-pin-source',
+            e.targetSide && 'mf-pin-target',
+          ].filter(Boolean).join(' ') || undefined,
           type: 'diagram',
-          selected: selEdge.has(e.id),
+          selected: isSelected,
+          // a selected edge shows grips on both ends: drag one to another side or
+          // node. It is lifted over the nodes, or their bodies would cover the grips.
+          reconnectable: isSelected,
+          zIndex: isSelected ? 1 : undefined,
           source: e.source,
           target: e.target,
-          sourceHandle: route?.sourceSide ?? e.sourceSide ?? 'bottom',
-          targetHandle: route?.targetSide ?? e.targetSide ?? 'top',
+          ...(route
+            ? { sourceHandle: route.sourceSide, targetHandle: route.targetSide }
+            : sidesOf(e.source, e.target, e)),
           label: e.label,
           animated: false,
           data: { style: e.style, flowStep: flow.edgeStep.get(e.id), points: route?.points, labelAt: route?.label },
@@ -617,8 +642,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         type: 'diagram',
         source: f.source,
         target: f.target,
-        sourceHandle: 'bottom',
-        targetHandle: 'top',
+        ...sidesOf(f.source, f.target),
         label: f.label,
         selectable: false,
         focusable: false,
@@ -626,7 +650,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id) },
       })),
     ]);
-  }, [shown, flow, edges, nodes, ghostNode, insertion, selectedEdges]);
+  }, [shown, flow, edges, nodes, ghostNode, insertion, selectedEdges, rfNodesWithGhost, direction]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -726,6 +750,27 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     [connect],
   );
 
+  // dragging a selected edge's grip: drop it on a side of the same node to pin
+  // that side, or on another node to move the end there
+  const onReconnect = useCallback(
+    (old: Edge, c: Connection) => {
+      const real = (id: string) => (id.startsWith(SHEET_PREFIX) ? id.slice(SHEET_PREFIX.length) : id);
+      if (!c.source || !c.target) return;
+      const edge = useDiagram.getState().edges.find((e) => e.id === old.id);
+      if (!edge) return;
+      // the end that was not dragged keeps whatever it had, pinned or auto
+      const movedSource = c.source !== old.source || c.sourceHandle !== old.sourceHandle;
+      const movedTarget = c.target !== old.target || c.targetHandle !== old.targetHandle;
+      reconnectEdge(edge.id, {
+        source: real(c.source),
+        target: real(c.target),
+        sourceSide: movedSource ? asSide(c.sourceHandle) : edge.sourceSide,
+        targetSide: movedTarget ? asSide(c.targetHandle) : edge.targetSide,
+      });
+    },
+    [reconnectEdge],
+  );
+
   const [connecting, setConnecting] = useState(false);
 
   // Arm a shape for placement: the next left-click on the canvas drops it at
@@ -807,7 +852,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     [fold, unfold, fitView],
   );
 
-  // W: drill down into the selected node's page
+  // Shift+W: drill down into the selected node's page
   const openSelectedPage = useCallback(() => {
     const id = useDiagram.getState().selectedNodeIds[0];
     if (id) showPage(id);
@@ -820,7 +865,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     else useDock.setState({ open: true, view: 'slides' });
   }, []);
 
-  // E: flip the page tab between Markdown and Preview
+  // Shift+E: flip the page tab between Markdown and Preview
   const toggleMode = useCallback(() => {
     const { view, mode, setMode } = useDock.getState();
     if (view === 'page') setMode(mode === 'read' ? 'edit' : 'read');
@@ -866,19 +911,20 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     useMemo(
       () => [
         { key: 'v', run: cancelPending },
-        { key: 'r', run: () => arm({ shape: 'rect' }) },
+        { key: 'q', run: () => arm({ shape: 'rect' }) },
         { key: 'o', run: () => arm({ shape: 'round' }) },
-        { key: 'd', run: () => arm({ shape: 'diamond' }) },
-        { key: 'c', run: () => arm({ shape: 'circle' }) },
-        { key: 's', run: () => (setImageOpen(false), setPickerOpen((v) => !v)) },
-        { key: 'i', run: () => (setPickerOpen(false), setImageOpen((v) => !v)) },
+        { key: 'w', run: () => arm({ shape: 'diamond' }) },
+        { key: 'e', run: () => arm({ shape: 'circle' }) },
+        { key: 'r', run: () => (setPickerOpen(false), setImageOpen(false), setIconsOpen((v) => !v)) },
+        { key: 't', run: () => (setPickerOpen(false), setIconsOpen(false), setImageOpen((v) => !v)) },
+        { key: 'y', run: () => (setImageOpen(false), setIconsOpen(false), setPickerOpen((v) => !v)) },
         { key: 'l', run: () => tidy('TB') },
         { key: 'l', shift: true, run: () => tidy('LR') },
-        { key: 't', run: openAppearancePanel },
+        { key: 't', shift: true, run: openAppearancePanel },
         { key: 'f', run: foldSelection },
-        { key: 'w', run: openSelectedPage },
+        { key: 'w', shift: true, run: openSelectedPage },
         { key: 'k', run: openSelectedDeck },
-        { key: 'e', run: toggleMode },
+        { key: 'e', shift: true, run: toggleMode },
         { key: '[', run: () => foldLevel('fold') },
         { key: ']', run: () => foldLevel('unfold') },
         { key: ' ', run: onTogglePanel },
@@ -948,20 +994,23 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const toolbar=(
     <>
         <div className="mf-group-btns">
-          <ToolButton label="Rectangle" hotkey="R" onClick={() => arm({ shape: 'rect' })}>
+          <ToolButton label="Rectangle" hotkey="Q" onClick={() => arm({ shape: 'rect' })}>
             <Icon name="rect" />
           </ToolButton>
-          <ToolButton label="Rounded" hotkey="O" onClick={() => arm({ shape: 'round' })}>
-            <Icon name="round" />
-          </ToolButton>
-          <ToolButton label="Diamond" hotkey="D" onClick={() => arm({ shape: 'diamond' })}>
+          <ToolButton label="Diamond" hotkey="W" onClick={() => arm({ shape: 'diamond' })}>
             <Icon name="diamond" />
           </ToolButton>
-          <ToolButton label="Circle" hotkey="C" onClick={() => arm({ shape: 'circle' })}>
+          <ToolButton label="Circle" hotkey="E" onClick={() => arm({ shape: 'circle' })}>
             <Icon name="circle" />
           </ToolButton>
-          <ShapePicker open={pickerOpen} onOpenChange={setPickerOpen} onPick={arm} />
-          <ImagePicker open={imageOpen} onOpenChange={setImageOpen} onPick={arm} />
+          <ShapePicker kind="icons" open={iconsOpen} onOpenChange={(open) => { setIconsOpen(open); if (open) { setPickerOpen(false); setImageOpen(false); } }} onPick={(p) => {
+            if (p.icon && single && !single.image && !isGroup(single.id)) {
+              useDiagram.getState().updateNodeIcon(single.id, p.icon);
+              cancelPending();
+            } else arm(p);
+          }} />
+          <ImagePicker open={imageOpen} onOpenChange={(open) => { setImageOpen(open); if (open) { setPickerOpen(false); setIconsOpen(false); } }} onPick={arm} />
+          <ShapePicker open={pickerOpen} onOpenChange={(open) => { setPickerOpen(open); if (open) { setIconsOpen(false); setImageOpen(false); } }} onPick={arm} />
         </div>
         <span className="mf-sep" />
         <div className="mf-group-btns">
@@ -1093,6 +1142,10 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           setConnecting(true);
         }}
         onConnectEnd={() => setConnecting(false)}
+        onReconnect={onReconnect}
+        onReconnectStart={() => setConnecting(true)}
+        onReconnectEnd={() => setConnecting(false)}
+        reconnectRadius={7}
         connectionLineComponent={JoinPreview}
         elevateNodesOnSelect={false}
         colorMode={theme}

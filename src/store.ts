@@ -262,6 +262,7 @@ interface State {
   updateLabel: (id: string, label: string) => void;
   /** patch a node's image (`null` turns it back into a plain node) */
   updateNodeImage: (id: string, patch: Partial<NodeImage> | null) => void;
+  updateNodeIcon: (id: string, icon: string) => void;
   updateNodeStyle: (ids: string[], patch: Partial<ElementStyle>) => void;
   updateEdgeStyle: (ids: string[], patch: Partial<ElementStyle>) => void;
   /** set (or, with undefined, clear) the flow step of several edges */
@@ -272,6 +273,10 @@ interface State {
   growNode: (id: string, size: { width?: number; height?: number }) => void;
   removeNode: (id: string) => void;
   connect: (source: string, target: string, sourceSide?: Side, targetSide?: Side) => void;
+  /** Move an edge's ends: to another node, or to another side of the same one. */
+  reconnectEdge: (id: string, ends: { source: string; target: string; sourceSide?: Side; targetSide?: Side }) => void;
+  /** Pin an edge's ends to sides; null unpins (the end faces the other node). */
+  setEdgeSides: (id: string, sides: { sourceSide?: Side | null; targetSide?: Side | null }) => void;
   updateEdgeLabel: (id: string, label: string) => void;
   removeEdge: (id: string) => void;
   /** fold (true) or unfold (false) several groups as one undo step */
@@ -863,6 +868,13 @@ export const useDiagram = create<State>((set, get) => {
       return { pages: fix(s.pages), decks: fix(s.decks) };
     }),
 
+  updateNodeIcon: (id, icon) =>
+    set((s) => {
+      const node = s.nodes.find((n) => n.id === id);
+      if (!node || node.image || node.icon === icon) return s;
+      return { ...snapshot(), nodes: s.nodes.map((n) => n.id === id ? { ...n, icon } : n) };
+    }),
+
   updateNodeImage: (id, patch) =>
     set((s) => {
       const node = s.nodes.find((n) => n.id === id);
@@ -1033,11 +1045,42 @@ export const useDiagram = create<State>((set, get) => {
             id: nextId('e'),
             source,
             target,
-            ...(sourceSide && sourceSide !== 'bottom' && { sourceSide }),
-            ...(targetSide && targetSide !== 'top' && { targetSide }),
+            ...(sourceSide && { sourceSide }),
+            ...(targetSide && { targetSide }),
           },
         ],
       };
+    }),
+
+  reconnectEdge: (id, { source, target, sourceSide, targetSide }) =>
+    set((s) => {
+      const edge = s.edges.find((e) => e.id === id);
+      if (!edge || source === target) return s;
+      if (s.edges.some((e) => e.id !== id && e.source === source && e.target === target)) return s;
+      if (edge.source === source && edge.target === target && edge.sourceSide === sourceSide && edge.targetSide === targetSide) return s;
+      const { route: _route, sourceSide: _s, targetSide: _t, ...rest } = edge;
+      return {
+        ...snapshot(),
+        edges: s.edges.map((e) =>
+          e.id === id ? { ...rest, source, target, ...(sourceSide && { sourceSide }), ...(targetSide && { targetSide }) } : e,
+        ),
+      };
+    }),
+
+  setEdgeSides: (id, sides) =>
+    set((s) => {
+      const edge = s.edges.find((e) => e.id === id);
+      if (!edge) return s;
+      const next = { ...edge };
+      for (const key of ['sourceSide', 'targetSide'] as const) {
+        const side = sides[key];
+        if (side === undefined) continue;
+        if (side === null) delete next[key];
+        else next[key] = side;
+      }
+      if (next.sourceSide === edge.sourceSide && next.targetSide === edge.targetSide) return s;
+      delete next.route;
+      return { ...snapshot(), edges: s.edges.map((e) => (e.id === id ? next : e)) };
     }),
 
   updateEdgeLabel: (id, label) =>

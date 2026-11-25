@@ -496,6 +496,7 @@ function parseCore(src: string): CoreResult {
   const issues: ParseIssue[] = [];
   const pageIds = new Map<string, string>();
   const pageLists = new Map<string, string[]>();
+  const iconShapes = new Map<string, NodeShape>();
   const deckLists = new Map<string, string[]>();
   const classDefs = new Map<string, ElementStyle>();
   const nodeClasses = new Map<string, string[]>();
@@ -697,6 +698,12 @@ function parseCore(src: string): CoreResult {
       if (line.includes('}')) inAccDescr = false;
       continue;
     }
+    const iconShape = line.match(new RegExp(`^%%\\s+marmerlade-icon-shape\\s+(${RAW_ID})\\s+(\\S+)$`));
+    if (iconShape) {
+      const shape = SHAPES.find((item) => item.shape === iconShape[2]);
+      if (shape) iconShapes.set(idOf(iconShape[1]), shape.shape);
+      continue;
+    }
     if (/^%%\s+marmerlade-(pages|decks)\b/.test(line)) {
       const meta = line.match(new RegExp(`^%%\\s+marmerlade-(pages|decks)\\s+(${RAW_ID})\\s+(.+)$`));
       try {
@@ -782,7 +789,7 @@ function parseCore(src: string): CoreResult {
     return {
       id: n.id,
       label: n.label,
-      shape: n.shape,
+      shape: n.icon ? iconShapes.get(n.id) ?? n.shape : n.shape,
       parentId: n.parentId,
       collapsed: false,
       position: { x: (i % 4) * 220, y: Math.floor(i / 4) * 140 },
@@ -998,6 +1005,10 @@ export function toMermaidWithMap(diagram: Diagram): MermaidResult {
   }
 
   for (const n of nodes) {
+    if (n.icon && shapeForForm(iconForm(n.shape)) !== n.shape) {
+      lineRefs.set(out.length, { kind: 'node', id: n.id });
+      out.push(`  %% marmerlade-icon-shape ${n.id} ${n.shape}`);
+    }
     if (n.deckIds !== undefined) {
       lineRefs.set(out.length, { kind: 'node', id: n.id });
       out.push(`  %% marmerlade-decks ${n.id} ${JSON.stringify(n.deckIds)}`);

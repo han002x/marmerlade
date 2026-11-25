@@ -616,7 +616,7 @@ function Board({ Editor, showWelcome }: { Editor: FlowchartEditor; showWelcome: 
         onClickCapture={(event) => {
           // The first click can replace the preview with an editor before the second click.
           if (event.detail !== 2 || placement || panning || !(event.target instanceof Element)) return;
-          if (event.target.closest('input,textarea,select,button,[contenteditable="true"],.react-flow__resize-control,.sq-flow')) return;
+          if (event.target.closest('input,textarea,select,button,[contenteditable="true"],.react-flow__resize-control,.sq-flow,.mf-node,.mf-sheet-title')) return;
           const id = event.target.closest<HTMLElement>('[data-diagram-id]')?.dataset.diagramId;
           if (id) void fitView({
             nodes: [{ id }],

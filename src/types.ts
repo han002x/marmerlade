@@ -103,8 +103,8 @@ export interface DiagramNode {
   size?: { width: number; height: number };
   /**
    * full Iconify name (`lucide:database`, `simple-icons:github`). Set, the node
-   * is an icon tile and exports as Mermaid's `@{ icon: ... }` form; its shape
-   * then only picks the tile's corners (round => rounded, circle => circle)
+   * shows an icon in the node and exports as Mermaid's `@{ icon: ... }` form.
+   * Shapes beyond Mermaid's icon forms are preserved in a marmerlade comment.
    */
   icon?: string;
   /** linked wiki pages in order; the first is the default */
@@ -172,7 +172,7 @@ export interface DiagramEdge {
   source: string;
   target: string;
   label?: string;
-  /** side the edge leaves from / arrives at; missing => bottom / top */
+  /** side the edge leaves from / arrives at; missing => the side facing the other end */
   sourceSide?: Side;
   targetSide?: Side;
   /** 1-based step in the flow sequence; missing => follows the graph */

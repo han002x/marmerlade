@@ -18,6 +18,7 @@ import {
   useReactFlow,
   useStoreApi,
   useStore,
+  useUpdateNodeInternals,
   type Connection,
   type Edge,
   type EdgeChange,
@@ -345,6 +346,19 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   const foldAnchor = useFoldMotion((s) => s.anchor);
   const fold = useFoldMotion((s) => s.fold);
   const unfold = useFoldMotion((s) => s.unfold);
+  const updateNodeInternals = useUpdateNodeInternals();
+  const foldMeasurements = useRef(new Set<string>());
+  useEffect(() => {
+    if (foldPhase) {
+      for (const id of [...foldAnchor.keys(), ...foldAnchor.values()]) {
+        foldMeasurements.current.add(id);
+        foldMeasurements.current.add(SHEET_PREFIX + id);
+      }
+    } else if (foldMeasurements.current.size) {
+      updateNodeInternals([...foldMeasurements.current]);
+      foldMeasurements.current.clear();
+    }
+  }, [foldPhase, foldAnchor, updateNodeInternals]);
   const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null);
   const commitResize = useCallback((rects: ResizePreview['rects']) => useDiagram.getState().resizeNodes(nodes, rects), [nodes]);
   const [moveGuides, setMoveGuides] = useState<Guide[] | null>(null);

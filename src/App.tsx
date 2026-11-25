@@ -622,7 +622,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           data: { style: splitting.style, preview: true },
         }))
       : [];
-    return reuse(edgeCache.current, [
+    const renderedEdges: Edge[] = [
       ...previewLegs,
       // the split edge stays mounted (faded) so its label and insert button
       // keep the pointer, otherwise the preview would end the hover it came from
@@ -664,7 +664,24 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         deletable: false,
         data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id) },
       })),
-    ]);
+    ];
+    // Connections in either direction can share the same midpoint. Give their
+    // visible labels separate rows, including the count on a folded connection.
+    const labelGroups = new Map<string, Edge[]>();
+    for (const edge of renderedEdges) {
+      if (edge.data?.preview || (!edge.label && !(edge.data?.folded && Number(edge.data.count) > 1))) continue;
+      const key = JSON.stringify([edge.source, edge.target].sort());
+      const group = labelGroups.get(key) ?? [];
+      group.push(edge);
+      labelGroups.set(key, group);
+    }
+    for (const group of labelGroups.values()) {
+      if (group.length < 2) continue;
+      group.forEach((edge, index) => {
+        edge.data = { ...edge.data, labelOffsetY: (index - (group.length - 1) / 2) * 32 };
+      });
+    }
+    return reuse(edgeCache.current, renderedEdges);
   }, [shown, flow, edges, nodes, ghostNode, insertion, selectedEdges, rfNodesWithGhost, direction]);
 
   const onNodesChange = useCallback(
@@ -1192,11 +1209,11 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
               window.location.hash = deckHref(linkedDeck.id, single.id, 1);
             }}><Icon name="play" size={14} /><span>{linkedDeck.title || 'Untitled deck'}</span></button>}
             {groupAction && <button
-              className="mf-selbar-btn"
+              className={`mf-selbar-btn${groupAction === 'ungroup' ? ' mf-selbar-btn-compact' : ''}`}
               title={`${groupAction === 'ungroup' ? 'Ungroup' : groupAction === 'join' ? 'Add to group' : 'Group'}  ·  G`}
               onClick={groupSelection}
             >
-              <Icon name="group" />
+              <Icon name="group" size={groupAction === 'ungroup' ? 12 : undefined} />
               <span>{groupAction === 'ungroup' ? 'Ungroup' : groupAction === 'join' ? 'Add to group' : 'Group'}</span>
               <kbd className="mf-tool-key" aria-hidden="true">G</kbd>
             </button>}

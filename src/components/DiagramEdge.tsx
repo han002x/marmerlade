@@ -129,6 +129,7 @@ function DiagramEdgeInner({
         : getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }),
     [routed, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition],
   );
+  const labelOffsetY = typeof data?.labelOffsetY === 'number' ? data.labelOffsetY : 0;
 
   const commit = () => {
     updateEdgeLabel(id, draft);
@@ -257,7 +258,7 @@ function DiagramEdgeInner({
             <div
               className="mf-edge-label is-crease nodrag nopan"
               style={{
-                transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+                transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY + labelOffsetY}px)`,
                 ...labelFont,
               }}
             >
@@ -268,7 +269,7 @@ function DiagramEdgeInner({
         <div
           className={`mf-edge-label nodrag nopan${highlighted || selected ? ' mf-linked' : ''}${selected ? ' is-selected' : ''}`}
           style={{
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY + labelOffsetY}px)`,
             ...labelFont,
           }}
           onPointerEnter={() => setHighlight({ kind: 'edge', id })}

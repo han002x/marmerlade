@@ -34,6 +34,8 @@ is readable, a wikilink resolves, or a slide fits.
   stored `children` array or group discriminator.
 - Node `pageIds` and `deckIds` are ordered many-to-many links. The first is the
   default. Pages and decks are independent of nodes and have separate namespaces.
+- Wiki folders group pages in the sidebar independently of node attachments and
+  links. See the [MCP contract](references/mcp.md) for editing and validation.
 - The complete workspace, Mermaid structure, Markdown document bodies, and
   rendered exports carry different information. Choose the format deliberately.
 - For live editing, read the revision before mutation. Puts replace full entities;

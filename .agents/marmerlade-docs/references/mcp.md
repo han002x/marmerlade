@@ -72,6 +72,24 @@ intended change, and create a reconciled batch. Do not blindly retry a stale
 replacement. If the user or another writer changed the same meaning in a way
 that cannot be reconciled, report that specific conflict.
 
+## Wiki folders
+
+`diagram.wikiFolders` is an optional array of `{id, name, parentId, pageIds}`.
+Folder IDs must be unique and nonempty, names nonempty, and `parentId` either
+null or an existing folder ID. Parents must not form cycles. Each `pageIds`
+entry must name an existing page, and a page can appear in at most one folder;
+unlisted pages appear at the wiki root. Folder placement does not change page
+IDs, URLs, wikilinks, or node attachments. Decks cannot be placed in wiki folders.
+
+The current `apply_changes` API has no folder operation. For a live workspace,
+use the wiki sidebar's **New folder**, folder menu, and page **Move to folder**
+menu when browser interaction is available. Wait for the save, then call
+`get_workspace` and check `wikiFolders` and page placement. Re-read the revision
+before the next MCP mutation. Do not edit the server-owned file directly. If the
+browser is unavailable, leave existing folders intact and report the limitation.
+For an offline workspace, edit `diagram.wikiFolders` alongside the pages and
+validate the whole workspace with `parseDiagram` before delivery.
+
 For a sequence import, `import_mermaid` updates only `diagram.sequence`. Set `diagramKind` to `sequence` on export, preview, or canvas opening. The default is `flowchart`.
 
 For a flowchart import, `import_mermaid` replaces nodes and edges with the parsed structure while

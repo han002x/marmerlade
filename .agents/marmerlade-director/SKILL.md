@@ -17,7 +17,7 @@ refresh a repository's architecture, use
 [marmerlade-codebase-map](../marmerlade-codebase-map/SKILL.md), which applies
 the workflow to source code. For an entire repository explanation, follow its
 README deck and overview diagram entry-point requirements, including linked
-detail; a single prompt authorizes the requested workspace construction.
+detail, and use the brief approval step below.
 
 ## 1. Establish the brief
 
@@ -38,14 +38,25 @@ Choose the smallest useful set of artifacts:
 use `get_workspace` to inspect an existing Marmerlade project. Tool names may
 have an MCP server prefix; discover their registered names before calling them.
 
-**Done:** The intended reader, question, evidence, and artifact set are explicit.
-Unresolved assumptions are identified. A wiki page per node and a slide deck
-per project are not automatic requirements.
+For workflow briefs, identify who starts each key workflow, its inputs, important
+decisions, successful result, and relevant failure or handoff paths. Ask a small
+batch of questions when the sources cannot establish these.
 
-For other project briefs, discuss who starts each key workflow, its inputs, important decisions, successful
-result, and relevant failure or handoff paths. Ask a small batch of questions
-when the sources cannot establish these. Reflect the proposed workflow back to
-the user before building a large model, while continuing useful source review.
+**Propose → approve → generate:** Present the brief in the agent conversation
+with the intended reader, question, evidence, proposed artifacts and their
+structure, any material assumptions, and the intended workspace or output.
+Invite the user to approve or revise it. Source review, workspace inspection,
+and planning can continue before approval, but do not create or modify the
+workspace or generate the deliverables until the user explicitly approves the
+proposal. A request to create a project alone is not approval of the proposed
+brief. Incorporate requested revisions and obtain approval of the revised brief.
+Existing explicit approval of the same proposal in the conversation counts;
+do not ask again. After approval, generate the agreed deliverables. If the
+scope materially changes, propose the change and obtain approval before adding it.
+
+**Done:** The user has approved the brief. The intended reader, question,
+evidence, artifact set, and unresolved assumptions are explicit. A wiki page
+per node and a slide deck per project are not automatic requirements.
 
 ## 2. Establish the editing context
 
@@ -131,16 +142,28 @@ purpose, behavior, rationale, constraints, or procedures as the topic requires.
 Keep related topics discoverable through wikilinks. Reuse existing pages before
 creating overlapping explanations.
 
+Organize a substantial wiki into a shallow folder hierarchy based on the
+reader's questions or journey. Keep an overview or index easy to find and link
+to the recommended starting pages and deeper topics. Use descriptive folder
+names, reuse relevant existing folders, and avoid empty or single-page folders
+that add no useful grouping. Folders organize pages; links provide the reading
+sequence and connections across topics. Preserve unrelated pages and folders.
+
 **Mechanics:** Use `put_page` with `{id, title, body}`; MCP assigns `updatedAt`.
 Update the relevant nodes' `pageIds` through complete `put_node` values. Use
 `[[Page title]]` for wiki links. Use `{{diagram:node_id}}` for a stable, explicit
 diagram target; use bare `{{diagram}}` when the page should follow its current
-linked-node context. Skip this step when the request needs no reference pages.
+linked-node context. For folder creation and placement, follow the folder
+editing constraints in the docs skill's [MCP contract](../marmerlade-docs/references/mcp.md).
+Skip this step when the request needs no reference pages.
 
 **Done:** Inspect new or changed pages with `render_preview`, `view: "wiki"`,
 and the page ID. Use `open_workspace` for the user's local view. Check its
 attachment, links, and embeds. Avoid duplicate page titles that make link
-resolution ambiguous. A valid Markdown string alone does not prove readability.
+resolution ambiguous. Verify the saved folder hierarchy and page placement in
+the wiki sidebar or workspace snapshot, and follow the index links as a reader.
+If folder editing is unavailable, state that limitation rather than claiming
+the hierarchy was saved. A valid Markdown string alone does not prove readability.
 
 ## 6. Direct the presentation, when needed
 

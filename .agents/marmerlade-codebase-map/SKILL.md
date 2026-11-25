@@ -8,10 +8,11 @@ description: Explain an entire repository through a reader-facing Marmerlade REA
 Turn a repository into an overview that folds into detail. Use
 [marmerlade-director](../marmerlade-director/SKILL.md) for briefs, slides, and
 packaging, and [marmerlade-docs](../marmerlade-docs/SKILL.md) for entity fields
-and formats. For an entire-repository explanation, a single request is enough:
-inspect the repository and build the connected workspace through MCP without
-requiring the user to prescribe each artifact or approve an outline. Treat the
-agent as a presenter guiding a reader, not as a file inventory generator.
+and formats. For an entire-repository explanation, inspect the repository and
+propose a connected workspace without requiring the user to prescribe each
+artifact. Obtain approval of the brief through the director's propose, approve,
+generate step before creating the workspace. Treat the agent as a presenter
+guiding a reader, not as a file inventory generator.
 
 ## Repository walkthrough entry point
 
@@ -33,6 +34,13 @@ functionalities and flows; connect them from the entry point and to their
 corresponding nodes. Explain evidence, key source paths, and uncertainty in the
 wiki. Base the walkthrough on the complete repository review described below;
 report any unread material and its effect on coverage.
+
+Organize the wiki into reader-facing folders for the major topics and flows,
+with the overview page easy to find at the top level. Choose names and nesting
+that fit the repository; do not reproduce its directory tree mechanically.
+Use the overview's links to suggest a reading path across folders. Reuse the
+existing hierarchy on refresh and preserve unrelated content. Follow the
+director's wiki step for folder editing and verification.
 
 Discover the registered Marmerlade MCP tools, inspect the workspace and guide,
 then build and verify the connected artifacts using the workflow below and the
@@ -149,4 +157,5 @@ fits one screen with groups folded. Each group opens to its modules.
 Coverage accounts for the repository inventory and states any exclusions or
 unread material. Each major capability is explained in the overview or linked
 detail. Every edge traces to code you read. Wiki pages name their source files. Preview
-diagnostics are clean, or the remaining ones are stated.
+diagnostics are clean, or the remaining ones are stated. The saved wiki sidebar
+groups the detailed pages by topic, or the folder-editing limitation is reported.

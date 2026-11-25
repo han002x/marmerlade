@@ -1,6 +1,7 @@
 import { isSequence } from '../sequence/model';
 import { drawWithLinkLegend } from '../sequence/popupFallback';
 import { colorMode, FONTS, type Appearance } from '../appearance';
+import { ICONS } from '../icons/catalog';
 
 const svgCache = new Map<string, string>();
 let seq = 0;
@@ -10,6 +11,15 @@ async function renderDiagramSvg(source: string, appearance: Appearance) {
   let svg = svgCache.get(key);
   if (!svg) {
     const { default: mermaid } = await import('mermaid');
+    for (const prefix of ['lucide', 'simple-icons']) {
+      const icons = Object.fromEntries(
+        ICONS.filter((icon) => icon.id.startsWith(`${prefix}:`)).map((icon) => [
+          icon.id.slice(prefix.length + 1),
+          { body: icon.body },
+        ]),
+      );
+      mermaid.registerIconPacks([{ name: prefix, icons: { prefix, width: 24, height: 24, icons } }]);
+    }
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'strict',

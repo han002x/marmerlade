@@ -597,6 +597,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         ].map((leg, i) => ({
           id: `__mf_ghost_edge_${i}__`,
           type: 'diagram',
+          zIndex: 1,
           source: endOf(leg.source),
           target: endOf(leg.target),
           ...sidesOf(endOf(leg.source), endOf(leg.target)),
@@ -623,10 +624,9 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           ].filter(Boolean).join(' ') || undefined,
           type: 'diagram',
           selected: isSelected,
-          // a selected edge shows grips on both ends: drag one to another side or
-          // node. It is lifted over the nodes, or their bodies would cover the grips.
+          // Keep connections and their arrowheads visible over node outlines.
           reconnectable: isSelected,
-          zIndex: isSelected ? 1 : undefined,
+          zIndex: 1,
           source: e.source,
           target: e.target,
           ...(route
@@ -640,6 +640,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
       ...folded.map((f) => ({
         id: f.id,
         type: 'diagram',
+        zIndex: 1,
         source: f.source,
         target: f.target,
         ...sidesOf(f.source, f.target),

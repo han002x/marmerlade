@@ -26,7 +26,8 @@ export interface Appearance {
   shadows: boolean;
 }
 function palette([bg, panel, border, text, muted, ink, pencil, accent, seal, node, group, input]: [string,string,string,string,string,string,string,string,string,string,string,string]): Palette {
-  return { bg, diagram: group, panel, border, text, muted, ink, pencil, accent, seal, node, group, input };
+  const darkerGroup = `#${[1, 3, 5].map((offset) => Math.round(parseInt(group.slice(offset, offset + 2), 16) * 0.9).toString(16).padStart(2, '0')).join('')}`;
+  return { bg, diagram: group, panel, border, text, muted, ink, pencil, accent, seal, node, group: darkerGroup, input };
 }
 const paper: Appearance = {
   colors: palette(['#ffffff','#fbfaf7','#e6e1d7','#2a2723','#8a857c','#3a352e','#e2ddd2','#3b5b9a','#d0532f','#ffffff','#f6f2ea','#ffffff']),

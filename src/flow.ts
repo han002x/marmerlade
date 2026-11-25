@@ -18,6 +18,8 @@ export interface FlowEdge {
 export interface FlowSchedule {
   /** edge id -> the step it plays in */
   edgeStep: Map<string, number>;
+  /** direction of the first traversal, relative to the edge's endpoints */
+  edgeDirection: Map<string, 'start' | 'end' | 'both'>;
   /** node id -> the clock time it lights (0 for a start node) */
   nodeAt: Map<string, number>;
   /** how many steps the sequence has */
@@ -97,10 +99,17 @@ export function flowSchedule(edges: FlowEdge[]): FlowSchedule {
   }
 
   const edgeStep = new Map<string, number>();
+  const edgeDirection = new Map<string, 'start' | 'end' | 'both'>();
   for (const e of active) {
     const manual = e.order != null && Number.isFinite(e.order) ? Math.max(1, Math.floor(e.order)) - 1 : null;
     const origins = arcs.filter((arc) => arc.edge === e).map((arc) => depth.get(arc.from)!);
     edgeStep.set(e.id, manual ?? Math.min(...origins));
+    const direction = e.style?.arrowheads;
+    if (direction === 'both') {
+      const sourceDepth = depth.get(e.source)!;
+      const targetDepth = depth.get(e.target)!;
+      edgeDirection.set(e.id, sourceDepth === targetDepth ? 'both' : sourceDepth < targetDepth ? 'end' : 'start');
+    } else if (direction === 'start' || direction === 'end') edgeDirection.set(e.id, direction);
   }
 
   // a node lights when the first edge into it lands; start nodes light at once
@@ -113,6 +122,6 @@ export function flowSchedule(edges: FlowEdge[]): FlowSchedule {
 
   let steps = 0;
   for (const s of edgeStep.values()) steps = Math.max(steps, s + 1);
-  const sig = `${steps}|${active.map((e) => `${e.id}:${e.source}:${e.target}:${e.style?.arrowheads}:${edgeStep.get(e.id)}`).join(',')}`;
-  return { edgeStep, nodeAt, steps, sig };
+  const sig = `${steps}|${active.map((e) => `${e.id}:${e.source}:${e.target}:${e.style?.arrowheads}:${edgeStep.get(e.id)}:${edgeDirection.get(e.id)}`).join(',')}`;
+  return { edgeStep, edgeDirection, nodeAt, steps, sig };
 }

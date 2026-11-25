@@ -54,7 +54,8 @@ as the drop target and handles enlarge. All motion respects
 **P** plays a pulse along the connections in order: start
 nodes (no incoming edge) first, branches together, each node lighting as the
 pulse lands. `,` / `.` step back and forward, and the speed button cycles
-½× / 1× / 2×. Select a connection and set its **Flow step** to override the
+½× / 1× / 2×. A two-way connection plays from the endpoint reached first, or
+in both directions when its endpoints are reached together. Select a connection and set its **Flow step** to override the
 order (saved in `.marmerlade.json`, not in Mermaid). Folded cards take the pulse
 on their crease edges. **Export GIF** records one loop of a running or
 stepped sequence. Under **More actions**, choose an export width (900, 1440,

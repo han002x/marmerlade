@@ -15,6 +15,7 @@ export type IconName =
   | 'round'
   | 'diamond'
   | 'circle'
+  | 'layout-arrow-down'
   | 'tidy-right'
   | 'sun'
   | 'palette'
@@ -138,6 +139,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
   round: <rect x="3" y="6" width="18" height="12" rx="6" />,
   diamond: <path d="M12 3 21 12 12 21 3 12Z" />,
   circle: <circle cx="12" cy="12" r="8" />,
+  'layout-arrow-down': (
+    <>
+      <rect width="7" height="7" x="3" y="3" rx="1" />
+      <rect width="7" height="7" x="3" y="14" rx="1" />
+      <path d="M18 3v18m3-3-3 3-3-3" />
+    </>
+  ),
   'tidy-right': (
     <>
       <path d="M4 12h16" />

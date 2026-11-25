@@ -97,6 +97,14 @@ assert.notEqual(
   assert.equal(flowSchedule([{ id: 'x', source: 'a', target: 'b' }]).steps, 0);
 }
 
+// A two-way connection traces from the first reached endpoint, or both on a tie.
+{
+  const both = { id: 'two', source: 'a', target: 'b', style: { arrowheads: 'both' as const } };
+  assert.equal(flowSchedule([E('in', 'start', 'a'), both]).edgeDirection.get('two'), 'end');
+  assert.equal(flowSchedule([E('in', 'start', 'b'), both]).edgeDirection.get('two'), 'start');
+  assert.equal(flowSchedule([E('in1', 'x', 'a'), E('in2', 'y', 'b'), both]).edgeDirection.get('two'), 'both');
+}
+
 // loop length: lit hold + clear lead on top of the steps, scaled by speed
 assert.equal(flowCycle(3), 4.5);
 assert.equal(flowSeconds(3, 1), 4.5 * HOP_SECONDS);

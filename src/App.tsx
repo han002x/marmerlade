@@ -648,7 +648,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
             : sidesOf(e.source, e.target, e)),
           label: e.label,
           animated: false,
-          data: { style: e.style, flowStep: flow.edgeStep.get(e.id), points: route?.points, labelAt: route?.label },
+          data: { style: e.style, flowStep: flow.edgeStep.get(e.id), flowDirection: flow.edgeDirection.get(e.id), points: route?.points, labelAt: route?.label },
         };
       }),
       ...folded.map((f) => ({
@@ -662,7 +662,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         selectable: false,
         focusable: false,
         deletable: false,
-        data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id) },
+        data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id), flowDirection: flow.edgeDirection.get(f.id) },
       })),
     ];
     // Connections in either direction can share the same midpoint. Give their
@@ -1046,6 +1046,9 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         </div>
         <span className="mf-sep" />
         <div className="mf-group-btns">
+          <ToolButton label="Tidy down" hotkey="L" onClick={() => tidy('TB')}>
+            <Icon name="layout-arrow-down" />
+          </ToolButton>
           <FlowControls sig={flow.sig} steps={flow.steps} />
         </div>
         <span className="mf-sep" />

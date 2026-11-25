@@ -199,6 +199,7 @@ function DiagramEdgeInner({
   // the sequenced flow draws an accent trace over the line as the clock passes
   // this edge's step (see .mf-flow-trace); one continuous pass so it can grow
   const flowStep = !preview && typeof data?.flowStep === 'number' ? data.flowStep : null;
+  const flowDirection = data?.flowDirection;
   const traceD = useMemo(
     () => (flowStep == null ? null : ink(path, { sloppiness, seed, continuous: true, pinEnds: true })),
     [flowStep, path, sloppiness, seed],
@@ -246,10 +247,10 @@ function DiagramEdgeInner({
       ))}
       {traceD && (
         <>
-          {(arrowheads === 'end' || arrowheads === 'both') && <path className="mf-flow-trace" d={traceD} pathLength={1} style={traceStyle} />}
-          {(arrowheads === 'start' || arrowheads === 'both') && <path className="mf-flow-trace mf-flow-reverse" d={traceD} pathLength={1} style={traceStyle} />}
-          {(arrowheads === 'start' || arrowheads === 'both') && <path className="mf-flow-arrow" d={startArrow} style={traceStyle} />}
-          {(arrowheads === 'end' || arrowheads === 'both') && <path className="mf-flow-arrow" d={arrow} style={traceStyle} />}
+          {(flowDirection === 'end' || flowDirection === 'both') && <path className="mf-flow-trace" d={traceD} pathLength={1} style={traceStyle} />}
+          {(flowDirection === 'start' || flowDirection === 'both') && <path className="mf-flow-trace mf-flow-reverse" d={traceD} pathLength={1} style={traceStyle} />}
+          {(flowDirection === 'start' || flowDirection === 'both') && <path className="mf-flow-arrow" d={startArrow} style={traceStyle} />}
+          {(flowDirection === 'end' || flowDirection === 'both') && <path className="mf-flow-arrow" d={arrow} style={traceStyle} />}
         </>
       )}
       <EdgeLabelRenderer>

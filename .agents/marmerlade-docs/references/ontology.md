@@ -102,13 +102,13 @@ deliverable. Embedded data travels with JSON; a remote URL depends on its host.
 | `id` | Yes | Nonempty string, unique among edges |
 | `source`, `target` | Yes | Existing node IDs |
 | `label` | No | String describing the relationship |
-| `order` | No | Positive integer, a one-based flow step |
+| `order` | No | Nonnegative integer; 0 excludes playback, positive values are one-based flow steps |
 | `route` | No | Written by layout: `sourceSide`, `targetSide`, bend `points`, the `from`/`to` end positions it fits, and an optional `label` spot. Omit it when writing edges; it is ignored once either end moves |
 | `style` | No | ElementStyle object |
 
 Edges are directed. Parallel edges are allowed. A diagram can have cycles;
 the no-cycle constraint applies to containment. Playback follows the graph and
-can animate branches together; explicit `order` overrides the derived step.
+can animate branches together; explicit `order` overrides the derived step, and 0 excludes the edge.
 Playback explains connections and does not evaluate business conditions.
 
 ## Page and Deck

@@ -157,7 +157,8 @@ function captureOptions(srcW: number, srcH: number, outW: number, outH: number, 
       return !(
         cls.includes('react-flow__minimap') ||
         cls.includes('react-flow__controls') ||
-        cls.includes('react-flow__panel')
+        cls.includes('react-flow__panel') ||
+        cls.includes('mf-flow-order-badge')
       );
     },
   };

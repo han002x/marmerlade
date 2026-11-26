@@ -89,14 +89,16 @@ exported to Mermaid; marmerlade draws a neutral placeholder glyph for it.
 | `id` | string | Unique. Not stable across Mermaid parses. |
 | `source`, `target` | string | Node ids. |
 | `label?` | string | Edge text. |
-| `order?` | number | 1-based flow step. Overrides traversal order. Not in Mermaid. |
+| `order?` | number | 0 excludes playback; positive integers override traversal order. Not in Mermaid. |
 | `route?` | `EdgeRoute` | Path from the last Tidy: end sides, bends, label spot, and the end positions it fits. Drawn only while both ends stay put and no side is set by hand. Not in Mermaid. |
 | `style?` | `ElementStyle` | Visual overrides. |
 
 Edges are directed and always rendered as `-->`. Parallel edges are allowed.
 Flow playback (`src/flow.ts`): start nodes (no incoming edge) fire first, every
 edge plays one step after the edge that reached its source, branches run
-together, `order` overrides.
+together, `order` overrides the automatic step. The Order control edits those
+numbers on the arrows. Each node lights when its first scheduled pulse starts
+or arrives.
 
 ### ElementStyle (nodes and edges)
 

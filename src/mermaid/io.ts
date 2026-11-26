@@ -856,7 +856,8 @@ export function parseMermaid(src: string): ParseResult {
  * for elements that still exist. Nodes are matched by id: a surviving node
  * keeps its `position`, `size`, `style`, and `collapsed`, and takes `label`/`shape`/
  * `parentId` from the parsed text. Edges are matched by `source->target` to
- * carry over `style`. Style the text spells out (`style`, `classDef`,
+ * carry over `style` and `order`, matching parallel edges by label first and
+ * then by occurrence. Style the text spells out (`style`, `classDef`,
  * `linkStyle`, arrowheads, a dotted or thick line) is laid over the canvas
  * style; see `mergeEdgeStyle` for how the line itself is kept. Elements absent
  * from `parsed` are dropped; genuinely new nodes keep the parsed (grid)
@@ -880,11 +881,26 @@ export function mergeDiagram(parsed: Diagram, current: Diagram): Diagram {
   });
 
   // index current edges by endpoint pair (edge ids are not stable across parses)
-  const curEdges = new Map<string, DiagramEdge>();
-  for (const e of current.edges) curEdges.set(`${e.source}\u0000${e.target}`, e);
+  const pair = (e: DiagramEdge) => `${e.source}\u0000${e.target}`;
+  const curEdges = new Map<string, DiagramEdge[]>();
+  for (const e of current.edges) {
+    const key = pair(e);
+    const list = curEdges.get(key);
+    if (list) list.push(e);
+    else curEdges.set(key, [e]);
+  }
+  const matches = new Map<DiagramEdge, DiagramEdge>();
+  for (const p of parsed.edges) {
+    const list = curEdges.get(pair(p));
+    if (!list) continue;
+    const i = list.findIndex((e) => e.label === p.label);
+    if (i < 0) continue;
+    const [match] = list.splice(i, 1);
+    matches.set(p, match);
+  }
 
   const edges: DiagramEdge[] = parsed.edges.map((p) => {
-    const prev = curEdges.get(`${p.source}\u0000${p.target}`);
+    const prev = matches.get(p) ?? curEdges.get(pair(p))?.shift();
     if (!prev) return p;
     return {
       ...p,

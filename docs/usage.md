@@ -52,14 +52,23 @@ as the drop target and handles enlarge. All motion respects
 ## Sequenced flow
 
 **P** plays a pulse along the connections in order: start
-nodes (no incoming edge) first, branches together, each node lighting as the
-pulse lands. `,` / `.` step back and forward, and the speed button cycles
-½× / 1× / 2×. A two-way connection plays from the endpoint reached first, or
-in both directions when its endpoints are reached together. Select a connection and set its **Flow step** to override the
-order (saved in `.marmerlade.json`, not in Mermaid). Folded cards take the pulse
+nodes (no incoming edge) first, branches together, each node lighting when
+its first pulse starts or lands. `,` / `.` step back and forward, and the
+speed button cycles ½× / 1× / 2×. A two-way connection plays from the endpoint
+reached first, or in both directions when its endpoints are reached together.
+Select a connection and set its **Flow step** to override the order (saved in
+`.marmerlade.json`, not in Mermaid). Folded cards take the pulse
 on their crease edges. **Export GIF** records one loop of a running or
 stepped sequence. Under **More actions**, choose an export width (900, 1440,
 or 1920 pixels), then export a GIF or PNG. The canvas aspect ratio is preserved.
+
+In the flow controls, click the **numbers** icon to stop playback and see the
+step number on every arrow. Click a number, enter a whole number, and press
+Enter or click away. **0 = not in use**: the arrow stays visible but does not
+play. Clear the number to restore automatic ordering. Manual steps have a
+solid accent border; automatic steps have a dashed border. Arrows with the
+same step play together. Click the tick to apply all changes in one undo step,
+or the cross or Escape to cancel. Unfold a group to edit its crease connections.
 
 **Export PowerPoint** writes the diagram you see as one `.pptx` slide of editable
 shapes and connectors. Folded groups are single cards, open groups are titled
@@ -220,8 +229,12 @@ Sloppiness picks **Ink** (clean), **Sketch** (default) or **Scribble**.
 ## App appearance
 
 Choose Paper, Night Paper, Clean, Blueprint, Terminal,
-Sepia, Classic (black and white), Halloween, or one editable Custom style in the right panel’s **Appearance** tab. Open it from **More actions → Appearance** or
-press `T`. Color changes appear on the canvas as you adjust them. Wiki and slides have an Appearance tab in the left panel. Custom
+Sepia, Classic (black and white), Halloween, or an editor-inspired style in
+the right panel’s **Appearance** tab. Developer presets include One Dark,
+Dracula, Nord, Solarized Dark and Light, and GitHub Dark and Light. Each uses
+clean lines and monospace content and headings. Open the panel from
+**More actions → Appearance** or
+press `Shift+T`. Color changes appear on the canvas as you adjust them. Wiki and slides have an Appearance tab in the left panel. Custom
 controls colors, fonts, wiki/slides icon symbols and colors, sketchiness, corners, texture, and shadows, with
 changes saved automatically across windows. Selecting a style resets existing
 diagram and slide styling; individual styling controls work afterward and

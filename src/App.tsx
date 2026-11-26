@@ -71,6 +71,7 @@ import { cycleSeconds, exportGif, exportImage } from './gif';
 import { FLOW_LEAD, flowCycle, flowSchedule, flowSeconds } from './flow';
 import { clock, seek, usePlayer } from './flowPlayer';
 import { FlowControls } from './components/FlowControls';
+import { FlowOrderEditContext } from './flowOrderEdit';
 import type { DiagramEdge as DEdge, DiagramNode as DNode, Side } from './types';
 import { autoSides } from './edgePath';
 import { hasOutline, shapeDef } from './shapes';
@@ -208,6 +209,17 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
 
   /** the overflow (3-dot) menu: open state and its anchor for click-outside */
   const [menuOpen, setMenuOpen] = useState(false);
+  const [flowDraft, setFlowDraft] = useState<ReadonlyMap<string, number | undefined> | null>(null);
+  const flowOrdering = flowDraft !== null;
+  const cancelFlowOrder = useCallback(() => setFlowDraft(null), []);
+  const changeFlowOrder = useCallback((id: string, order: number | undefined) => {
+    setFlowDraft((draft) => draft && new Map(draft).set(id, order));
+  }, []);
+  const flowOrderEditor = useMemo(() => ({ change: changeFlowOrder, cancel: cancelFlowOrder }), [changeFlowOrder, cancelFlowOrder]);
+  const applyFlowOrder = () => {
+    if (flowDraft) useDiagram.getState().setEdgeOrders(flowDraft);
+    cancelFlowOrder();
+  };
   const menuRef = useRef<HTMLDivElement>(null);
   const canvasWidth = useStore((state) => state.width);
   const canvasHeight = useStore((state) => state.height);
@@ -265,6 +277,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     if (exporting) return;
     const el = canvasRef.current;
     if (!el) return;
+    cancelFlowOrder();
     setExporting(format);
     if (format === 'pptx') {
       try {
@@ -316,7 +329,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     } finally {
       setExporting(null);
     }
-  }, [exporting, fitView, setSelection, flash, setExporting]);
+  }, [exporting, fitView, setSelection, flash, setExporting, cancelFlowOrder]);
 
   const hidden = useMemo(() => hiddenNodeIds(), [hiddenNodeIds, nodes]);
   // not drawn as a node: folded away, or an unfolded group (just a sheet)
@@ -330,17 +343,19 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
   // the edges on screen: those into a folded card crease onto the card instead
   // of vanishing, and ones on an unfolded group land on its sheet, as in Mermaid
   const shown = useMemo(() => {
-    const graph = visibleGraph(nodes, edges);
+    const ordered = flowDraft ? edges.map((e) => flowDraft.has(e.id) ? { ...e, order: flowDraft.get(e.id) } : e) : edges;
+    const graph = visibleGraph(nodes, ordered);
     const endOf = (id: string) => (offscreen.has(id) ? SHEET_PREFIX + id : id);
     const placed = graph.placed.map((e) => ({ ...e, source: endOf(e.source), target: endOf(e.target) }));
     return { direct: graph.direct, placed, folded: graph.folded, endOf };
-  }, [nodes, edges, offscreen]);
+  }, [nodes, edges, offscreen, flowDraft]);
 
   // the order the sequenced flow travels them
   const flow = useMemo(
     () => flowSchedule([...shown.placed, ...shown.folded]),
     [shown],
   );
+  const flowOrderAvailable = [...shown.placed, ...shown.folded].some((edge) => edge.style?.arrowheads && edge.style.arrowheads !== 'none');
   // fold choreography: nodes mid-fold are drawn on the card they fold into
   const foldPhase = useFoldMotion((s) => s.phase);
   const foldAnchor = useFoldMotion((s) => s.anchor);
@@ -594,6 +609,10 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
       const n = byId.get(id);
       return !!n && Math.abs(n.position.x - at.x) < 0.5 && Math.abs(n.position.y - at.y) < 0.5;
     };
+    const nodeName = (id: string) => {
+      const nodeId = id.startsWith(SHEET_PREFIX) ? id.slice(SHEET_PREFIX.length) : id;
+      return byId.get(nodeId)?.label || nodeId;
+    };
     // Tidy's route, while it still fits: the user has not picked sides and
     // neither end has moved since (an end drawn on a sheet is never found)
     const routeOf = (e: DEdge) =>
@@ -648,7 +667,9 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
             : sidesOf(e.source, e.target, e)),
           label: e.label,
           animated: false,
-          data: { style: e.style, flowStep: flow.edgeStep.get(e.id), flowDirection: flow.edgeDirection.get(e.id), points: route?.points, labelAt: route?.label },
+          data: { style: e.style, flowStep: flow.edgeStep.get(e.id), flowDirection: flow.edgeDirection.get(e.id), points: route?.points, labelAt: route?.label,
+            flowOrdering, flowOrder: e.order, flowBadgeStep: e.style?.arrowheads && e.style.arrowheads !== 'none' ? (flow.edgeStep.get(e.id) ?? -1) + 1 : undefined,
+            flowName: flowOrdering ? `${nodeName(e.source)} to ${nodeName(e.target)}` : undefined },
         };
       }),
       ...folded.map((f) => ({
@@ -662,14 +683,16 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
         selectable: false,
         focusable: false,
         deletable: false,
-        data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id), flowDirection: flow.edgeDirection.get(f.id) },
+        data: { folded: true, count: f.count, style: f.style, flowStep: flow.edgeStep.get(f.id), flowDirection: flow.edgeDirection.get(f.id),
+          flowOrdering, flowBadgeStep: f.style?.arrowheads && f.style.arrowheads !== 'none' ? (flow.edgeStep.get(f.id) ?? -1) + 1 : undefined,
+          flowName: flowOrdering ? `${nodeName(f.source)} to ${nodeName(f.target)}` : undefined },
       })),
     ];
     // Connections in either direction can share the same midpoint. Give their
     // visible labels separate rows, including the count on a folded connection.
     const labelGroups = new Map<string, Edge[]>();
     for (const edge of renderedEdges) {
-      if (edge.data?.preview || (!edge.label && !(edge.data?.folded && Number(edge.data.count) > 1))) continue;
+      if (edge.data?.preview || (!edge.label && !(edge.data?.folded && Number(edge.data.count) > 1) && !(flowOrdering && edge.data?.flowBadgeStep !== undefined))) continue;
       const key = JSON.stringify([edge.source, edge.target].sort());
       const group = labelGroups.get(key) ?? [];
       group.push(edge);
@@ -678,11 +701,11 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
     for (const group of labelGroups.values()) {
       if (group.length < 2) continue;
       group.forEach((edge, index) => {
-        edge.data = { ...edge.data, labelOffsetY: (index - (group.length - 1) / 2) * 32 };
+        edge.data = { ...edge.data, labelOffsetY: (index - (group.length - 1) / 2) * (flowOrdering ? 56 : 32) };
       });
     }
     return reuse(edgeCache.current, renderedEdges);
-  }, [shown, flow, edges, nodes, ghostNode, insertion, selectedEdges, rfNodesWithGhost, direction]);
+  }, [shown, flow, flowOrdering, edges, nodes, ghostNode, insertion, selectedEdges, rfNodesWithGhost, direction]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -1049,7 +1072,8 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           <ToolButton label="Tidy down" hotkey="L" onClick={() => tidy('TB')}>
             <Icon name="layout-arrow-down" />
           </ToolButton>
-          <FlowControls sig={flow.sig} steps={flow.steps} />
+          <FlowControls sig={flow.sig} steps={flow.steps} order={{ available: flowOrderAvailable, editing: flowOrdering,
+            begin: () => setFlowDraft(new Map()), apply: applyFlowOrder, cancel: cancelFlowOrder }} />
         </div>
         <span className="mf-sep" />
         <ExportMenu size={{ width: canvasWidth, height: canvasHeight }} exporting={exporting} onExport={saveExport} />
@@ -1123,6 +1147,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
       {slots ? (slots.toolbar && createPortal(toolbar,slots.toolbar)) : (
         <div className={compactToolbar ? 'mf-toolbar is-compact' : 'mf-toolbar'}>{toolbar}</div>
       )}
+      <FlowOrderEditContext.Provider value={flowOrderEditor}>
       <ReactFlow ref={canvasRef}
         nodes={rfNodesWithGhost}
         edges={rfEdges}
@@ -1233,6 +1258,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           </>
         )}
       </ReactFlow>
+      </FlowOrderEditContext.Provider>
 
       <NodeTransforms nodes={nodeRects} selected={selected} preview={resizePreview} moveGuides={moveGuides ?? []}
         disabled={Boolean(pending || connecting || foldPhase || moveGuides)} onPreview={setResizePreview}
@@ -1268,7 +1294,7 @@ function Canvas({ onTogglePanel, exporting, setExporting, welcome, slots }: {
           )}
         </div>
       )}
-      {slots ? slots.stylePanel && createPortal(<StylePanel />, slots.stylePanel) : <StylePanel />}
+      {slots ? slots.stylePanel && createPortal(<StylePanel showFlowStep={!flowOrdering} />, slots.stylePanel) : <StylePanel showFlowStep={!flowOrdering} />}
       {notice && (
         <div className="mf-notice" role="status">
           {notice}

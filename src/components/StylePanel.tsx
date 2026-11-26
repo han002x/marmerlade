@@ -43,7 +43,7 @@ const FONT_GLYPH: Record<string, string> = {
  * more elements are selected and edits the shared ElementStyle of every
  * selected node/edge at once.
  */
-export function StylePanel() {
+export function StylePanel({ showFlowStep = true }: { showFlowStep?: boolean } = {}) {
   const selectedNodeIds = useDiagram((s) => s.selectedNodeIds);
   const selectedEdgeIds = useDiagram((s) => s.selectedEdgeIds);
   const nodes = useStructure();
@@ -132,22 +132,23 @@ export function StylePanel() {
         </section>
       )}
 
-      {hasEdges && (
+      {hasEdges && showFlowStep && (
         <section className="mf-style-section">
           <label className="mf-style-label">Flow step</label>
           <input
             className="mf-picker-filter"
             type="number"
-            min={1}
+            min={0}
             step={1}
             aria-label="Flow step"
             placeholder="Auto"
             value={selEdgeOrder ?? ''}
             onChange={(e) => {
               const n = Math.floor(Number(e.target.value));
-              setEdgeOrder(selectedEdgeIds, e.target.value === '' || n < 1 ? undefined : n);
+              setEdgeOrder(selectedEdgeIds, e.target.value === '' ? undefined : n, { coalesce: true });
             }}
           />
+          <p className="mf-flow-order-hint">0 = not in use</p>
         </section>
       )}
     </aside>

@@ -157,10 +157,10 @@ documents. Preserve the workspace JSON for a complete editable result.
 During a live text edit, `mergeDiagram` preserves surviving nodes' positions,
 collapse state, styles, and unspecified document links by node ID. Parsed
 labels, shapes, icons/images, and parent membership come from the new text.
-Edge styles and flow order are preserved by endpoint pair; that matching is
-ambiguous for differently styled parallel edges. Nodes and edges absent from
-the parsed structure are removed. This merge behavior is not a property of the
-Mermaid file itself.
+Edge styles and flow order are preserved by endpoint pair. Parallel edges
+are matched by label first, then by occurrence when labels are ambiguous.
+Nodes and edges absent from the parsed structure are removed. This merge
+behavior is not a property of the Mermaid file itself.
 
 ## Output mechanics
 

@@ -33,9 +33,10 @@ export function AppearanceSettings() {
       {[...PRESETS, { id: 'custom', name: 'Custom', style: settings.custom ?? style }].map((preset) => <button
         type="button" key={preset.id} aria-pressed={settings.selected === preset.id}
         onClick={() => choose(preset.id, preset.id === 'custom' ? settings.custom ?? style : settings.custom)}>
-        <span className="mf-appearance-preview" aria-hidden="true" style={{ background: preset.style.colors.bg, color: preset.style.colors.ink, fontFamily: FONTS[preset.style.contentFont], borderRadius: preset.style.corners === 'sharp' ? 0 : 6 }}>
-          <span style={{ background: preset.style.colors.node, borderColor: preset.style.colors.accent }}>Aa</span><span style={{ color: preset.style.colors.accent }}>→</span><span style={{ background: preset.style.colors.group }}>Ab</span>
-        </span>{preset.name}
+        <span>{preset.name}</span>
+        <span className="mf-appearance-preview" aria-hidden="true">
+          {COLORS.map((color) => <span key={color} style={{ background: preset.style.colors[color] }} />)}
+        </span>
       </button>)}
     </div>
     {settings.selected === 'custom' && <div className="mf-custom-controls">

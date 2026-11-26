@@ -175,7 +175,7 @@ export interface DiagramEdge {
   /** side the edge leaves from / arrives at; missing => the side facing the other end */
   sourceSide?: Side;
   targetSide?: Side;
-  /** 1-based step in the flow sequence; missing => follows the graph */
+  /** 0 excludes the edge; positive step overrides automatic flow; missing follows the graph */
   order?: number;
   /** the path Tidy found for this edge; drawn while both ends stay put */
   route?: EdgeRoute;

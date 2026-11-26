@@ -266,7 +266,8 @@ interface State {
   updateNodeStyle: (ids: string[], patch: Partial<ElementStyle>) => void;
   updateEdgeStyle: (ids: string[], patch: Partial<ElementStyle>) => void;
   /** set (or, with undefined, clear) the flow step of several edges */
-  setEdgeOrder: (ids: string[], order: number | undefined) => void;
+  setEdgeOrder: (ids: string[], order: number | undefined, options?: { coalesce?: boolean }) => void;
+  setEdgeOrders: (orders: ReadonlyMap<string, number | undefined>) => void;
   moveNode: (id: string, position: { x: number; y: number }) => void;
   resizeNodes: (before: DiagramNode[], rects: ReadonlyMap<string, Rect>) => void;
   /** Enlarge a node so its text fits; never shrinks and records no history. */
@@ -360,6 +361,21 @@ export const useDiagram = create<State>((set, get) => {
     return { history: next };
   };
 
+  const applyEdgeOrders = (orders: ReadonlyMap<string, number | undefined>, coalesceKey?: string) =>
+    set((s) => {
+      if ([...orders.values()].some((order) => order != null && (!Number.isSafeInteger(order) || order < 0))) return s;
+      if (!s.edges.some((e) => orders.has(e.id) && e.order !== orders.get(e.id))) return s;
+      return {
+        ...(coalesceKey ? styleSnapshot(coalesceKey) : snapshot()),
+        edges: s.edges.map((e) => {
+          if (!orders.has(e.id)) return e;
+          const order = orders.get(e.id);
+          const next = { ...e };
+          delete next.order;
+          return order == null ? next : { ...next, order };
+        }),
+      };
+    });
 
   /**
    * Pages and decks are the same thing to the store: documents that nodes and
@@ -920,20 +936,10 @@ export const useDiagram = create<State>((set, get) => {
       };
     }),
 
-  setEdgeOrder: (ids, order) =>
-    set((s) => {
-      if (ids.length === 0) return s;
-      const set$ = new Set(ids);
-      return {
-        ...styleSnapshot(`order:${ids.join(',')}`),
-        edges: s.edges.map((e) => {
-          if (!set$.has(e.id)) return e;
-          const next = { ...e };
-          delete next.order;
-          return order == null ? next : { ...next, order };
-        }),
-      };
-    }),
+  setEdgeOrder: (ids, order, options) =>
+    applyEdgeOrders(new Map(ids.map((id) => [id, order])), options?.coalesce ? `order:${ids.join(',')}` : undefined),
+
+  setEdgeOrders: (orders) => applyEdgeOrders(orders),
 
   moveNode: (id, position) =>
     set((s) => {

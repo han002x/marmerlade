@@ -4,15 +4,17 @@
 // steps: step k plays while the clock reads k..k+1, so an edge's progress is
 // clamp(t - step, 0, 1) and a node lights once the clock passes its arrival.
 
-import type { ElementStyle } from './types';
+import type { Arrowheads, ElementStyle } from './types';
 
 export interface FlowEdge {
   id: string;
   source: string;
   target: string;
-  /** 1-based manual position; set, it overrides the traversal order */
+  /** 0 excludes the edge; positive values override the traversal order */
   order?: number;
   style?: Pick<ElementStyle, 'arrowheads'>;
+  /** A folded crease may draw more directions than it actually plays. */
+  flowArrowheads?: Arrowheads;
 }
 
 export interface FlowSchedule {
@@ -20,7 +22,7 @@ export interface FlowSchedule {
   edgeStep: Map<string, number>;
   /** direction of the first traversal, relative to the edge's endpoints */
   edgeDirection: Map<string, 'start' | 'end' | 'both'>;
-  /** node id -> the clock time it lights (0 for a start node) */
+  /** node id -> the clock time its first pulse starts or arrives */
   nodeAt: Map<string, number>;
   /** how many steps the sequence has */
   steps: number;
@@ -49,9 +51,10 @@ export const flowSeconds = (steps: number, speed: number) =>
  * its first edge's source. Each edge plays once, so cycles terminate.
  */
 export function flowSchedule(edges: FlowEdge[]): FlowSchedule {
-  const active = edges.filter((edge) => (edge.style?.arrowheads ?? 'none') !== 'none');
+  const arrowheads = (edge: FlowEdge) => edge.order === 0 ? 'none' : edge.flowArrowheads ?? edge.style?.arrowheads ?? 'none';
+  const active = edges.filter((edge) => arrowheads(edge) !== 'none');
   const arcs = active.flatMap((edge) => {
-    const direction = edge.style?.arrowheads;
+    const direction = arrowheads(edge);
     return [
       ...(direction === 'end' || direction === 'both' ? [{ edge, from: edge.source, to: edge.target }] : []),
       ...(direction === 'start' || direction === 'both' ? [{ edge, from: edge.target, to: edge.source }] : []),
@@ -100,28 +103,32 @@ export function flowSchedule(edges: FlowEdge[]): FlowSchedule {
 
   const edgeStep = new Map<string, number>();
   const edgeDirection = new Map<string, 'start' | 'end' | 'both'>();
+  const nodeAt = new Map<string, number>();
+  const light = (id: string, at: number) => nodeAt.set(id, Math.min(nodeAt.get(id) ?? Infinity, at));
   for (const e of active) {
     const manual = e.order != null && Number.isFinite(e.order) ? Math.max(1, Math.floor(e.order)) - 1 : null;
-    const origins = arcs.filter((arc) => arc.edge === e).map((arc) => depth.get(arc.from)!);
-    edgeStep.set(e.id, manual ?? Math.min(...origins));
-    const direction = e.style?.arrowheads;
-    if (direction === 'both') {
-      const sourceDepth = depth.get(e.source)!;
-      const targetDepth = depth.get(e.target)!;
-      edgeDirection.set(e.id, sourceDepth === targetDepth ? 'both' : sourceDepth < targetDepth ? 'end' : 'start');
-    } else if (direction === 'start' || direction === 'end') edgeDirection.set(e.id, direction);
+    const direction = arrowheads(e);
+    const sourceDepth = depth.get(e.source);
+    const targetDepth = depth.get(e.target);
+    if (sourceDepth === undefined || targetDepth === undefined || !direction || direction === 'none') continue;
+    const travel = direction === 'both'
+      ? sourceDepth === targetDepth ? 'both' : sourceDepth < targetDepth ? 'end' : 'start'
+      : direction;
+    const step = manual ?? (travel === 'start' ? targetDepth : sourceDepth);
+    edgeStep.set(e.id, step);
+    edgeDirection.set(e.id, travel);
+    if (travel !== 'start') {
+      light(e.source, step);
+      light(e.target, step + 1);
+    }
+    if (travel !== 'end') {
+      light(e.target, step);
+      light(e.source, step + 1);
+    }
   }
-
-  // a node lights when the first edge into it lands; start nodes light at once
-  const nodeAt = new Map<string, number>();
-  for (const arc of arcs) {
-    const at = edgeStep.get(arc.edge.id)! + 1;
-    nodeAt.set(arc.to, Math.min(nodeAt.get(arc.to) ?? Infinity, at));
-  }
-  for (const id of ids) if (depth.get(id) === 0) nodeAt.set(id, 0);
 
   let steps = 0;
   for (const s of edgeStep.values()) steps = Math.max(steps, s + 1);
-  const sig = `${steps}|${active.map((e) => `${e.id}:${e.source}:${e.target}:${e.style?.arrowheads}:${edgeStep.get(e.id)}:${edgeDirection.get(e.id)}`).join(',')}`;
+  const sig = `${steps}|${active.map((e) => `${e.id}:${e.source}:${e.target}:${arrowheads(e)}:${edgeStep.get(e.id)}:${edgeDirection.get(e.id)}`).join(',')}`;
   return { edgeStep, edgeDirection, nodeAt, steps, sig };
 }

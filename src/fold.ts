@@ -5,7 +5,7 @@
 // pointed into it creases onto the card instead (so folding never loses
 // context). Nothing here touches React or the store, so it is easy to test.
 
-import type { DiagramEdge, DiagramNode } from './types';
+import type { Arrowheads, DiagramEdge, DiagramNode } from './types';
 
 export type Rect = { x: number; y: number; width: number; height: number };
 export type Size = { width: number; height: number };
@@ -96,6 +96,13 @@ export interface FoldedEdge {
   count: number;
   label?: string;
   style?: Pick<DiagramEdge['style'] & {}, 'arrowheads'>;
+  flowArrowheads: Arrowheads;
+}
+
+function mergeArrowheads(a: Arrowheads, b: Arrowheads): Arrowheads {
+  const start = a === 'start' || a === 'both' || b === 'start' || b === 'both';
+  const end = a === 'end' || a === 'both' || b === 'end' || b === 'both';
+  return start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
 }
 
 /**
@@ -121,21 +128,21 @@ export function foldEdges(
     if (!s || !t || s === t) continue;
     const key = `${s}\u0000${t}`;
     const m = merged.get(key);
+    const arrowheads = e.style?.arrowheads ?? 'none';
+    const flowArrowheads = e.order === 0 ? 'none' : arrowheads;
     if (m) {
       m.count++;
       if (e.label) m.labels.add(e.label);
-      const old = m.style?.arrowheads ?? 'none';
-      const next = e.style?.arrowheads ?? 'none';
-      const start = old === 'start' || old === 'both' || next === 'start' || next === 'both';
-      const end = old === 'end' || old === 'both' || next === 'end' || next === 'both';
-      m.style = { arrowheads: start && end ? 'both' : start ? 'start' : end ? 'end' : 'none' };
+      m.style = { arrowheads: mergeArrowheads(m.style?.arrowheads ?? 'none', arrowheads) };
+      m.flowArrowheads = mergeArrowheads(m.flowArrowheads, flowArrowheads);
     } else {
       merged.set(key, {
         id: `fold:${s}->${t}`,
         source: s,
         target: t,
         count: 1,
-        style: { arrowheads: e.style?.arrowheads ?? 'none' },
+        style: { arrowheads },
+        flowArrowheads,
         labels: new Set(e.label ? [e.label] : []),
       });
     }

@@ -45,13 +45,29 @@ const at = (s: ReturnType<typeof flowSchedule>) => Object.fromEntries(s.nodeAt);
   assert.deepEqual(steps(s), { 1: 0, 2: 0 });
 }
 
+// Numbering overrides timing without excluding the rest of the diagram.
+{
+  const s = flowSchedule([E('1', 'a', 'b', 3), E('2', 'b', 'c', 1), E('3', 'c', 'b'), E('4', 'x', 'y')]);
+  assert.deepEqual(steps(s), { 1: 2, 2: 0, 3: 2, 4: 0 });
+  assert.deepEqual(at(s), { a: 2, b: 0, c: 1, x: 0, y: 1 });
+  assert.equal(s.steps, 3);
+}
+
 // a manual order overrides traversal; the rest keep theirs
 {
   const s = flowSchedule([E('1', 'a', 'b'), E('2', 'b', 'c', 1)]);
   assert.deepEqual(steps(s), { 1: 0, 2: 0 });
   const t = flowSchedule([E('1', 'a', 'b', 3), E('2', 'b', 'c')]);
   assert.deepEqual(steps(t), { 1: 2, 2: 1 });
+  assert.deepEqual(at(t), { a: 2, b: 1, c: 2 });
   assert.equal(t.steps, 3);
+}
+
+// Numbered reverse arrows light their actual origin at the assigned step.
+{
+  const s = flowSchedule([{ id: 'reverse', source: 'a', target: 'b', order: 3, style: { arrowheads: 'start' } }]);
+  assert.equal(s.edgeDirection.get('reverse'), 'start');
+  assert.deepEqual(at(s), { b: 2, a: 3 });
 }
 
 // no edges, no sequence
@@ -59,6 +75,14 @@ const at = (s: ReturnType<typeof flowSchedule>) => Object.fromEntries(s.nodeAt);
   const s = flowSchedule([]);
   assert.equal(s.steps, 0);
   assert.equal(flowSeconds(0, 1), 0);
+}
+
+// Zero excludes an arrow from both playback and automatic traversal.
+{
+  const s = flowSchedule([E('1', 'a', 'b', 0), E('2', 'b', 'c')]);
+  assert.deepEqual(steps(s), { 2: 0 });
+  assert.deepEqual(at(s), { b: 0, c: 1 });
+  assert.equal(flowSchedule([E('1', 'a', 'b', 0)]).steps, 0);
 }
 
 // the signature moves with the schedule
@@ -83,6 +107,12 @@ assert.notEqual(
   assert.equal(s.edgeStep.get('fold:a->g'), 0);
   assert.equal(s.edgeStep.get('fold:g->c'), 1);
   assert.equal(s.nodeAt.get('g'), 1);
+  const disabled = foldEdges(nodes, [{ ...edges[0], order: 0 }, edges[1]], hiddenIds(nodes));
+  const t = flowSchedule([...disabled.direct, ...disabled.folded]);
+  assert.deepEqual(steps(t), { 'fold:g->c': 0 });
+  const mixed = foldEdges(nodes, [{ ...edges[0], order: 0, style: { arrowheads: 'start' } }, { ...edges[0], id: 'e3' }], hiddenIds(nodes));
+  assert.equal(mixed.folded[0].style?.arrowheads, 'both');
+  assert.equal(flowSchedule(mixed.folded).edgeDirection.get('fold:a->g'), 'end');
 }
 
 // Direction follows arrowheads; undirected edges do not participate.
@@ -121,6 +151,17 @@ assert.equal(flowSeconds(3, 2), 2.25 * HOP_SECONDS);
   const ordered = { nodes, edges: [{ id: 'e', source: 'a', target: 'b', order: 2 }] };
   assert.equal(toMermaid(ordered), toMermaid(plain));
   assert.equal(mergeDiagram(plain, ordered).edges[0].order, 2);
+  assert.equal(mergeDiagram(plain, { nodes, edges: [{ ...plain.edges[0], order: 0 }] }).edges[0].order, 0);
+
+  const parallel = [
+    { id: 'e1', source: 'a', target: 'b', label: 'Request', order: 3 },
+    { id: 'e2', source: 'a', target: 'b', label: 'Retry', order: 1 },
+  ];
+  const edited = [
+    { id: 'new1', source: 'a', target: 'b', label: 'Retry' },
+    { id: 'new2', source: 'a', target: 'b', label: 'Renamed request' },
+  ];
+  assert.deepEqual(mergeDiagram({ nodes, edges: edited }, { nodes, edges: parallel }).edges.map((e) => e.order), [1, 3]);
 }
 
 console.log('PASS: flow order, branches, cycles, manual override, folds, loop length');

@@ -23,6 +23,7 @@ export type IconName =
   | 'code'
   | 'pencil'
   | 'check'
+  | 'numbers'
   | 'close'
   | 'plus'
   | 'insert'
@@ -179,6 +180,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
   code: <path d="m8 7-5 5 5 5M16 7l5 5-5 5" />,
   pencil: <path d="m16 3 5 5L8 21H3v-5ZM13 6l5 5" />,
   check: <path d="m5 12 4 4L19 6" />,
+  numbers: <path strokeWidth={2} d="m10 4l2.6-1.95a.25.25 0 0 1 .4.2V10m3 4.535A4 4 0 0 1 18 14a2 2 0 0 1 0 4a2 2 0 0 1 0 4a4 4 0 0 1-2-.535M8 22H4.5a.5.5 0 0 1-.5-.5c0-2.68 4-2.932 4-5.5a2 2 0 0 0-2-2a2.5 2.5 0 0 0-2 1" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,
   // Two lifelines with a message between them: adds a sequence element.

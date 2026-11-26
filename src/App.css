@@ -202,10 +202,84 @@
 }
 
 .mf-flow-menu {
-  flex-direction: row;
   right: auto;
   left: 0;
   min-width: 0;
+}
+
+.mf-flow-menu-row {
+  display: flex;
+  gap: 2px;
+}
+
+.mf-flow-order-hint {
+  margin: 0;
+  padding: 4px 3px 2px;
+  color: var(--mf-muted);
+  font: 400 11px var(--mf-ui-font, var(--mf-sans));
+  white-space: nowrap;
+}
+
+.mf-flow-order-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+}
+
+.react-flow__edgelabel-renderer:has(.mf-flow-order-label) {
+  z-index: 2;
+}
+
+.mf-flow-order-label .mf-edge-text {
+  white-space: nowrap;
+  cursor: default;
+}
+
+.mf-flow-order-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px dashed var(--mf-border);
+  border-radius: 13px;
+  background: var(--mf-panel);
+  color: var(--mf-muted);
+  box-shadow: var(--mf-contact);
+  font: 600 12px var(--mf-ui-font, var(--mf-sans));
+  font-variant-numeric: tabular-nums;
+}
+
+button.mf-flow-order-badge {
+  cursor: pointer;
+}
+
+button.mf-flow-order-badge:hover,
+.mf-flow-order-badge.is-manual {
+  color: var(--mf-accent);
+  border: 1px solid var(--mf-accent);
+}
+
+.mf-flow-order-badge.is-unused {
+  color: var(--mf-muted);
+  border-color: var(--mf-border);
+  background: var(--mf-input);
+}
+
+.mf-flow-order-input {
+  width: 52px;
+  text-align: center;
+  border: 1px solid var(--mf-accent);
+  color: var(--mf-text);
+  background: var(--mf-input);
+}
+
+.mf-flow-order-input[aria-invalid="true"] {
+  border-color: #d94c4c;
 }
 
 .mf-menu-item {

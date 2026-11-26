@@ -25,7 +25,7 @@ export const nodeSchema = z.object({
 const side = z.enum(['top', 'right', 'bottom', 'left']);
 const point = z.object({ x: z.number().finite(), y: z.number().finite() });
 const route = z.object({ sourceSide: side, targetSide: side, points: z.array(point), from: point, to: point, label: point.optional() });
-export const edgeSchema = z.object({ id, source: id, target: id, label: z.string().optional(), sourceSide: side.optional(), targetSide: side.optional(), order: z.number().int().positive().optional(), route: route.optional(), style: style.optional() });
+export const edgeSchema = z.object({ id, source: id, target: id, label: z.string().optional(), sourceSide: side.optional(), targetSide: side.optional(), order: z.number().int().nonnegative().optional(), route: route.optional(), style: style.optional() });
 export const documentSchema = z.object({ id: id.regex(/^[A-Za-z0-9_-]+$/), title: z.string(), body: z.string(), updatedAt: z.number().nonnegative() });
 const entityBase = {
   id,

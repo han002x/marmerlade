@@ -33,6 +33,9 @@ const paper: Appearance = {
   colors: palette(['#ffffff','#fbfaf7','#e6e1d7','#2a2723','#8a857c','#3a352e','#e2ddd2','#3b5b9a','#d0532f','#ffffff','#f6f2ea','#ffffff']),
   uiFont: 'sans', contentFont: 'hand', headingFont: 'hand', sloppiness: 1, corners: 'round', texture: 'paper', shadows: true,
 };
+function developer(colors: Parameters<typeof palette>[0]): Appearance {
+  return { ...paper, colors: palette(colors), contentFont: 'mono', headingFont: 'mono', sloppiness: 0, corners: 'sharp', texture: 'plain', shadows: false };
+}
 export const PRESETS = [
   { id: 'paper', name: 'Paper', style: paper },
   { id: 'night-paper', name: 'Night Paper', style: { ...paper, colors: palette(['#1a1916','#22201c','#3a362f','#ece5d8','#9b9384','#d9d1c3','#3d3932','#8fa8dc','#e9764f','#27241f','#2d2a24','#161512']) } },
@@ -42,6 +45,13 @@ export const PRESETS = [
   { id: 'sepia', name: 'Sepia', style: { ...paper, colors: palette(['#f5efdf','#fcf8ed','#d6c8ad','#45372a','#81715f','#5c4632','#ddd0b8','#91613b','#b76542','#fffaf0','#e9ddc4','#fffaf0']), contentFont: 'serif', headingFont: 'serif', sloppiness: 0 } },
   { id: 'classic', name: 'Classic', style: { ...paper, colors: palette(['#ffffff','#ffffff','#cccccc','#000000','#666666','#000000','#e6e6e6','#000000','#000000','#ffffff','#ffffff','#ffffff']), contentFont: 'sans', headingFont: 'sans', sloppiness: 0, corners: 'sharp', texture: 'plain', shadows: false } },
   { id: 'halloween', name: 'Halloween', style: { ...paper, colors: palette(['#17121e','#23192e','#51405f','#fff0dd','#bba6c9','#f4dcc0','#382a45','#ff963f','#dca1ff','#2b2035','#34233c','#130f19']), contentFont: 'hand', headingFont: 'serif', sloppiness: 1, texture: 'paper', wikiIcon: { symbol: 'ghost', color: '#dca1ff' }, slidesIcon: { symbol: 'pumpkin', color: '#ff963f' } } },
+  { id: 'one-dark', name: 'One Dark', style: developer(['#282c34','#21252b','#3e4451','#abb2bf','#939caa','#c8ccd4','#3a404b','#61afef','#e06c75','#2c313a','#282c34','#1b1f27']) },
+  { id: 'dracula', name: 'Dracula', style: developer(['#282a36','#21222c','#44475a','#f8f8f2','#a5a8c5','#f8f8f2','#393b4b','#bd93f9','#ff79c6','#343746','#282a36','#191a21']) },
+  { id: 'nord', name: 'Nord', style: developer(['#2e3440','#272c36','#4c566a','#eceff4','#aeb9cc','#d8dee9','#434c5e','#88c0d0','#81a1c1','#3b4252','#2e3440','#242933']) },
+  { id: 'solarized-dark', name: 'Solarized Dark', style: developer(['#002b36','#073642','#24505b','#eee8d5','#93a1a1','#a8b8b8','#16434e','#34b3aa','#b58900','#073642','#002b36','#00232c']) },
+  { id: 'solarized-light', name: 'Solarized Light', style: developer(['#fdf6e3','#eee8d5','#d3cbb8','#073642','#435a61','#405b63','#ded7c5','#115b86','#9e5a00','#fdf6e3','#eee8d5','#fffaf0']) },
+  { id: 'github-dark', name: 'GitHub Dark', style: developer(['#0d1117','#161b22','#30363d','#e6edf3','#9da7b3','#c9d1d9','#21262d','#58a6ff','#3fb950','#161b22','#0d1117','#010409']) },
+  { id: 'github-light', name: 'GitHub Light', style: developer(['#ffffff','#f6f8fa','#d0d7de','#24292f','#57606a','#24292f','#e7ebef','#075bb9','#1a7f37','#ffffff','#f6f8fa','#ffffff']) },
 ] satisfies { id: string; name: string; style: Appearance }[];
 export type PresetId = typeof PRESETS[number]['id'];
 export const FONTS: Record<FontFamily, string> = {

@@ -1,5 +1,5 @@
 import { useStyleDefaults } from '../useStyleDefaults';
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useContext, useEffect, useMemo, useState } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -8,6 +8,7 @@ import {
   type EdgeProps,
 } from '@xyflow/react';
 import { useDiagram } from '../store';
+import { FlowOrderEditContext } from '../flowOrderEdit';
 import { Icon } from './Icon';
 import type { ElementStyle } from '../types';
 import { animationClass, dashArray, flowDash, fontFamilyCss } from '../style';
@@ -254,7 +255,15 @@ function DiagramEdgeInner({
         </>
       )}
       <EdgeLabelRenderer>
-        {inert ? (
+        {data?.flowOrdering === true && typeof data.flowBadgeStep === 'number' ? (
+          <div className="mf-edge-label mf-flow-order-label nodrag nopan"
+            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY + labelOffsetY}px)` }}>
+            <FlowStepBadge id={id} step={data.flowBadgeStep}
+              order={typeof data.flowOrder === 'number' ? data.flowOrder : undefined}
+              name={typeof data.flowName === 'string' ? data.flowName : id} folded={folded} />
+            {text && <span className="mf-edge-text" style={{ ...labelFont, color: st?.fontColor }}>{text}</span>}
+          </div>
+        ) : inert ? (
           text && (
             <div
               className="mf-edge-label is-crease nodrag nopan"
@@ -338,5 +347,55 @@ function DiagramEdgeInner({
         )}
       </EdgeLabelRenderer>
     </>
+  );
+}
+
+function FlowStepBadge({ id, step, order, name, folded }: {
+  id: string; step: number; order?: number; name: string; folded: boolean;
+}) {
+  const editor = useContext(FlowOrderEditContext);
+  const [draft, setDraft] = useState<string | null>(null);
+  const value = draft?.trim();
+  const valid = value === '' || (value != null && /^\d+$/.test(value) && Number.isSafeInteger(Number(value)));
+  const label = `Flow step for ${name}`;
+  const status = step === 0 ? 'not in use' : order == null ? 'automatic' : 'manual';
+  const attributes = {
+    'data-flow-edge-id': id,
+    className: `mf-flow-order-badge${order != null ? ' is-manual' : ''}${step === 0 ? ' is-unused' : ''}`,
+  };
+  if (folded) return <span {...attributes} title="Unfold to edit the connections" aria-label={`${label}: ${step} (folded)`}>{step}</span>;
+  if (draft === null) return (
+    <button {...attributes} type="button"
+      aria-label={`${label}: ${step} (${status})`}
+      title={`Step ${step} · ${status} · Click to edit`}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => { event.stopPropagation(); setDraft(order == null ? '' : String(order)); }}>
+      {step}
+    </button>
+  );
+  return (
+    <input {...attributes} className={`${attributes.className} mf-flow-order-input nowheel`}
+      autoFocus type="text" inputMode="numeric" aria-label={label} aria-invalid={!valid}
+      title="0 = not in use. Clear for automatic ordering."
+      value={draft} placeholder={String(step)}
+      onFocus={(event) => event.currentTarget.select()}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (valid) editor?.change(id, value === '' ? undefined : Number(value));
+        setDraft(null);
+      }}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === 'Enter' && valid) {
+          event.preventDefault();
+          event.currentTarget.blur();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          editor?.cancel();
+        }
+      }}
+    />
   );
 }
